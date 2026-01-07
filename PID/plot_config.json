@@ -1,0 +1,68 @@
+{
+  "istogrammi": [
+    {
+      "path": "new_LR.root:chi2/proton_hchi2_coll_ind1_ind2_asmu",
+      "label": "protons",
+      "colore": "orange",
+      "alpha": 1,
+      "ls":"solid"
+    },
+    {
+      "path": "new_LR.root:chi2/pion_hchi2_coll_ind1_ind2_asmu",
+      "label": "pions",
+      "colore": "green",
+      "alpha": 1,
+      "ls":"solid"
+    },
+        {
+      "path": "new_LR.root:chi2/muon_hchi2_coll_ind1_ind2_asmu",
+      "label": "muons",
+      "colore": "cornflowerblue",
+      "alpha": 1,
+      "ls":"solid"
+    }
+
+  ],
+
+  "grafici":[
+    {
+      "path": "new_LR.root:rocCurve_coll_ind1_ind2_muon_proton",
+      "label": "muons (sig) vs protons (bkg)",
+      "colore": "blue",
+      "alpha": 1
+    },
+    {
+      "path": "new_LR.root:rocCurve_coll_ind1_ind2_muon_pion",
+      "label": "muons (sig) vs pions (bkg)",
+      "colore": "mediumorchid",
+      "alpha": 1
+    },
+    {
+      "path": "new_LR.root:rocCurve_coll_ind1_ind2_proton_pion",
+      "label": "protons (sig) vs pions (bkg)",
+      "colore": "pink",
+      "alpha": 1
+    }
+  ],
+
+  
+
+
+  "object": "hist",
+  "drawErrors": true,
+  "logy": false,
+  "xlabel": "$\\chi^{2}$ as $\\mu$",
+  "ylabel": "counts (area normalized)",
+  "title": "$\\chi^{2}$ as $\\mu$ - COLL + IND1 + IND2 planes",
+  "location": "upper center",
+  "xlow": 0,
+  "xhigh": 80,
+  "ylow": 1e-4,
+  "yhigh": 1.05,
+  "xticks_interval": 5,
+  "rotation": 60,
+  "savepath": "chi2_coll_ind1_ind2_asmu.pdf",
+  "format": "pdf",
+  "rebin": false,
+  "rebfactor": 1
+}
