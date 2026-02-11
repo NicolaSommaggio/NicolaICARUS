@@ -1,3 +1,4 @@
+
 #include "sbnana/CAFAna/Core/Binning.h"
 #include "sbnana/CAFAna/Core/SpectrumLoader.h"
 #include "sbnana/CAFAna/Core/EnsembleRatio.h"
@@ -580,7 +581,9 @@ return false;
 
 struct SliceDrawInfo
 {
-    int ipfp_mu;
+    int run;
+    int evt;
+    std::vector<int> v_ipfp_mu;
     std::vector<int> v_ipfp_pro;
     std::vector<int> v_ipfp_pi;
     std::vector<std::vector<std::array<double,3>>> tracks_coordinate;
@@ -593,7 +596,7 @@ struct SliceDrawInfo
     std::vector<double> neutrino_interaction;
 };
 
-SliceDrawInfo GetSliceDrawInfo(const caf::Proxy<caf::SRSlice>& islc, int ipfp_mu, std::vector<int> v_ipfp_pro, std::vector<int> v_ipfp_pi, std::vector<std::pair<int,std::array<double,6>>> true_p)
+SliceDrawInfo GetSliceDrawInfo(const caf::Proxy<caf::SRSlice>& islc, std::vector<int> v_ipfp_mu, std::vector<int> v_ipfp_pro, std::vector<int> v_ipfp_pi, std::vector<std::pair<int,std::array<double,6>>> true_p, int plane)
 {
     SliceDrawInfo thislice;
 
@@ -604,8 +607,8 @@ SliceDrawInfo GetSliceDrawInfo(const caf::Proxy<caf::SRSlice>& islc, int ipfp_mu
     thislice.vertex[1] = islc.vertex.y;
     thislice.vertex[2] = islc.vertex.z;
 
-    thislice.ipfp_mu=ipfp_mu;
-    thislice.v_ipfp_pro= v_ipfp_pro;
+    thislice.v_ipfp_mu = v_ipfp_mu;
+    thislice.v_ipfp_pro = v_ipfp_pro;
     thislice.v_ipfp_pi = v_ipfp_pi;
 
     for(std::size_t ipfp(0); ipfp<islc.reco.npfp; ipfp++)
@@ -617,7 +620,21 @@ SliceDrawInfo GetSliceDrawInfo(const caf::Proxy<caf::SRSlice>& islc, int ipfp_mu
         //int plane=islc.reco.pfp[ipfp].trk.bestplane;
         //if(plane<0 || plane>3) continue;
 
-        int plane=2;
+        //int plane=-1;
+        //int bestplane = islc.reco.pfp[ipfp].trk.bestplane;
+        //if(bestplane!=-1 && islc.reco.pfp[ipfp].trk.calo[bestplane].nhit>0)
+        //{
+            //plane=bestplane;
+            //if(bestplane==0) cout << "the best plane is INDUCTION 1" << endl;
+            //if(bestplane==1) cout << "the best plane is INDUCTION 2" << endl;
+            //if(bestplane==2) cout << "the best plane is COLLECTION" << endl;
+        //}
+        //else 
+        //{
+            //plane=2;
+            //cout << "best plane non valid, set default to COLLECTION" << endl;
+        //}
+        //plane=1;
 
         thislice.ipfp.push_back(ipfp);
 
@@ -626,12 +643,30 @@ SliceDrawInfo GetSliceDrawInfo(const caf::Proxy<caf::SRSlice>& islc, int ipfp_mu
         //std::vector<std::array<double,3>> shower;
         //std::vector<double> showerdedx;
 
-        for(std::size_t ihit(0); ihit<islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ihit++)
+        /*
+        if(plane==3)
         {
-            std::array<double,3> coordinate = {islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].x, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].y, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].z};
-            track.push_back(coordinate);
-            trackdedx.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);
+            for(int ii=0; ii<3; ii++)
+            {
+                for(std::size_t ihit(0); ihit<islc.reco.pfp[ipfp].trk.calo[ii].points.size(); ihit++)
+                {
+                    std::array<double,3> coordinate = {islc.reco.pfp[ipfp].trk.calo[ii].points[ihit].x, islc.reco.pfp[ipfp].trk.calo[ii].points[ihit].y, islc.reco.pfp[ipfp].trk.calo[ii].points[ihit].z};
+                    track.push_back(coordinate);
+                    trackdedx.push_back(islc.reco.pfp[ipfp].trk.calo[ii].points[ihit].dedx);
+                }
+            }
         }
+        */
+        //else
+        //{
+            for(std::size_t ihit(0); ihit<islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ihit++)
+            {
+                std::array<double,3> coordinate = {islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].x, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].y, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].z};
+                track.push_back(coordinate);
+                trackdedx.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);
+            }
+        //}
+        
         particles.push_back(track);
         particles_dedx.push_back(trackdedx);
 
@@ -672,7 +707,7 @@ std::vector<std::pair<int,std::array<double,6>>> GetTrueParticlesInfo(const caf:
    
             dep_E += prim.plane[prim.cryostat][2].visE*1000;
         }
-        if(abs(prim.pdg)==2212 && dep_E<50.)continue;
+        //if(abs(prim.pdg)==2212 && dep_E<50.)continue;
 
         //SKIP LOW ENERGY PHOTONS
         if(abs(prim.pdg) == 22)
@@ -756,9 +791,6 @@ std::vector<std::pair<double,double>> rollingMedian(const caf::Proxy<caf::SRSlic
 
 std::vector<SliceDrawInfo> slices3D;
 
-std::vector<unsigned int> run = {};
-std::vector<unsigned int> subrun = {};
-std::vector<unsigned int> evt = {};
 
 ofstream dumpInfo("logSelection.txt");
 int slice_counter=0;
@@ -769,208 +801,170 @@ std::vector<std::vector<double>> dedx;
 std::vector<std::vector<double>> rr;
 std::vector<std::vector<double>> x;
 
-int conta_muoni=0;
+//int RUN_DA_GUARDARE=-1;
+//int EVT_DA_GUARDARE=-1;
+int PLANE_DA_GUARDARE=-1;
+std::vector<int> runList;
+std::vector<int> evtList;
 
 const SpillMultiVar disegna([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
     std::vector<double> vector_active;
 
+    /*
     //bool is_true_signal=false;
-
+    if(!((int)sr->hdr.run==RUN_DA_GUARDARE && (int)sr->hdr.evt==EVT_DA_GUARDARE)) return {}; 
+    cout << sr->nslc << endl;
+    */ 
     for (auto const& islc : sr->slc)
     {     
+        bool match_run_evt=false;
+        for(int i=0; i<(int)runList.size(); i++)
+        {
+            if(runList[i]==(int)sr->hdr.run && evtList[i]==(int)sr->hdr.evt)match_run_evt=true;;
+        }
+        if(!match_run_evt)continue;
+    //cout << sr->hdr.run << " " << sr->hdr.evt << endl;
+        
+        //cout << "evento trovato " << (islc.is_clear_cosmic ? "clear_cosmic" : Form("vertex=(%f,%f,%f)",(double)islc.vertex.x,(double)islc.vertex.y,(double)islc.vertex.z)) << endl;
 
-        if(sr->hdr.evt % 2 !=0)continue;
+        //if(sr->hdr.evt % 2 !=0)continue;
 
         bool is_true_signal=false;
         int ipfp_mu=-1;
+        std::vector<int> v_ipfp_mu;
         std::vector<int> v_ipfp_pro;
         std::vector<int> v_ipfp_pi;
 
+        slice_counter+=1;
 
-        //if(islc.truth.index>=0 && (classification_type(sr,islc)==2 || classification_type(sr,islc)==5 ) && (isInFV(islc.truth.position.x, islc.truth.position.y, islc.truth.position.z)) ){is_true_signal=true;}
+        ipfp_mu=find_truth_muon(islc,10);
 
-        //EVENT SELECTION
+        //if(ipfp_mu==-1)continue;
+
+        v_ipfp_mu.push_back(ipfp_mu);
+	    for(std::size_t ipfp(0); ipfp < islc.reco.npfp; ++ipfp)
+		{
+            if(int(ipfp)==ipfp_mu)continue;
+		    if(id_pfp_truth(islc, ipfp, 10,2)==1){v_ipfp_pro.push_back(int(ipfp));}
+            if(id_pfp_truth(islc, ipfp, 10,2)==2){v_ipfp_pi.push_back(int(ipfp));}
+        }
         
-        
-        //if (automatic_selection_1muNp(sr,islc,10,100))//1mu1p reco
-	    //{           
+        //cout << sr->hdr.run << " " << sr->hdr.evt << " " << v_ipfp_pro.size() << endl;
 
-            //if(!is_true_signal)continue;
+        if(v_ipfp_pi.size()==0)continue;
 
-            slice_counter+=1;
-            //IDENTIFY MUONS AND PROTONS WITH CHI2
-            ipfp_mu=find_truth_muon(islc,10);
+        //if(ipfp_mu==-1)continue;
 
-            if(ipfp_mu!=-1)conta_muoni++;
-
-	        for(std::size_t ipfp(0); ipfp < islc.reco.npfp; ++ipfp)
-		    {
-                if(int(ipfp)==ipfp_mu)continue;
-		        if(id_pfp_truth(islc, ipfp, 10,2)==1){v_ipfp_pro.push_back(int(ipfp));}
-                if(id_pfp_truth(islc, ipfp, 10,2)==2){v_ipfp_pi.push_back(int(ipfp));}
-            }
-            //if(v_ipfp_pi.size()==0)continue;
-
-            //rolling median
-            std::vector<std::pair<double,double>> rm_thislice={{-1,-1}};
-            if(ipfp_mu!=-1)
+        //rolling median
+        std::vector<std::pair<double,double>> rm_thislice={{-1,-1}};
+        if(ipfp_mu!=-1)
+        {
+            dumpRM.push_back(rollingMedian(islc,ipfp_mu));
+            rm_thislice=rollingMedian(islc,ipfp_mu);
+        }
+        //median
+        double median=-1;
+        std::vector<double> dummy;
+        std::vector<double> dedx_temp;
+        std::vector<double> rr_temp;
+        std::vector<double> x_temp;
+        if(ipfp_mu!=-1)
+        {
+            for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[2].points.size(); ++ihit) 
             {
-                dumpRM.push_back(rollingMedian(islc,ipfp_mu));
-                rm_thislice=rollingMedian(islc,ipfp_mu);
-            }
-
-
-            //median
-            double median=-1;
-            std::vector<double> dummy;
-            std::vector<double> dedx_temp;
-            std::vector<double> rr_temp;
-            std::vector<double> x_temp;
-            if(ipfp_mu!=-1)
-            {
-                for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[2].points.size(); ++ihit) 
+                if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr<30)
                 {
-                    if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr<30)
-                    {
-                        dedx_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx);
-                        rr_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr);
-                        x_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].x);
-                    }
-                    if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr<5.) 
-                    {
-                        dummy.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx);
-                    }
+                    dedx_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx);
+                    rr_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr);
+                    x_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].x);
                 }
-                if(dummy.size()!=0) {dumpMedian.push_back(mediana(dummy)); median=mediana(dummy);}
-                else {dumpMedian.push_back(-1);}
-                dedx.push_back(dedx_temp);
-                rr.push_back(rr_temp);
-                x.push_back(x_temp);
-            }
-
-            
-            int max_length_pfp=-1;
-            double max_length=-1;
-
-            
-            dumpInfo << "*** RUN " << sr->hdr.run << " *** EVT " << sr->hdr.evt << " ***" << endl;
-
-            for(std::size_t ipfp(0); ipfp < islc.reco.npfp; ++ipfp){if(islc.reco.pfp[ipfp].trk.len>max_length){max_length_pfp=ipfp; max_length=islc.reco.pfp[ipfp].trk.len;}}
-
-            for(std::size_t ipfp(1); ipfp < islc.reco.npfp; ++ipfp)
-            {
-
-                TVector3 RecoVtx;
-                RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
-                TVector3 RecoStart;
-                RecoStart.SetXYZ(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z);
-                TVector3 RecoEnd;
-                RecoEnd.SetXYZ(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z);
-                TVector3 Start_mom_v_proton;
-                TVector3 Start_mom_v_pion;
-
-
-                dumpInfo << "new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP" << endl << endl;
-
-                dumpInfo << "start coordinates " << islc.reco.pfp[ipfp].trk.start.x << " " << islc.reco.pfp[ipfp].trk.start.y << " " << islc.reco.pfp[ipfp].trk.start.z << endl;
-                dumpInfo << "end coordinates " << islc.reco.pfp[ipfp].trk.end.x << " " << islc.reco.pfp[ipfp].trk.end.y << " " << islc.reco.pfp[ipfp].trk.end.z << endl;
-                dumpInfo << "collection ";
-                for (std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[2].points.size(); ++ihit ){dumpInfo << islc.reco.pfp[ipfp].trk.calo[2].points[ihit].x << " ";}
-                dumpInfo << endl;
-                dumpInfo << "induction 1 ";
-                for (std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[0].points.size(); ++ihit ){dumpInfo << islc.reco.pfp[ipfp].trk.calo[0].points[ihit].x << " ";}
-                dumpInfo << endl;
-                dumpInfo << "induction 2 ";
-                for (std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[1].points.size(); ++ihit ){dumpInfo << islc.reco.pfp[ipfp].trk.calo[1].points[ihit].x << " ";}
-                dumpInfo << endl;
-                dumpInfo << "trackscore " << islc.reco.pfp[ipfp].trackScore << endl;
-                if(int(ipfp)==max_length_pfp)dumpInfo << "is the longest, with length " << islc.reco.pfp[ipfp].trk.len << endl;
-                else dumpInfo << "track length " << islc.reco.pfp[ipfp].trk.len << " track distance " << (RecoEnd - RecoStart).Mag() << endl;
-                dumpInfo << "vertex - start distance " << (RecoVtx-RecoStart).Mag() << " vertex - end distance " << (RecoVtx-RecoEnd).Mag() << endl;
-                dumpInfo << "pdg code " << islc.reco.pfp[ipfp].trk.truth.p.pdg << endl;
-                dumpInfo << "is contained " << isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0) << endl;
-                dumpInfo << "is the same TPC as vertex " << ((islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x)>0) << endl;
-                dumpInfo << "parent is primary " << islc.reco.pfp[ipfp].parent_is_primary << endl;
-                Start_mom_v_proton.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);
-                Start_mom_v_pion.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.z);
-                dumpInfo << "energy lost as proton " << sqrt(pow(938.3,2)+pow(Start_mom_v_proton.Mag()*1000,2))-938.3 << " energy lost as pion " << sqrt(pow(139.570,2)+pow(Start_mom_v_pion.Mag()*1000,2))-139.570 << endl;
-     
-                if(int(ipfp)==ipfp_mu)
+                if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr<5.) 
                 {
-                    dumpInfo << "median " << median << endl;
-                    dumpInfo << "rolling median ";
-                    for(int i=0; i<int(rm_thislice.size()); i++) dumpInfo << rm_thislice[i].first << " ";
-                    dumpInfo << endl;
-                    for(int i=0; i<int(rm_thislice.size()); i++) dumpInfo << rm_thislice[i].second << " ";
-                    dumpInfo << endl;
+                    dummy.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx);
                 }
-                
-    
-                if(int(ipfp)==ipfp_mu) dumpInfo << "MUON" << endl << endl;
-                else if(id_pfp_truth(islc, ipfp, 10,2)==1) dumpInfo << "PROTON" << endl << endl;
-                else if(id_pfp_truth(islc, ipfp, 10,2)==2) dumpInfo << "PION" << endl << endl;
-                else dumpInfo << "OTHER" << endl << endl;
-
             }
+            if(dummy.size()!=0) {dumpMedian.push_back(mediana(dummy)); median=mediana(dummy);}
+            else {dumpMedian.push_back(-1);}
+            dedx.push_back(dedx_temp);
+            rr.push_back(rr_temp);
+            x.push_back(x_temp);
+        }
 
+        int max_length_pfp=-1;
+        double max_length=-1;
+
+        dumpInfo << "*** RUN " << sr->hdr.run << " *** EVT " << sr->hdr.evt << " ***" << endl;
+
+        for(std::size_t ipfp(0); ipfp < islc.reco.npfp; ++ipfp){if(islc.reco.pfp[ipfp].trk.len>max_length){max_length_pfp=ipfp; max_length=islc.reco.pfp[ipfp].trk.len;}}
+
+        for(std::size_t ipfp(1); ipfp < islc.reco.npfp; ++ipfp)
+        {
+            TVector3 RecoVtx;
+            RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
+            TVector3 RecoStart;
+            RecoStart.SetXYZ(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z);
+            TVector3 RecoEnd;
+            RecoEnd.SetXYZ(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z);
+            TVector3 Start_mom_v_proton;
+            TVector3 Start_mom_v_pion;
+
+            dumpInfo << "new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP new PFP" << endl << endl;
+
+            dumpInfo << "start coordinates " << islc.reco.pfp[ipfp].trk.start.x << " " << islc.reco.pfp[ipfp].trk.start.y << " " << islc.reco.pfp[ipfp].trk.start.z << endl;
+            dumpInfo << "end coordinates " << islc.reco.pfp[ipfp].trk.end.x << " " << islc.reco.pfp[ipfp].trk.end.y << " " << islc.reco.pfp[ipfp].trk.end.z << endl;
+            dumpInfo << "collection ";
+            for (std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[2].points.size(); ++ihit ){dumpInfo << islc.reco.pfp[ipfp].trk.calo[2].points[ihit].x << " ";}
             dumpInfo << endl;
-            dumpInfo << "*********************************** end slice ***********************************" << endl;
-            
-            /*
-            bool match_found = false;
-            
-            for (int i = 0; i < int(run.size()); i++) 
+            dumpInfo << "induction 1 ";
+            for (std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[0].points.size(); ++ihit ){dumpInfo << islc.reco.pfp[ipfp].trk.calo[0].points[ihit].x << " ";}
+            dumpInfo << endl;
+            dumpInfo << "induction 2 ";
+            for (std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[1].points.size(); ++ihit ){dumpInfo << islc.reco.pfp[ipfp].trk.calo[1].points[ihit].x << " ";}
+            dumpInfo << endl;
+            dumpInfo << "trackscore " << islc.reco.pfp[ipfp].trackScore << endl;
+            if(int(ipfp)==max_length_pfp)dumpInfo << "is the longest, with length " << islc.reco.pfp[ipfp].trk.len << endl;
+            else dumpInfo << "track length " << islc.reco.pfp[ipfp].trk.len << " track distance " << (RecoEnd - RecoStart).Mag() << endl;
+            dumpInfo << "vertex - start distance " << (RecoVtx-RecoStart).Mag() << " vertex - end distance " << (RecoVtx-RecoEnd).Mag() << endl;
+            dumpInfo << "pdg code " << islc.reco.pfp[ipfp].trk.truth.p.pdg << endl;
+            dumpInfo << "is contained " << isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0) << endl;
+            dumpInfo << "is the same TPC as vertex " << ((islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x)>0) << endl;
+            dumpInfo << "parent is primary " << islc.reco.pfp[ipfp].parent_is_primary << endl;
+            Start_mom_v_proton.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);
+            Start_mom_v_pion.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.z);
+            dumpInfo << "energy lost as proton " << sqrt(pow(938.3,2)+pow(Start_mom_v_proton.Mag()*1000,2))-938.3 << " energy lost as pion " << sqrt(pow(139.570,2)+pow(Start_mom_v_pion.Mag()*1000,2))-139.570 << endl;
+     
+            if(int(ipfp)==ipfp_mu)
             {
-                if (sr->hdr.run == run[i] &&
-                sr->hdr.subrun == subrun[i] &&
-                sr->hdr.evt == evt[i]) 
-                {
-                    match_found = true; 
-                    break; // trovato, non serve continuare a cercare
-                }
+                dumpInfo << "median " << median << endl;
+                dumpInfo << "rolling median ";
+                for(int i=0; i<int(rm_thislice.size()); i++) dumpInfo << rm_thislice[i].first << " ";
+                dumpInfo << endl;
+                for(int i=0; i<int(rm_thislice.size()); i++) dumpInfo << rm_thislice[i].second << " ";
+                dumpInfo << endl;
             }
-            if(!match_found)continue;
-            */
+            
+            if(int(ipfp)==ipfp_mu) dumpInfo << "MUON" << endl << endl;
+            else if(id_pfp_truth(islc, ipfp, 10,2)==1) dumpInfo << "PROTON" << endl << endl;
+            else if(id_pfp_truth(islc, ipfp, 10,2)==2) dumpInfo << "PION" << endl << endl;
+            else dumpInfo << "OTHER" << endl << endl;
 
-            //cout << sr->hdr.run << " " << sr->hdr.subrun << " " << sr->hdr.evt << endl;
-            //cout << "muone " << islc.reco.pfp[ipfp_mu].trk.len << " " << islc.reco.pfp[ipfp_mu].trk.start.x << endl;
-            //for(auto const & ipfp_pro : v_ipfp_pro)
-            //{
-                //cout << "protone " << islc.reco.pfp[ipfp_pro].trk.len << " " << islc.reco.pfp[ipfp_pro].trk.start.x << endl;
-            //}
-            //for(std::size_t ipfp(0); ipfp < islc.reco.npfp; ++ipfp)
-            //{
-                //if(int(ipfp)==ipfp_mu)continue;
-                //bool is_a_proton=false;
-                //for(auto const &ipfp_pro : v_ipfp_pro){if(int(ipfp)==ipfp_pro){is_a_proton=true;}}
-                //if(!is_a_proton)
-                //{
-                    //cout << "other " << islc.reco.pfp[ipfp].trk.len << " " << islc.reco.pfp[ipfp].trk.start.x << endl;
-                //}
-            //}
+        }
 
-            //if(median > 1 && median < 3.2) {
-
-            //INFORMAZIONI PER DISEGNARE LA SLICE 3D
-            std::vector<double> nu_int_temp;
-            nu_int_temp.push_back(islc.truth.E);
-            nu_int_temp.push_back(islc.truth.targetPDG);
-            nu_int_temp.push_back(islc.truth.Q2);
-            std::vector<std::pair<int,std::array<double,6>>> true_particles=GetTrueParticlesInfo(sr,islc);
-            SliceDrawInfo drawInfo = GetSliceDrawInfo(islc,ipfp_mu,v_ipfp_pro,v_ipfp_pi,true_particles);
-            drawInfo.neutrino_interaction=nu_int_temp;
-
-            //INFORMAZIONI PER DISEGNARE LA SLICE 2D
-            //std::vector<std::pair<int,std::array<double,8>>> true_particles2D=GetTrueParticlesInfo2D(sr,islc);
-            //SliceDrawInfo2D drawInfo2D = GetSliceDrawInfo2D(islc,ipfp_mu,v_ipfp_pro,v_ipfp_pi/*,true_particles2D*/);
-            //drawInfo2D.neutrino_interaction=nu_int_temp;
-
-            slices3D.push_back(drawInfo);
-            //slices2D.push_back(drawInfo2D);
-            //}
-
-        //}//STANDARD SELECTION
+        dumpInfo << endl;
+        dumpInfo << "*********************************** end slice ***********************************" << endl;
+            
+        //INFORMAZIONI PER DISEGNARE LA SLICE 3D
+        std::vector<double> nu_int_temp;
+        nu_int_temp.push_back(islc.truth.E);
+        nu_int_temp.push_back(islc.truth.targetPDG);
+        nu_int_temp.push_back(islc.truth.Q2);
+        std::vector<std::pair<int,std::array<double,6>>> true_particles=GetTrueParticlesInfo(sr,islc);
+        SliceDrawInfo drawInfo = GetSliceDrawInfo(islc,v_ipfp_mu,v_ipfp_pro,v_ipfp_pi,true_particles,PLANE_DA_GUARDARE);
+        drawInfo.neutrino_interaction=nu_int_temp;
+        drawInfo.run = sr->hdr.run;
+        drawInfo.evt = sr->hdr.evt;
+        slices3D.push_back(drawInfo);
 
     }
 

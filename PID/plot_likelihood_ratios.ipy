@@ -1,0 +1,97 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+likelihood_ratios = np.genfromtxt("dump_lkl_ratios_withdepE.txt",names=True, dtype=None, encoding="utf-8", delimiter=" ")
+
+lr_muon_class0 = likelihood_ratios[likelihood_ratios['class']=="muon_class0"]
+lr_muon_class1 = likelihood_ratios[likelihood_ratios['class']=="muon_class1"]
+lr_proton_class2 = likelihood_ratios[likelihood_ratios['class']=="proton_class2"]
+lr_proton_class3 = likelihood_ratios[likelihood_ratios['class']=="proton_class3"]
+lr_pion_class4 = likelihood_ratios[likelihood_ratios['class']=="pion_class4"]
+lr_pion_class5 = likelihood_ratios[likelihood_ratios['class']=="pion_class5"]
+
+"""
+titles = [r"$\mu$ RISING hyp. over $\mu$ MIP hyp.", 
+          r"$\mu$ RISING hyp. over $p$ RISING hyp.",
+          r"$\mu$ RISING hyp. over $p$ INTERACTING hyp.",
+          r"$\mu$ RISING hyp. over $\pi$ RISING hyp.",
+          r"$\mu$ RISING hyp. over $\pi$ INTERACTING hyp.",
+          r"$\mu$ MIP hyp. over $p$ RISING hyp.",
+          r"$\mu$ MIP hyp. over $p$ INTERACTING hyp.",
+          r"$\mu$ MIP hyp. over $\pi$ RISING hyp.",
+          r"$\mu$ MIP hyp. over $\pi$ INTERACTING hyp.",
+          r"$p$ RISING hyp. over $p$ INTERACTING hyp.",
+          r"$p$ RISING hyp. over $\pi$ RISING hyp.",
+          r"$p$ RISING hyp. over $\pi$ INTERACTING hyp.",
+          r"$p$ INTERACTING hyp. over $\pi$ RISING hyp.",
+          r"$p$ INTERACTING hyp. over $\pi$ INTERACTING hyp.",
+          r"$\pi$ RISING hyp. over $\pi$ INTERACTING hyp."
+          ]
+
+for i in range(0,15):
+    print("drawing ", format(titles[i].replace("$","").replace("\\","").replace(" ","_").replace(".","")))
+    ymax=0
+
+    n_class0,_,_ = plt.hist(lr_muon_class0["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='stepfilled', alpha=0.5, color='brown', label='muon rising', edgecolor='brown', linewidth=0)
+    n_class1,_,_ = plt.hist(lr_muon_class1["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='stepfilled', alpha=0.5, color='green', label='muon mip', edgecolor='green', linewidth=0)
+    n_class2,_,_ = plt.hist(lr_proton_class2["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='stepfilled', alpha=0.5, color='blue', label='proton rising', edgecolor='blue', linewidth=0)
+    n_class3,_,_ = plt.hist(lr_proton_class3["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='stepfilled', alpha=0.5, color='cyan', label='proton interacting', edgecolor='cyan', linewidth=0)
+    n_class4,_,_ = plt.hist(lr_pion_class4["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='stepfilled', alpha=0.5, color='red', label='pion rising', edgecolor='red', linewidth=0)
+    n_class5,_,_ = plt.hist(lr_pion_class5["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='stepfilled', alpha=0.5, color='pink', label='pion interacting', edgecolor='pink', linewidth=0)
+    ymax=max(n_class0.max(),n_class1.max(),n_class2.max(),n_class3.max(),n_class4.max(),n_class5.max())
+
+    plt.hist(lr_muon_class0["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='step', color='brown', edgecolor='brown', linewidth=2)
+    plt.hist(lr_muon_class1["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='step', color='green', edgecolor='green', linewidth=2)
+    plt.hist(lr_proton_class2["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='step', color='blue', edgecolor='blue', linewidth=2)
+    plt.hist(lr_proton_class3["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='step', color='cyan', edgecolor='cyan', linewidth=2)
+    plt.hist(lr_pion_class4["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='step', color='red', edgecolor='red', linewidth=2)
+    plt.hist(lr_pion_class5["lr{}".format(i)], bins=100, range=(-1,1), density=True, histtype='step', color='pink', edgecolor='pink', linewidth=2)
+
+    leg = plt.legend(loc='upper center', fontsize=14)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+    plt.xlabel(r'arctan($\frac{(-log\mathcal{L}_1)-(-log\mathcal{L}_2)}{3}$)$\frac{2}{\pi}$', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.title(titles[i], fontsize=18)
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(-1,1.,0.1), fontsize=14, rotation=60)
+    plt.xlim(-1,1)
+    plt.ylim(0, ymax*1.1)
+    plt.yticks(fontsize=14)
+    plt.savefig('graphs_lr_RM/{}.pdf'.format(titles[i].replace("$","").replace("\\","").replace(" ","_").replace(".","")), format='pdf', bbox_inches='tight')
+    plt.close()
+"""
+#plot of the deposited energy in the last 5 cm of the track
+n_class0,_,_ = plt.hist(lr_muon_class0["depE"], bins=100, range=(0,100), density=True, histtype='stepfilled', alpha=0.5, color='brown', label='muon rising', edgecolor='brown', linewidth=0)
+n_class1,_,_ = plt.hist(lr_muon_class1["depE"], bins=100, range=(0,100), density=True, histtype='stepfilled', alpha=0.5, color='green', label='muon mip', edgecolor='green', linewidth=0)
+n_class2,_,_ = plt.hist(lr_proton_class2["depE"], bins=100, range=(0,100), density=True, histtype='stepfilled', alpha=0.5, color='blue', label='proton rising', edgecolor='blue', linewidth=0)
+n_class3,_,_ = plt.hist(lr_proton_class3["depE"], bins=100, range=(0,100), density=True, histtype='stepfilled', alpha=0.5, color='cyan', label='proton interacting', edgecolor='cyan', linewidth=0)
+n_class4,_,_ = plt.hist(lr_pion_class4["depE"], bins=100, range=(0,100), density=True, histtype='stepfilled', alpha=0.5, color='red', label='pion rising', edgecolor='red', linewidth=0)
+n_class5,_,_ = plt.hist(lr_pion_class5["depE"], bins=100, range=(0,100), density=True, histtype='stepfilled', alpha=0.5, color='pink', label='pion interacting', edgecolor='pink', linewidth=0)
+ymax=max(n_class0.max(),n_class1.max(),n_class2.max(),n_class3.max(),n_class4.max(),n_class5.max())
+
+plt.hist(lr_muon_class0["depE"], bins=100, range=(0,100), density=True, histtype='step', color='brown', edgecolor='brown', linewidth=2)
+plt.hist(lr_muon_class1["depE"], bins=100, range=(0,100), density=True, histtype='step', color='green', edgecolor='green', linewidth=2)
+plt.hist(lr_proton_class2["depE"], bins=100, range=(0,100), density=True, histtype='step', color='blue', edgecolor='blue', linewidth=2)
+plt.hist(lr_proton_class3["depE"], bins=100, range=(0,100), density=True, histtype='step', color='cyan', edgecolor='cyan', linewidth=2)
+plt.hist(lr_pion_class4["depE"], bins=100, range=(0,100), density=True, histtype='step', color='red', edgecolor='red', linewidth=2)
+plt.hist(lr_pion_class5["depE"], bins=100, range=(0,100), density=True, histtype='step', color='pink', edgecolor='pink', linewidth=2)
+
+leg = plt.legend(loc='upper center', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.xlabel('deposited energy [MeV]', fontsize=18)
+plt.ylabel('entries (area normalized)', fontsize=18)
+plt.title('deposited energy in the last 5 cm of the track', fontsize=18)
+
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,100.,10), fontsize=14, rotation=60)
+plt.xlim(0,100)
+plt.ylim(0, ymax*1.1)
+plt.yticks(fontsize=14)
+plt.savefig('graphs_lr/depE.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+

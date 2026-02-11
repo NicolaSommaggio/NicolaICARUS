@@ -1,0 +1,129 @@
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, log_loss
+from sklearn.utils.class_weight import compute_sample_weight 
+from sklearn.model_selection import GridSearchCV
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import pandas as pd
+
+import joblib
+
+classes_labels = ['muon_rising', 'muon mip', 'proton_rising', 'proton_interacting', 'pion_rising', 'pion_interacting']
+
+samples = np.genfromtxt("dump_lkl_ratios_gbdt_withdepE.txt", names=None, dtype=float, encoding="utf-8", delimiter=" ")
+samples_features = samples[:,1:samples.shape[1]]
+samples_labels = samples[:,0]
+X_train, X_test, y_train, y_test = train_test_split(samples_features,samples_labels,test_size=0.30,random_state=42,stratify=samples_labels)
+
+print("The TRAINING set contains")
+for i,class_name in enumerate(classes_labels):
+    print(np.sum(y_train==i), '{} tracks'.format(class_name))
+print("The TEST set contains")
+for i,class_name in enumerate(classes_labels):
+    print(np.sum(y_test==i), '{} tracks'.format(class_name))
+
+grid_search_active = False
+
+if grid_search_active:
+    parameters = {'learning_rate':[0.05, 0.025, 0.01, 0.0075, 0.005, 0.001],
+              'max_depth': [2,3,4,5],
+               'subsample': [1,0.75,0.5,0.4,0.3] }
+
+    gbdt = GradientBoostingClassifier(
+        loss="log_loss",     
+        n_estimators=400,    
+        random_state=42,
+        verbose=1,
+        validation_fraction=0.2, 
+        n_iter_no_change=10,    
+        tol=0.001               
+    )
+
+    sample_weight = compute_sample_weight(class_weight='balanced', y=y_train)
+    grid_search = GridSearchCV(gbdt,parameters,cv=5,scoring='roc_auc_ovr_weighted', refit=True, n_jobs=-1)
+    grid_search.fit(X_train,y_train,sample_weight=sample_weight)
+
+    gbdt = grid_search.best_estimator_
+    best_params = grid_search.best_params_
+else:
+    gbdt = GradientBoostingClassifier(
+        loss="log_loss",     
+        n_estimators=400,  
+        learning_rate=0.01,
+        max_depth=5,
+        subsample=0.4,  
+        random_state=42,
+        verbose=1,
+        validation_fraction=0.2, 
+        n_iter_no_change=10,    
+        tol=0.001               
+    )
+    gbdt.fit(X_train, y_train, compute_sample_weight(class_weight='balanced', y=y_train))
+
+
+joblib.dump(gbdt, "gbdt_model.pkl")
+
+training_score = np.zeros(gbdt.n_estimators_)
+for i,y_pred_stage in enumerate(gbdt.staged_predict_proba(X_train)):
+    training_score[i] = log_loss(y_train, y_pred_stage)
+
+test_score = np.zeros(gbdt.n_estimators_)
+for i,y_pred_stage in enumerate(gbdt.staged_predict_proba(X_test)):
+    test_score[i] = log_loss(y_test, y_pred_stage)
+
+plt.plot(training_score, label='training loss', color='orange')
+plt.plot(test_score, label='test loss', color='green')
+plt.xlabel("Iteration number")
+plt.ylabel("Multinomial NLL loss")
+plt.legend()
+if grid_search_active:
+    plt.title("training/test deviance - learning rate: {} max depth: {} subsample frac: {}".format(best_params['learning_rate'],best_params['max_depth'],best_params['subsample']), fontsize=14)
+    plt.savefig("prova_withdepE_train_test_loss_{}_{}_{}.pdf".format(best_params['learning_rate'],best_params['max_depth'],best_params['subsample']), format="pdf", bbox_inches="tight")
+else:
+    plt.title("training/test deviance - learning rate: {} max depth: {} subsample frac: {}".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['subsample']), fontsize=14)
+    plt.savefig("prova_withdepE_train_test_loss_{}_{}_{}.pdf".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['subsample']), format="pdf", bbox_inches="tight")
+plt.close()
+
+train_test_deviance = np.average(test_score[-10:]-training_score[-10:])
+accuracy = gbdt.score(X_test,y_test)
+
+print('train test deviance: ', train_test_deviance, ' accuracy: ', accuracy)
+
+y_pred = gbdt.predict(X_test)
+disp_confusion_matrix_efficiency = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize='true', cmap=plt.cm.Blues)
+plt.xticks(rotation=60)
+if grid_search_active:
+    plt.title("efficiency confusion matrix - learning rate: {} max depth: {} subsample frac: {}".format(best_params['learning_rate'],best_params['max_depth'],best_params['subsample']), fontsize=14)
+    plt.savefig("prova_withdepE_efficiency_confusion_matrix_{}_{}_{}.pdf".format(best_params['learning_rate'],best_params['max_depth'],best_params['subsample']), format='pdf', bbox_inches='tight')
+else:
+    plt.title("efficiency confusion matrix - learning rate: {} max depth: {} subsample frac: {}".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['subsample']), fontsize=14)
+    plt.savefig("prova_withdepE_efficiency_confusion_matrix_{}_{}_{}.pdf".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['subsample']), format='pdf', bbox_inches='tight')
+plt.close()
+
+disp_confusion_matrix_purity = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize='pred', cmap=plt.cm.Blues)
+plt.xticks(rotation=60)
+if grid_search_active:
+    plt.title("purity confusion matrix - learning rate: {} max depth: {} subsample frac: {}".format(best_params['learning_rate'],best_params['max_depth'],best_params['subsample']), fontsize=14)
+    plt.savefig("prova_withdepE_purity_confusion_matrix_{}_{}_{}.pdf".format(best_params['learning_rate'],best_params['max_depth'],best_params['subsample']), format='pdf', bbox_inches='tight')
+else:
+    plt.title("purity confusion matrix - learning rate: {} max depth: {} subsample frac: {}".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['subsample']), fontsize=14)
+    plt.savefig("prova_withdepE_purity_confusion_matrix_{}_{}_{}.pdf".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['subsample']), format='pdf', bbox_inches='tight')
+plt.close()
+                
+print("predicted_classes")
+print(gbdt.predict_proba(X_test))
+
+print("predicted_probabilities")
+print(gbdt.predict_proba(X_test))
+
+print("feature_importance")
+print(gbdt.feature_importances_)
+
+print(classification_report(y_test, y_pred, target_names=classes_labels))
+

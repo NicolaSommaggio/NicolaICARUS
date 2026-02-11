@@ -31,9 +31,42 @@ struct tracksInfo
     std::vector<double> *rr_ind1=nullptr;
     std::vector<double> *rr_ind2=nullptr;
 
+    std::vector<double> *pitch_ind1=nullptr;
+    std::vector<double> *pitch_ind2=nullptr;
+
+    std::vector<double> *dEdx_bestplane=nullptr;
+    std::vector<double> *rr_bestplane=nullptr;
+    std::vector<double> *pitch_bestplane=nullptr;
+    std::vector<double> *hitx_bestplane=nullptr;
+    std::vector<double> *hity_bestplane=nullptr;
+    std::vector<double> *hitz_bestplane=nullptr;
+
     std::vector<double> *chi2_coll= nullptr;
     std::vector<double> *chi2_ind1= nullptr;
     std::vector<double> *chi2_ind2= nullptr;
+
+    std::vector<double> *rr_rm_coll = nullptr;
+    std::vector<double> *rm_coll = nullptr;
+    std::vector<double> *rr_rm_ind1 = nullptr;
+    std::vector<double> *rm_ind1 = nullptr;
+    std::vector<double> *rr_rm_ind2 = nullptr;
+    std::vector<double> *rm_ind2 = nullptr;
+    std::vector<double> *rr_rm_bestplane = nullptr;
+    std::vector<double> *rm_bestplane = nullptr;
+    
+    double true_visE;
+    double hit_purity;
+    double hit_completeness;
+    double energy_purity;
+    double energy_completeness;
+
+    int start_process;
+    double energy_at_first_hit;
+    double energy_at_last_hit;
+
+    std::vector<int> *pdg_match = nullptr;
+    std::vector<double> *energy_match = nullptr;
+    std::vector<double> *end_points_distance_matches = nullptr;
 
     int bestplane;
     int end_process;
@@ -45,6 +78,10 @@ struct tracksInfo
     //daughters_info 
     unsigned int ndaughters_reco;
     //std::vector<daughtersInfo> *daughters=nullptr;
+
+    bool has_true_secondaries;
+
+    std::vector<bool> *is_daughter = nullptr;
  
 };
 
@@ -58,7 +95,6 @@ struct RunEvtInfo {
     unsigned int subrun;
     unsigned int evt;
     bool ismc;
-    int which_slice;
 };
 
 struct EventsData {
@@ -71,7 +107,6 @@ struct EventsData {
 
 EventsData load_data(const std::string& inputstringFile, const std::string& inputstringParticle, const std::string& Np="Np", const std::string& fullRR="full", bool corrected=false, bool true1muNp=true, const std::string& option="") {
 
-    
     EventsData dat;
 
     std::string datafile;
@@ -123,6 +158,14 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
 
     if(inputstringParticle=="muon")
     {
+        tree->SetBranchAddress("rr_rm_mu_coll", &dat.track.rr_rm_coll);
+        tree->SetBranchAddress("rm_mu_coll", &dat.track.rm_coll);
+        tree->SetBranchAddress("rr_rm_mu_ind1", &dat.track.rr_rm_ind1);
+        tree->SetBranchAddress("rm_mu_ind1", &dat.track.rm_ind1);
+        tree->SetBranchAddress("rr_rm_mu_ind2", &dat.track.rr_rm_ind2);
+        tree->SetBranchAddress("rm_mu_ind2", &dat.track.rm_ind2);
+        tree->SetBranchAddress("rr_rm_mu_bestplane", &dat.track.rr_rm_bestplane);
+        tree->SetBranchAddress("rm_mu_bestplane", &dat.track.rm_bestplane);
 
         tree->SetBranchAddress("bestplane_mu", &dat.track.bestplane);
         tree->SetBranchAddress("chi2_mu_coll", &dat.track.chi2_coll);
@@ -135,6 +178,16 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
         tree->SetBranchAddress("dE_mu_ind2", &dat.track.dEdx_ind2);
         tree->SetBranchAddress("rr_mu_ind1", &dat.track.rr_ind1);
         tree->SetBranchAddress("rr_mu_ind2", &dat.track.rr_ind2);
+
+        tree->SetBranchAddress("dE_mu_bestplane", &dat.track.dEdx_bestplane);
+        tree->SetBranchAddress("rr_mu_bestplane", &dat.track.rr_bestplane);
+        tree->SetBranchAddress("pitch_mu_bestplane",&dat.track.pitch_bestplane);
+        tree->SetBranchAddress("hitx_mu_bestplane",&dat.track.hitx_bestplane);
+        tree->SetBranchAddress("hity_mu_bestplane",&dat.track.hity_bestplane);
+        tree->SetBranchAddress("hitz_mu_bestplane",&dat.track.hitz_bestplane);
+
+        tree->SetBranchAddress("pitch_mu_ind1",&dat.track.pitch_ind1);
+        tree->SetBranchAddress("pitch_mu_ind2",&dat.track.pitch_ind2);
 
         tree->SetBranchAddress("dE_mu", &dat.track.dE);
         tree->SetBranchAddress("rr_mu", &dat.track.rr);
@@ -171,11 +224,20 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
         tree->SetBranchAddress("subrun", &dat.EvtInfo.subrun);
         tree->SetBranchAddress("evt", &dat.EvtInfo.evt);
         tree->SetBranchAddress("ismc", &dat.EvtInfo.ismc);
-        tree->SetBranchAddress("which_slice", &dat.EvtInfo.which_slice);
     }
 
     if(inputstringParticle=="proton")
     {
+        tree->SetBranchAddress("rr_rm_pro_coll", &dat.track.rr_rm_coll);
+        tree->SetBranchAddress("rm_pro_coll", &dat.track.rm_coll);
+        tree->SetBranchAddress("rr_rm_pro_ind1", &dat.track.rr_rm_ind1);
+        tree->SetBranchAddress("rm_pro_ind1", &dat.track.rm_ind1);
+        tree->SetBranchAddress("rr_rm_pro_ind2", &dat.track.rr_rm_ind2);
+        tree->SetBranchAddress("rm_pro_ind2", &dat.track.rm_ind2);
+        tree->SetBranchAddress("rr_rm_pro_bestplane", &dat.track.rr_rm_bestplane);
+        tree->SetBranchAddress("rm_pro_bestplane", &dat.track.rm_bestplane);
+
+
         tree->SetBranchAddress("vertice_reco", &dat.vertex.reco_vertex);
         tree->SetBranchAddress("bestplane_pro", &dat.track.bestplane);
         tree->SetBranchAddress("chi2_pro_coll", &dat.track.chi2_coll);
@@ -186,6 +248,16 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
         tree->SetBranchAddress("dE_pro_ind2", &dat.track.dEdx_ind2);
         tree->SetBranchAddress("rr_pro_ind1", &dat.track.rr_ind1);
         tree->SetBranchAddress("rr_pro_ind2", &dat.track.rr_ind2);
+
+        tree->SetBranchAddress("dE_pro_bestplane", &dat.track.dEdx_bestplane);
+        tree->SetBranchAddress("rr_pro_bestplane", &dat.track.rr_bestplane);
+        tree->SetBranchAddress("pitch_pro_bestplane",&dat.track.pitch_bestplane);
+        tree->SetBranchAddress("hitx_pro_bestplane",&dat.track.hitx_bestplane);
+        tree->SetBranchAddress("hity_pro_bestplane",&dat.track.hity_bestplane);
+        tree->SetBranchAddress("hitz_pro_bestplane",&dat.track.hitz_bestplane);
+
+        tree->SetBranchAddress("pitch_pro_ind1",&dat.track.pitch_ind1);
+        tree->SetBranchAddress("pitch_pro_ind2",&dat.track.pitch_ind2);
 
         tree->SetBranchAddress("dE_pro", &dat.track.dE);
         tree->SetBranchAddress("rr_pro", &dat.track.rr);
@@ -204,7 +276,6 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
 
         tree->SetBranchAddress("dQdx", &dat.track.dQdx);
 
-        //tree->SetBranchAddress("vertice_reco", &dat.vertex.reco_vertex);
         tree->SetBranchAddress("end_reco_pro", &dat.track.end_reco);
         tree->SetBranchAddress("start_reco_pro", &dat.track.start_reco);
         tree->SetBranchAddress("len_reco_pro", &dat.track.len_reco);
@@ -225,11 +296,19 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
         tree->SetBranchAddress("subrun", &dat.EvtInfo.subrun);
         tree->SetBranchAddress("evt", &dat.EvtInfo.evt);
         tree->SetBranchAddress("ismc", &dat.EvtInfo.ismc);
-        tree->SetBranchAddress("which_slice", &dat.EvtInfo.which_slice);
     }
 
     if(inputstringParticle=="pion")
     {
+        tree->SetBranchAddress("rr_rm_pi_coll", &dat.track.rr_rm_coll);
+        tree->SetBranchAddress("rm_pi_coll", &dat.track.rm_coll);
+        tree->SetBranchAddress("rr_rm_pi_ind1", &dat.track.rr_rm_ind1);
+        tree->SetBranchAddress("rm_pi_ind1", &dat.track.rm_ind1);
+        tree->SetBranchAddress("rr_rm_pi_ind2", &dat.track.rr_rm_ind2);
+        tree->SetBranchAddress("rm_pi_ind2", &dat.track.rm_ind2);
+        tree->SetBranchAddress("rr_rm_pi_bestplane", &dat.track.rr_rm_bestplane);
+        tree->SetBranchAddress("rm_pi_bestplane", &dat.track.rm_bestplane);
+
         tree->SetBranchAddress("vertice_reco", &dat.vertex.reco_vertex);
         tree->SetBranchAddress("bestplane_pi", &dat.track.bestplane);
         tree->SetBranchAddress("chi2_pi_coll", &dat.track.chi2_coll);
@@ -241,8 +320,19 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
         tree->SetBranchAddress("rr_pi_ind1", &dat.track.rr_ind1);
         tree->SetBranchAddress("rr_pi_ind2", &dat.track.rr_ind2);
 
+        tree->SetBranchAddress("dE_pi_bestplane", &dat.track.dEdx_bestplane);
+        tree->SetBranchAddress("rr_pi_bestplane", &dat.track.rr_bestplane);
+        tree->SetBranchAddress("pitch_pi_bestplane",&dat.track.pitch_bestplane);
+        tree->SetBranchAddress("hitx_pi_bestplane",&dat.track.hitx_bestplane);
+        tree->SetBranchAddress("hity_pi_bestplane",&dat.track.hity_bestplane);
+        tree->SetBranchAddress("hitz_pi_bestplane",&dat.track.hitz_bestplane);
+
+        tree->SetBranchAddress("pitch_pi_ind1",&dat.track.pitch_ind1);
+        tree->SetBranchAddress("pitch_pi_ind2",&dat.track.pitch_ind2);
+
         tree->SetBranchAddress("dE_pi", &dat.track.dE);
         tree->SetBranchAddress("rr_pi", &dat.track.rr);
+        tree->SetBranchAddress("pitch_pi",&dat.track.pitch);
 
         tree->SetBranchAddress("hitxPI", &dat.track.hitx);
         tree->SetBranchAddress("hityPI", &dat.track.hity);
@@ -263,7 +353,6 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
         tree->SetBranchAddress("subrun", &dat.EvtInfo.subrun);
         tree->SetBranchAddress("evt", &dat.EvtInfo.evt);
         tree->SetBranchAddress("ismc", &dat.EvtInfo.ismc);
-        tree->SetBranchAddress("which_slice", &dat.EvtInfo.which_slice);
     }
 
     if ((inputstringFile == "mc" || inputstringFile == "mc2d" || inputstringFile == "mc2d_general" || inputstringFile == "mc2dprova" || inputstringFile == "mc2d_general_contained") && (inputstringParticle=="muon")) 
@@ -274,6 +363,19 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
         tree->SetBranchAddress("len_true_mu", &dat.track.len_true);
         tree->SetBranchAddress("gen_momentum_mu", &dat.track.genMomentum);
         tree->SetBranchAddress("end_process_mu",&dat.track.end_process);
+        tree->SetBranchAddress("has_true_secondaries_mu",&dat.track.has_true_secondaries);
+        tree->SetBranchAddress("visE_mu",&dat.track.true_visE);
+        tree->SetBranchAddress("hit_purity_mu",&dat.track.hit_purity);
+        tree->SetBranchAddress("hit_completeness_mu",&dat.track.hit_completeness);
+        tree->SetBranchAddress("energy_purity_mu",&dat.track.energy_purity);
+        tree->SetBranchAddress("energy_completeness_mu",&dat.track.energy_completeness);
+        tree->SetBranchAddress("pdg_matches_mu",&dat.track.pdg_match);
+        tree->SetBranchAddress("energy_matches_mu",&dat.track.energy_match);
+        tree->SetBranchAddress("is_daughter_mu",&dat.track.is_daughter);
+        tree->SetBranchAddress("end_points_distance_matches_mu", &dat.track.end_points_distance_matches);
+        tree->SetBranchAddress("start_process_mu",&dat.track.start_process);
+        tree->SetBranchAddress("energy_at_first_hit_mu",&dat.track.energy_at_first_hit);
+        tree->SetBranchAddress("energy_at_last_hit_mu",&dat.track.energy_at_last_hit);
     }
 
     if((inputstringFile == "mc" || inputstringFile == "mc2d" || inputstringFile == "mc2d_general" || inputstringFile == "mc2dprova" || inputstringFile == "mc2d_general_contained") && (inputstringParticle=="proton"))
@@ -284,6 +386,19 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
         tree->SetBranchAddress("len_true_pro", &dat.track.len_true);
         tree->SetBranchAddress("gen_momentum_pro", &dat.track.genMomentum);
         tree->SetBranchAddress("end_process_pro", &dat.track.end_process);
+        tree->SetBranchAddress("has_true_secondaries_pro",&dat.track.has_true_secondaries);
+        tree->SetBranchAddress("visE_pro",&dat.track.true_visE);
+        tree->SetBranchAddress("hit_purity_pro",&dat.track.hit_purity);
+        tree->SetBranchAddress("hit_completeness_pro",&dat.track.hit_completeness);
+        tree->SetBranchAddress("energy_purity_pro",&dat.track.energy_purity);
+        tree->SetBranchAddress("energy_completeness_pro",&dat.track.energy_completeness);
+        tree->SetBranchAddress("pdg_matches_pro",&dat.track.pdg_match);
+        tree->SetBranchAddress("energy_matches_pro",&dat.track.energy_match);
+        tree->SetBranchAddress("is_daughter_pro",&dat.track.is_daughter);
+        tree->SetBranchAddress("end_points_distance_matches_pro", &dat.track.end_points_distance_matches);
+        tree->SetBranchAddress("start_process_pro",&dat.track.start_process);
+        tree->SetBranchAddress("energy_at_first_hit_pro",&dat.track.energy_at_first_hit);
+        tree->SetBranchAddress("energy_at_last_hit_pro",&dat.track.energy_at_last_hit);
     }
 
     if((inputstringFile == "mc" || inputstringFile == "mc2d" || inputstringFile == "mc2d_general" || inputstringFile == "mc2dprova" || inputstringFile == "mc2d_general_contained") && (inputstringParticle=="pion"))
@@ -294,6 +409,19 @@ EventsData load_data(const std::string& inputstringFile, const std::string& inpu
         tree->SetBranchAddress("len_true_pi", &dat.track.len_true);
         tree->SetBranchAddress("gen_momentum_pi", &dat.track.genMomentum);
         tree->SetBranchAddress("end_process_pi", &dat.track.end_process);
+        tree->SetBranchAddress("has_true_secondaries_pi",&dat.track.has_true_secondaries);
+        tree->SetBranchAddress("visE_pi",&dat.track.true_visE);
+        tree->SetBranchAddress("hit_purity_pi",&dat.track.hit_purity);
+        tree->SetBranchAddress("hit_completeness_pi",&dat.track.hit_completeness);
+        tree->SetBranchAddress("energy_purity_pi",&dat.track.energy_purity);
+        tree->SetBranchAddress("energy_completeness_pi",&dat.track.energy_completeness);
+        tree->SetBranchAddress("pdg_matches_pi",&dat.track.pdg_match);
+        tree->SetBranchAddress("energy_matches_pi",&dat.track.energy_match);
+        tree->SetBranchAddress("is_daughter_pi",&dat.track.is_daughter);
+        tree->SetBranchAddress("end_points_distance_matches_pi", &dat.track.end_points_distance_matches);
+        tree->SetBranchAddress("start_process_pi",&dat.track.start_process);
+        tree->SetBranchAddress("energy_at_first_hit_pi",&dat.track.energy_at_first_hit);
+        tree->SetBranchAddress("energy_at_last_hit_pi",&dat.track.energy_at_last_hit);
     }
 
     dat.tree = tree;
@@ -323,35 +451,4 @@ double mediana(std::vector<double> dummy)
         mediana=( dummy.at(dummy.size()/2) + dummy.at(idx) )/2.;
     }
     return mediana;
-}
-
-void selecet1mu1p(EventsData &dat_pro)
-{
-    std::vector<int> IDvector;
-    std::unordered_map<int,int> count;
-    int N1muNp=0; 
-    int Nptracks=0;
-
-    for(int i=0; i<dat_pro.tree->GetEntries(); i++)
-    {
-        dat_pro.tree->GetEntry(i);
-        IDvector.push_back(dat_pro.EvtInfo.which_slice);
-    }
-
-    for(int id : IDvector){count[id]++;}
-
-    for(const auto& it : count)
-    {
-        int id = it.first;
-        int counts= it.second;
-        if(counts>1)
-        {
-            N1muNp+=1;
-            Nptracks= Nptracks+counts-1;
-        }
-    } 
-    std::cout << N1muNp << " 1muN(>1)p events" << endl;
-    std::cout << Nptracks << endl;
-
-
 }

@@ -83,15 +83,7 @@ auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
 
 SpectrumLoader loader(fdata);       //CAF that I produced with all dedx vs rr   
 
-double kPOTbnb = 6.6E20;
-double kPOT_J = 2.5E20;
-double kPI = 3.14159265358979323846;
-
-   Double_t w = 800;
-   Double_t h = 600;
-
-
-const Binning kBinz     = Binning::Simple(300,0,30);
+const Binning kBinz = Binning::Simple(300,0,30);
 
 Spectrum s1("", kBinz, loader, DataLoader ,kCRTPMTNeutrino );
 
@@ -100,7 +92,6 @@ loader.Go();
 double factor = s1.POT();  
 
 TH1D* h1 = s1.ToTH1(factor);
-
 
 std::string filename;
 
@@ -152,6 +143,7 @@ std::vector<double> vec7pro;
 
 std::vector<double> vecdEdxPI;        
 std::vector<double> vecrrPI; 
+std::vector<double> vecpitchPI;
 
 std::vector<double> vec_dEdx_ind1_MU;
 std::vector<double> vec_dEdx_ind2_MU;
@@ -167,6 +159,27 @@ std::vector<double> vec_dEdx_ind1_PI;
 std::vector<double> vec_dEdx_ind2_PI;
 std::vector<double> vec_rr_ind1_PI;
 std::vector<double> vec_rr_ind2_PI;
+
+std::vector<double> vec_rr_bestplane_MU;
+std::vector<double> vec_dEdx_bestplane_MU;
+std::vector<double> vec_rr_bestplane_PRO;
+std::vector<double> vec_dEdx_bestplane_PRO;
+std::vector<double> vec_rr_bestplane_PI;
+std::vector<double> vec_dEdx_bestplane_PI;
+
+std::vector<double> vec_pitch_bestplane_MU;
+std::vector<double> vec_pitch_bestplane_PRO;
+std::vector<double> vec_pitch_bestplane_PI;
+
+std::vector<double> vec_hitx_bestplane_MU;
+std::vector<double> vec_hity_bestplane_MU;
+std::vector<double> vec_hitz_bestplane_MU;
+std::vector<double> vec_hitx_bestplane_PRO;
+std::vector<double> vec_hity_bestplane_PRO;
+std::vector<double> vec_hitz_bestplane_PRO;
+std::vector<double> vec_hitx_bestplane_PI;
+std::vector<double> vec_hity_bestplane_PI;
+std::vector<double> vec_hitz_bestplane_PI;
 
 std::vector<double> chi2_mu_coll;
 std::vector<double> chi2_mu_ind1;
@@ -188,19 +201,16 @@ unsigned int run_mu;
 unsigned int subrun_mu;
 unsigned int evt_mu;
 bool ismc_mu;
-int eventID_mu;
 
 unsigned int run_pro;
 unsigned int subrun_pro;
 unsigned int evt_pro;
 bool ismc_pro;
-int eventID_pro;
 
 unsigned int run_pi;
 unsigned int subrun_pi;
 unsigned int evt_pi;
 bool ismc_pi;
-int eventID_pi;
 
 double dirx_mu;
 double diry_mu;
@@ -272,24 +282,106 @@ double len_reco_pi;
 
 int end_proc_mu, end_proc_pro, end_proc_pi;
 
+std::vector<double> rr_rolling_median_mu_coll;
+std::vector<double> rolling_median_mu_coll;
+std::vector<double> rr_rolling_median_pro_coll;
+std::vector<double> rolling_median_pro_coll;
+std::vector<double> rr_rolling_median_pi_coll;
+std::vector<double> rolling_median_pi_coll;
+
+std::vector<double> rr_rolling_median_mu_bestplane;
+std::vector<double> rolling_median_mu_bestplane;
+std::vector<double> rr_rolling_median_pro_bestplane;
+std::vector<double> rolling_median_pro_bestplane;
+std::vector<double> rr_rolling_median_pi_bestplane;
+std::vector<double> rolling_median_pi_bestplane;
+
+std::vector<double> rr_rolling_median_mu_ind1;
+std::vector<double> rolling_median_mu_ind1;
+std::vector<double> rr_rolling_median_pro_ind1;
+std::vector<double> rolling_median_pro_ind1;
+std::vector<double> rr_rolling_median_pi_ind1;
+std::vector<double> rolling_median_pi_ind1;
+
+std::vector<double> rr_rolling_median_mu_ind2;
+std::vector<double> rolling_median_mu_ind2;
+std::vector<double> rr_rolling_median_pro_ind2;
+std::vector<double> rolling_median_pro_ind2;
+std::vector<double> rr_rolling_median_pi_ind2;
+std::vector<double> rolling_median_pi_ind2;
+
+bool has_Tsecondaries_mu;
+bool has_Tsecondaries_pro;
+bool has_Tsecondaries_pi;
+
+double visE_mu;
+double visE_pro;
+double visE_pi;
+
+double hitP_mu;
+double hitP_pro;
+double hitP_pi;
+double hitC_mu;
+double hitC_pro;
+double hitC_pi;
+
+double energyP_mu;
+double energyP_pro;
+double energyP_pi;
+double energyC_mu;
+double energyC_pro;
+double energyC_pi;
+
+std::vector<int> vec_pdg_matches_mu;
+std::vector<double> vec_energy_matches_mu;
+std::vector<double> vec_end_points_distance_matches_mu;
+std::vector<int> vec_pdg_matches_pro;
+std::vector<double> vec_energy_matches_pro;
+std::vector<double> vec_end_points_distance_matches_pro;
+std::vector<int> vec_pdg_matches_pi;
+std::vector<double> vec_energy_matches_pi;
+std::vector<double> vec_end_points_distance_matches_pi;
+
+std::vector<double> vec_pitch_ind1_MU;
+std::vector<double> vec_pitch_ind2_MU;
+std::vector<double> vec_pitch_ind1_PRO;
+std::vector<double> vec_pitch_ind2_PRO;
+std::vector<double> vec_pitch_ind1_PI;
+std::vector<double> vec_pitch_ind2_PI;
+
+std::vector<bool> vec_is_daughter_mu;
+std::vector<bool> vec_is_daughter_pro;
+std::vector<bool> vec_is_daughter_pi;
+
+int temp_start_process_mu;
+int temp_start_process_pro;
+int temp_start_process_pi;
+
+double temp_energy_at_first_hit_mu;
+double temp_energy_at_first_hit_pro;
+double temp_energy_at_first_hit_pi;
+
+double temp_energy_at_last_hit_mu;
+double temp_energy_at_last_hit_pro;
+double temp_energy_at_last_hit_pi;
+
+//DEFINING BRANCHES
+
 //general run evt info
 tree_mu->Branch("run", &run_mu);
 tree_mu->Branch("subrun", &subrun_mu);
 tree_mu->Branch("evt", &evt_mu);
 tree_mu->Branch("ismc", &ismc_mu);
-tree_mu->Branch("which_slice", &eventID_mu);
 
 tree_pro->Branch("run", &run_pro);
 tree_pro->Branch("subrun", &subrun_pro);
 tree_pro->Branch("evt", &evt_pro);
 tree_pro->Branch("ismc", &ismc_pro);
-tree_pro->Branch("which_slice", &eventID_pro);
 
 tree_pi->Branch("run", &run_pi);
 tree_pi->Branch("subrun", &subrun_pi);
 tree_pi->Branch("evt", &evt_pi);
 tree_pi->Branch("ismc", &ismc_pi);
-tree_pi->Branch("which_slice", &eventID_pi);
 
 //muons
 //calo info
@@ -297,6 +389,15 @@ tree_mu->Branch("bestplane_mu", &bestplane_mu);
 tree_mu->Branch("chi2_mu_coll", &chi2_mu_coll);
 tree_mu->Branch("chi2_mu_ind1", &chi2_mu_ind1);
 tree_mu->Branch("chi2_mu_ind2", &chi2_mu_ind2);
+
+tree_mu->Branch("rr_rm_mu_coll", &rr_rolling_median_mu_coll);
+tree_mu->Branch("rm_mu_coll", &rolling_median_mu_coll);
+tree_mu->Branch("rr_rm_mu_ind1", &rr_rolling_median_mu_ind1);
+tree_mu->Branch("rm_mu_ind1", &rolling_median_mu_ind1);
+tree_mu->Branch("rr_rm_mu_ind2", &rr_rolling_median_mu_ind2);
+tree_mu->Branch("rm_mu_ind2", &rolling_median_mu_ind2);
+tree_mu->Branch("rr_rm_mu_bestplane", &rr_rolling_median_mu_bestplane);
+tree_mu->Branch("rm_mu_bestplane", &rolling_median_mu_bestplane);
 
 tree_mu->Branch("wire_mu", &wireMU);
 tree_mu->Branch("dE_mu", &vec1mu);
@@ -318,6 +419,16 @@ tree_mu->Branch("dE_mu_ind2", &vec_dEdx_ind2_MU);
 tree_mu->Branch("rr_mu_ind1", &vec_rr_ind1_MU);
 tree_mu->Branch("rr_mu_ind2", &vec_rr_ind2_MU);
 
+tree_mu->Branch("dE_mu_bestplane", &vec_dEdx_bestplane_MU);
+tree_mu->Branch("rr_mu_bestplane", &vec_rr_bestplane_MU);
+tree_mu->Branch("pitch_mu_bestplane", &vec_pitch_bestplane_MU);
+tree_mu->Branch("hitx_mu_bestplane", &vec_hitx_bestplane_MU);
+tree_mu->Branch("hity_mu_bestplane", &vec_hity_bestplane_MU);
+tree_mu->Branch("hitz_mu_bestplane", &vec_hitz_bestplane_MU);
+
+tree_mu->Branch("pitch_mu_ind1", &vec_pitch_ind1_MU);
+tree_mu->Branch("pitch_mu_ind2", &vec_pitch_ind2_MU);
+
 //track info
 tree_mu->Branch("vertice_reco", &vertice_reco_mu);
 tree_mu->Branch("end_reco_mu", &end_reco_mu);
@@ -338,6 +449,15 @@ tree_pro->Branch("chi2_pro_coll", &chi2_pro_coll);
 tree_pro->Branch("chi2_pro_ind1", &chi2_pro_ind1);
 tree_pro->Branch("chi2_pro_ind2", &chi2_pro_ind2);
 
+tree_pro->Branch("rr_rm_pro_coll", &rr_rolling_median_pro_coll);
+tree_pro->Branch("rm_pro_coll", &rolling_median_pro_coll);
+tree_pro->Branch("rr_rm_pro_ind1", &rr_rolling_median_pro_ind1);
+tree_pro->Branch("rm_pro_ind1", &rolling_median_pro_ind1);
+tree_pro->Branch("rr_rm_pro_ind2", &rr_rolling_median_pro_ind2);
+tree_pro->Branch("rm_pro_ind2", &rolling_median_pro_ind2);
+tree_pro->Branch("rr_rm_pro_bestplane", &rr_rolling_median_pro_bestplane);
+tree_pro->Branch("rm_pro_bestplane", &rolling_median_pro_bestplane);
+
 tree_pro->Branch("dE_pro", &vec1pro);
 tree_pro->Branch("Eint_pro", &vec2pro);
 tree_pro->Branch("rr_pro", &vec3pro);
@@ -357,6 +477,16 @@ tree_pro->Branch("dE_pro_ind2", &vec_dEdx_ind2_PRO);
 tree_pro->Branch("rr_pro_ind1", &vec_rr_ind1_PRO);
 tree_pro->Branch("rr_pro_ind2", &vec_rr_ind2_PRO);
 
+tree_pro->Branch("dE_pro_bestplane", &vec_dEdx_bestplane_PRO);
+tree_pro->Branch("rr_pro_bestplane", &vec_rr_bestplane_PRO);
+tree_pro->Branch("pitch_pro_bestplane", &vec_pitch_bestplane_PRO);
+tree_pro->Branch("hitx_pro_bestplane", &vec_hitx_bestplane_PRO);
+tree_pro->Branch("hity_pro_bestplane", &vec_hity_bestplane_PRO);
+tree_pro->Branch("hitz_pro_bestplane", &vec_hitz_bestplane_PRO);
+
+tree_pro->Branch("pitch_pro_ind1", &vec_pitch_ind1_PRO);
+tree_pro->Branch("pitch_pro_ind2", &vec_pitch_ind2_PRO);
+
 //track info
 tree_pro->Branch("vertice_reco", &vertice_reco_pro);
 tree_pro->Branch("end_reco_pro", &end_reco_pro);
@@ -371,6 +501,7 @@ tree_pro->Branch("ndaughters_pro", &ndaughters_pro_reco);
 //tree_pro->Branch("pro_daughters_info", &protons_d);
 
 
+
 //pions
 //calo info
 tree_pi->Branch("bestplane_pi", &bestplane_pi);
@@ -378,16 +509,36 @@ tree_pi->Branch("chi2_pi_coll", &chi2_pi_coll);
 tree_pi->Branch("chi2_pi_ind1", &chi2_pi_ind1);
 tree_pi->Branch("chi2_pi_ind2", &chi2_pi_ind2);
 
+tree_pi->Branch("rr_rm_pi_coll", &rr_rolling_median_pi_coll);
+tree_pi->Branch("rm_pi_coll", &rolling_median_pi_coll);
+tree_pi->Branch("rr_rm_pi_ind1", &rr_rolling_median_pi_ind1);
+tree_pi->Branch("rm_pi_ind1", &rolling_median_pi_ind1);
+tree_pi->Branch("rr_rm_pi_ind2", &rr_rolling_median_pi_ind2);
+tree_pi->Branch("rm_pi_ind2", &rolling_median_pi_ind2);
+tree_pi->Branch("rr_rm_pi_bestplane", &rr_rolling_median_pi_bestplane);
+tree_pi->Branch("rm_pi_bestplane", &rolling_median_pi_bestplane);
+
 tree_pi->Branch("dE_pi", &vecdEdxPI);
 tree_pi->Branch("rr_pi", &vecrrPI);
-tree_pi->Branch("hitxPI", &hitxPRO);
-tree_pi->Branch("hityPI", &hityPRO);
-tree_pi->Branch("hitzPI", &hitzPRO);
+tree_pi->Branch("pitch_pi",&vecpitchPI);
+tree_pi->Branch("hitxPI", &hitxPI);
+tree_pi->Branch("hityPI", &hityPI);
+tree_pi->Branch("hitzPI", &hitzPI);
 
 tree_pi->Branch("dE_pi_ind1", &vec_dEdx_ind1_PI);
 tree_pi->Branch("dE_pi_ind2", &vec_dEdx_ind2_PI);
 tree_pi->Branch("rr_pi_ind1", &vec_rr_ind1_PI);
 tree_pi->Branch("rr_pi_ind2", &vec_rr_ind2_PI);
+
+tree_pi->Branch("dE_pi_bestplane", &vec_dEdx_bestplane_PI);
+tree_pi->Branch("rr_pi_bestplane", &vec_rr_bestplane_PI);
+tree_pi->Branch("pitch_pi_bestplane", &vec_pitch_bestplane_PI);
+tree_pi->Branch("hitx_pi_bestplane", &vec_hitx_bestplane_PI);
+tree_pi->Branch("hity_pi_bestplane", &vec_hity_bestplane_PI);
+tree_pi->Branch("hitz_pi_bestplane", &vec_hitz_bestplane_PI);
+
+tree_pi->Branch("pitch_pi_ind1", &vec_pitch_ind1_PI);
+tree_pi->Branch("pitch_pi_ind2", &vec_pitch_ind2_PI);
 
 //track info
 tree_pi->Branch("vertice_reco", &vertice_reco_pi);
@@ -405,6 +556,20 @@ tree_mu->Branch("start_true_mu", &start_true_mu);
 tree_mu->Branch("len_true_mu", &len_true_mu);
 tree_mu->Branch("gen_momentum_mu", &genMomentumMU);
 tree_mu->Branch("end_process_mu", &end_proc_mu);
+tree_mu->Branch("visE_mu",&visE_mu);
+tree_mu->Branch("hit_purity_mu",&hitP_mu);
+tree_mu->Branch("hit_completeness_mu",&hitC_mu);
+tree_mu->Branch("energy_purity_mu",&energyP_mu);
+tree_mu->Branch("energy_completeness_mu",&energyC_mu);
+tree_mu->Branch("pdg_matches_mu",&vec_pdg_matches_mu);
+tree_mu->Branch("energy_matches_mu",&vec_energy_matches_mu);
+tree_mu->Branch("is_daughter_mu",&vec_is_daughter_mu);
+tree_mu->Branch("end_points_distance_matches_mu",&vec_end_points_distance_matches_mu);
+tree_mu->Branch("start_process_mu",&temp_start_process_mu);
+tree_mu->Branch("energy_at_first_hit_mu",&temp_energy_at_first_hit_mu);
+tree_mu->Branch("energy_at_last_hit_mu",&temp_energy_at_last_hit_mu);
+tree_mu->Branch("has_true_secondaries_mu",&has_Tsecondaries_mu);
+
 //protons
 tree_pro->Branch("vertice_true", &vertice_true_pro);
 tree_pro->Branch("end_true_pro", &end_true_pro);
@@ -412,99 +577,142 @@ tree_pro->Branch("start_true_pro", &start_true_pro);
 tree_pro->Branch("len_true_pro", &len_true_pro);
 tree_pro->Branch("gen_momentum_pro", &genMomentumPRO);
 tree_pro->Branch("end_process_pro", &end_proc_pro);
+tree_pro->Branch("visE_pro",&visE_pro);
+tree_pro->Branch("hit_purity_pro",&hitP_pro);
+tree_pro->Branch("hit_completeness_pro",&hitC_pro);
+tree_pro->Branch("energy_purity_pro",&energyP_pro);
+tree_pro->Branch("energy_completeness_pro",&energyC_pro);
+tree_pro->Branch("pdg_matches_pro",&vec_pdg_matches_pro);
+tree_pro->Branch("energy_matches_pro",&vec_energy_matches_pro);
+tree_pro->Branch("is_daughter_pro",&vec_is_daughter_pro);
+tree_pro->Branch("end_points_distance_matches_pro",&vec_end_points_distance_matches_pro);
+tree_pro->Branch("has_true_secondaries_pro",&has_Tsecondaries_pro);
+tree_pro->Branch("start_process_pro",&temp_start_process_pro);
+tree_pro->Branch("energy_at_first_hit_pro",&temp_energy_at_first_hit_pro);
+tree_pro->Branch("energy_at_last_hit_pro",&temp_energy_at_last_hit_pro);
+
 //pions
 tree_pi->Branch("vertice_true", &vertice_true_pi);
 tree_pi->Branch("end_true_pi", &end_true_pi);
 tree_pi->Branch("start_true_pi", &start_true_pi);
 tree_pi->Branch("len_true_pi", &len_true_pi);
 tree_pi->Branch("end_process_pi", &end_proc_pi);
+tree_pi->Branch("visE_pi",&visE_pi);
+tree_pi->Branch("hit_purity_pi",&hitP_pi);
+tree_pi->Branch("hit_completeness_pi",&hitC_pi);
+tree_pi->Branch("energy_purity_pi",&energyP_pi);
+tree_pi->Branch("energy_completeness_pi",&energyC_pi);
+tree_pi->Branch("pdg_matches_pi",&vec_pdg_matches_pi);
+tree_pi->Branch("energy_matches_pi",&vec_energy_matches_pi);
+tree_pi->Branch("is_daughter_pi",&vec_is_daughter_pi);
+tree_pi->Branch("end_points_distance_matches_pi", &vec_end_points_distance_matches_pi);
+tree_pi->Branch("has_true_secondaries_pi",&has_Tsecondaries_pi);
+tree_pi->Branch("start_process_pi",&temp_start_process_pi);
+tree_pi->Branch("energy_at_first_hit_pi",&temp_energy_at_first_hit_pi);
+tree_pi->Branch("energy_at_last_hit_pi",&temp_energy_at_last_hit_pi);
+
 }
 
-
-
+//FILLING BRANCHES VARIABLES MUONS
 for(int i=0; i<int(CHIdeMU.size()); i++)
 {
-      //muons
+   bestplane_mu = CHIbest_plane_mu[i];
+   chi2_mu_coll = chi_quadro_coll_MU[i];
+   chi2_mu_ind1 = chi_quadro_ind1_MU[i];
+   chi2_mu_ind2 = chi_quadro_ind2_MU[i];
 
-      bestplane_mu = CHIbest_plane_mu[i];
-      chi2_mu_coll = chi_quadro_coll_MU[i];
-      chi2_mu_ind1 = chi_quadro_ind1_MU[i];
-      chi2_mu_ind2 = chi_quadro_ind2_MU[i];
+   rr_rolling_median_mu_coll = rr_rm_mu_coll[i];
+   rolling_median_mu_coll = rm_mu_coll[i];
+   rr_rolling_median_mu_ind1 = rr_rm_mu_ind1[i];
+   rolling_median_mu_ind1 = rm_mu_ind1[i];
+   rr_rolling_median_mu_ind2 = rr_rm_mu_ind2[i];
+   rolling_median_mu_ind2 = rm_mu_ind2[i];
+   rr_rolling_median_mu_bestplane = rr_rm_mu_bestplane[i];
+   rolling_median_mu_bestplane = rm_mu_bestplane[i];
 
-      wireMU = CHIwireMU[i];
+   wireMU = CHIwireMU[i];
 
-      vec_dEdx_ind1_MU = dEdx_ind1_MU[i];
-      //cout << "ind1 " << dEdx_ind1_MU[i].size() << endl;
-      vec_dEdx_ind2_MU = dEdx_ind2_MU[i];
-      //cout << "ind2 " << dEdx_ind2_MU[i].size() << endl;
+   vec_dEdx_ind1_MU = dEdx_ind1_MU[i];
+   vec_dEdx_ind2_MU = dEdx_ind2_MU[i];
+   vec_rr_ind1_MU = rr_ind1_MU[i];
+   vec_rr_ind2_MU = rr_ind2_MU[i];
 
-      vec_rr_ind1_MU = rr_ind1_MU[i];
-      vec_rr_ind2_MU = rr_ind2_MU[i];
+   vec_dEdx_bestplane_MU = dEdx_bestplane_MU[i];
+   vec_rr_bestplane_MU = rr_bestplane_MU[i];
+   vec_pitch_bestplane_MU = pitch_bestplane_MU[i];
+   vec_hitx_bestplane_MU = hitx_bestplane_MU[i];
+   vec_hity_bestplane_MU = hity_bestplane_MU[i];
+   vec_hitz_bestplane_MU = hitz_bestplane_MU[i];
 
-      vec1mu = CHIdeMU[i]; 
-      //cout << "coll " << CHIdeMU[i].size() << endl;
-      
-      vec2mu = CHIEintMUallt[i];
-      vec3mu = CHIrrMUninv[i];
-      vec4mu = CHIrrMU[i];
-      vec5mu = CHImultMU[i];
-      vec6mu = CHIwidthMU[i];
-      vec7mu = CHIpitchMU[i];
-      integral_mu = CHIintegralMU[i];
-      sumadc_mu = CHIsumadcMU[i];
-      hitxMU = CHIxMU[i];
-      hityMU = CHIyMU[i];
-      hitzMU = CHIzMU[i];
-      end_reco_mu =       CHIend3DrecoMU[i];
-      start_reco_mu =   CHIstart3DrecoMU[i]; 
-      len_reco_mu =       CHItlRECOmu[i]; 
-      eventID_mu = CHIeventIDMU[i];
-      dQdxMU = CHIdQdxMU[i];
+   vec_pitch_ind1_MU = pitch_ind1_MU[i];
+   vec_pitch_ind2_MU = pitch_ind2_MU[i];
 
-      dirx_mu = vdirx_mu[i];
-      diry_mu = vdiry_mu[i];
-      dirz_mu = vdirz_mu[i];
+   vec1mu = CHIdeMU[i]; 
 
-      //daughters
-      //muons_d=muons_daughter[i];
-      ndaughters_mu_reco=MUndaughters_reco[i];
+   vec2mu = CHIEintMUallt[i];
+   vec3mu = CHIrrMUninv[i];
+   vec4mu = CHIrrMU[i];
+   vec5mu = CHImultMU[i];
+   vec6mu = CHIwidthMU[i];
+   vec7mu = CHIpitchMU[i];
+   integral_mu = CHIintegralMU[i];
+   sumadc_mu = CHIsumadcMU[i];
+   hitxMU = CHIxMU[i];
+   hityMU = CHIyMU[i];
+   hitzMU = CHIzMU[i];
+   end_reco_mu =       CHIend3DrecoMU[i];
+   start_reco_mu =   CHIstart3DrecoMU[i]; 
+   len_reco_mu =       CHItlRECOmu[i]; 
+   dQdxMU = CHIdQdxMU[i];
 
-      //vertex
-      vertice_reco_mu = CHIvtxRECO[i]; 
+   dirx_mu = vdirx_mu[i];
+   diry_mu = vdiry_mu[i];
+   dirz_mu = vdirz_mu[i];
 
-      //event information
-      run_mu = vrun_mu[i];
-      subrun_mu = vsubrun_mu[i];
-      evt_mu = vevt_mu[i];
-      ismc_mu = visMC_mu[i];
+   //daughters
+   //muons_d=muons_daughter[i];
+   ndaughters_mu_reco=MUndaughters_reco[i];
+
+   //vertex
+   vertice_reco_mu = CHIvtxRECOmu[i]; 
+
+   //event information
+   run_mu = vrun_mu[i];
+   subrun_mu = vsubrun_mu[i];
+   evt_mu = vevt_mu[i];
+   ismc_mu = visMC_mu[i];
 
    if(is_mc)
    {
-      //vertex
-      vertice_true_mu = CHIvtxMC[i];    
-
-      //muons
+      vertice_true_mu = CHIvtxMCmu[i];    
       end_true_mu =       CHIend3DmcMU[i];
       start_true_mu =    CHIstart3DmcMU[i]; 
       len_true_mu =       CHItlMCmu[i];
       genMomentumMU = CHIgenMomentumMU[i];
       end_proc_mu = end_process_mu[i];
-
+      has_Tsecondaries_mu = has_true_secondaries_MU[i];
+      visE_mu = visible_energy_mu[i];
+      hitP_mu = hit_purity_mu[i];
+      hitC_mu = hit_completeness_mu[i];
+      energyP_mu = energy_purity_mu[i];
+      energyC_mu = energy_completeness_mu[i];
+      vec_pdg_matches_mu = pdg_matches_mu[i];
+      vec_energy_matches_mu = energy_matches_mu[i];
+      vec_is_daughter_mu = is_daughter_mu[i];
+      vec_end_points_distance_matches_mu = end_points_distance_matches_mu[i];
+      temp_start_process_mu = start_process_mu[i];
+      temp_energy_at_first_hit_mu = energy_at_first_hit_mu[i];
+      temp_energy_at_last_hit_mu = energy_at_last_hit_mu[i];
    }
-
-
    tree_mu->Fill();
-
 }
 
+cout << "ok filling muons" << endl;
 
-
-
+//FILLING BRANCHES VARIABLES PROTONS
 for(int i=0; i<int(CHIdePRO.size()); i++)
 {
-
-   //protons
-   vertice_reco_pro = CHIvtxRECO[i]; 
+   vertice_reco_pro = CHIvtxRECOpro[i]; 
 
    vec1pro = CHIdePRO[i];         
    vec2pro = CHIEintPROallt[i];
@@ -521,77 +729,121 @@ for(int i=0; i<int(CHIdePRO.size()); i++)
    hitzPRO = CHIzPRO[i];
    sumadc_pro = CHIsumadcPRO[i];
    integral_pro = CHIintegralPRO[i];
-   eventID_pro = CHIeventIDPRO[i];
    dQdxPRO = CHIdQdxPRO[i];
 
    dirx_pro = vdirx_pro[i];
    diry_pro = vdiry_pro[i];
    dirz_pro = vdirz_pro[i];
 
-
    bestplane_pro = CHIbest_plane_pro[i];
    chi2_pro_coll = chi_quadro_coll_PRO[i];
    chi2_pro_ind1 = chi_quadro_ind1_PRO[i];
    chi2_pro_ind2 = chi_quadro_ind2_PRO[i];
+
+   rr_rolling_median_pro_coll = rr_rm_pro_coll[i];
+   rolling_median_pro_coll = rm_pro_coll[i];
+   rr_rolling_median_pro_ind1 = rr_rm_pro_ind1[i];
+   rolling_median_pro_ind1 = rm_pro_ind1[i];
+   rr_rolling_median_pro_ind2 = rr_rm_pro_ind2[i];
+   rolling_median_pro_ind2 = rm_pro_ind2[i];
+   rr_rolling_median_pro_bestplane = rr_rm_pro_bestplane[i];
+   rolling_median_pro_bestplane = rm_pro_bestplane[i];
+
+   vec_pitch_ind1_PRO = pitch_ind1_PRO[i];
+   vec_pitch_ind2_PRO = pitch_ind2_PRO[i];
 
    vec_dEdx_ind1_PRO = dEdx_ind1_PRO[i];
    vec_dEdx_ind2_PRO = dEdx_ind2_PRO[i];
    vec_rr_ind1_PRO = rr_ind1_PRO[i];
    vec_rr_ind2_PRO = rr_ind2_PRO[i];
 
-
+   vec_dEdx_bestplane_PRO = dEdx_bestplane_PRO[i];
+   vec_rr_bestplane_PRO = rr_bestplane_PRO[i];
+   vec_pitch_bestplane_PRO = pitch_bestplane_PRO[i];
+   vec_hitx_bestplane_PRO = hitx_bestplane_PRO[i];
+   vec_hity_bestplane_PRO = hity_bestplane_PRO[i];
+   vec_hitz_bestplane_PRO = hitz_bestplane_PRO[i];
 
    //daughters
    //protons_d=protons_daughter[i];
    ndaughters_pro_reco=PROndaughters_reco[i];
 
    //general infomations
-      run_pro = vrun_pro[i];
-      subrun_pro = vsubrun_pro[i];
-      evt_pro = vevt_pro[i];
-      ismc_pro = visMC_pro[i];
+   run_pro = vrun_pro[i];
+   subrun_pro = vsubrun_pro[i];
+   evt_pro = vevt_pro[i];
+   ismc_pro = visMC_pro[i];
 
    if(is_mc)
    {
-      //protons
-      vertice_true_pro = CHIvtxMC[i];
+      vertice_true_pro = CHIvtxMCpro[i];
       end_true_pro =      CHIend3DmcPRO[i];
       start_true_pro =       CHIstart3DmcPRO[i];
       len_true_pro =      CHItlMCpro[i];
       genMomentumPRO = CHIgenMomentumPRO[i];
       end_proc_pro = end_process_pro[i];
+      has_Tsecondaries_pro = has_true_secondaries_PRO[i];
+      visE_pro = visible_energy_pro[i];
+      hitP_pro = hit_purity_pro[i];
+      hitC_pro = hit_completeness_pro[i];
+      energyP_pro = energy_purity_pro[i];
+      energyC_pro = energy_completeness_pro[i];
+      vec_pdg_matches_pro = pdg_matches_pro[i];
+      vec_energy_matches_pro = energy_matches_pro[i];
+      vec_is_daughter_pro = is_daughter_pro[i];
+      vec_end_points_distance_matches_pro = end_points_distance_matches_pro[i];
+      temp_start_process_pro = start_process_pro[i];
+      temp_energy_at_first_hit_pro = energy_at_first_hit_pro[i];
+      temp_energy_at_last_hit_pro = energy_at_last_hit_pro[i];
    }
-
-
-
    tree_pro->Fill();
-
 }
 
-//pions
+cout << "ok filling protons" << endl;
+
+//FILLING BRANCHES VARIABLES PIONS
 for(int i=0; i<int(CHIdePI.size()); i++)
 {
-   vertice_reco_pi = CHIvtxRECO[i]; 
+   vertice_reco_pi = CHIvtxRECOpi[i]; 
 
    vecdEdxPI = CHIdePI[i];         
    vecrrPI = CHIrrPIninv[i];
+   vecpitchPI = CHIpitchPI[i];
    end_reco_pi =CHIend3DrecoPI[i];
    start_reco_pi =       CHIstart3DrecoPI[i];
    len_reco_pi =      CHItlRECOpi[i];
    hitxPI = CHIxPI[i];
    hityPI = CHIyPI[i];
    hitzPI = CHIzPI[i];
-   eventID_pi = CHIeventIDpi[i];
 
    bestplane_pi = CHIbest_plane_pi[i];
    chi2_pi_coll = chi_quadro_coll_PI[i];
    chi2_pi_ind1 = chi_quadro_ind1_PI[i];
    chi2_pi_ind2 = chi_quadro_ind2_PI[i];
 
+   rr_rolling_median_pi_coll = rr_rm_pi_coll[i];
+   rolling_median_pi_coll = rm_pi_coll[i];
+   rr_rolling_median_pi_ind1 = rr_rm_pi_ind1[i];
+   rolling_median_pi_ind1 = rm_pi_ind1[i];
+   rr_rolling_median_pi_ind2 = rr_rm_pi_ind2[i];
+   rolling_median_pi_ind2 = rm_pi_ind2[i];
+   rr_rolling_median_pi_bestplane = rr_rm_pi_bestplane[i];
+   rolling_median_pi_bestplane = rm_pi_bestplane[i];
+
+   vec_pitch_ind1_PI = pitch_ind1_PI[i];
+   vec_pitch_ind2_PI = pitch_ind2_PI[i];
+
    vec_dEdx_ind1_PI = dEdx_ind1_PI[i];
    vec_dEdx_ind2_PI = dEdx_ind2_PI[i];
    vec_rr_ind1_PI = rr_ind1_PI[i];
    vec_rr_ind2_PI = rr_ind2_PI[i];
+
+   vec_dEdx_bestplane_PI = dEdx_ind2_PI[i];
+   vec_rr_bestplane_PI = rr_ind1_PI[i];
+   vec_pitch_bestplane_PI = pitch_bestplane_PI[i];
+   vec_hitx_bestplane_PI = hitx_bestplane_PI[i];
+   vec_hity_bestplane_PI = hity_bestplane_PI[i];
+   vec_hitz_bestplane_PI = hitz_bestplane_PI[i];
 
    //general infomations
    run_pi = vrun_pi[i];
@@ -601,20 +853,29 @@ for(int i=0; i<int(CHIdePI.size()); i++)
 
    if(is_mc)
    {
-      //pions
-      vertice_true_pi = CHIvtxMC[i];
+      vertice_true_pi = CHIvtxMCpi[i];
       end_true_pi =      CHIend3DmcPI[i];
       start_true_pi =       CHIstart3DmcPI[i];
       len_true_pi =      CHItlMCpi[i];
       end_proc_pi = end_process_pi[i];
-      cout << end_process_pi[i] << endl;
+      has_Tsecondaries_pi = has_true_secondaries_PI[i];
+      visE_pi = visible_energy_pi[i];
+      hitP_pi = hit_purity_pi[i];
+      hitC_pi = hit_completeness_pi[i];
+      energyP_pi = energy_purity_pi[i];
+      energyC_pi = energy_completeness_pi[i];
+      vec_pdg_matches_pi = pdg_matches_pi[i];
+      vec_energy_matches_pi = energy_matches_pi[i];
+      vec_is_daughter_pi = is_daughter_pi[i];
+      vec_end_points_distance_matches_pi = end_points_distance_matches_pi[i];
+      temp_start_process_pi = start_process_pi[i];
+      temp_energy_at_first_hit_pi = energy_at_first_hit_pi[i];
+      temp_energy_at_last_hit_pi = energy_at_last_hit_pi[i];
    }
-
-
-
    tree_pi->Fill();
-
 }
+
+cout << "ok filling pions" << endl;
 
 
 tree_mu->Write(0, TObject::kOverwrite);

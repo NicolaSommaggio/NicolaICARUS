@@ -437,6 +437,8 @@ int find_truth_muon ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int 
     RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
     TVector3 RecoStart;
 
+    if(islc.is_clear_cosmic)return -1;
+
     for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp ){
 
         if(std::isnan(islc.reco.pfp[ipfp].trk.start.x) || std::isnan(islc.reco.pfp[ipfp].trk.len)) continue;
@@ -446,9 +448,9 @@ int find_truth_muon ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int 
         if(islc.reco.pfp[ipfp].trackScore<0.5)continue;
 
         if(islc.reco.pfp[ipfp].trk.len>max_length && ((RecoVtx-RecoStart).Mag()<dist_mucut) && islc.reco.pfp[ipfp].trk.len>50 && 
-        islc.reco.pfp[ipfp].trk.truth.p.pdg==13 && 
+        std::abs(islc.reco.pfp[ipfp].trk.truth.p.pdg)==13 && 
         isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0) && 
-        //isInContained(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z,5.0) &&
+        isInContained(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z,5.0) &&
         (islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x)>0 && islc.reco.pfp[ipfp].parent_is_primary){
         max_length=islc.reco.pfp[ipfp].trk.len;
         ipfp_mu=ipfp;
@@ -756,7 +758,50 @@ bool automatic_selection_1muNp_truth ( const caf::SRSpillProxy* sr, const caf::P
 return false;
 }
 
+double mediana(std::vector<double> dummy)
+{
+    std::sort(dummy.begin(), dummy.end());
+    double mediana=0;
+    int idx=0;
+    if(int(dummy.size())%2==1)
+    {
+        idx=(dummy.size()-1)/2;
+        mediana=dummy.at(idx);
+    }
+    if(dummy.size()%2==0)
+    {
+        idx =dummy.size()/2-1;
+        mediana=( dummy.at(dummy.size()/2) + dummy.at(idx) )/2.;
+    }
+    return mediana;
+}
 
+std::array<std::vector<double>,2> rollingMedian(const caf::Proxy<caf::SRSlice>& islc, int ipfp, int plane)
+{
+    std::vector<double> dedx_temp;
+    std::vector<double> rr_temp;
+    std::vector<double> temp_rr_rm={-1.};
+    std::vector<double> temp_rm={-1.};
+    std::array<std::vector<double>,2> rm;
+    for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit)
+    {
+        if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<30)
+        {
+            dedx_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);
+            rr_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr);
+        }
+    }
+    if(dedx_temp.size()<9)return {temp_rr_rm,temp_rm};
+    
+    for(int i=4; i+4<int(dedx_temp.size()); i++)
+    {
+        std::vector<double> dummy = {dedx_temp[i-4], dedx_temp[i-3], dedx_temp[i-2], dedx_temp[i-1], dedx_temp[i] ,dedx_temp[i+1],dedx_temp[i+2], dedx_temp[i+3], dedx_temp[i+4]};
+        double media_rr = (rr_temp[i-4] + rr_temp[i-3] + rr_temp[i-2] + rr_temp[i-1] + rr_temp[i] + rr_temp[i+1] + rr_temp[i+2] + rr_temp[i+3] + rr_temp[i+4])/9.;
+        rm[0].push_back(media_rr);
+        rm[1].push_back(mediana(dummy));
+    }
+    return rm;
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////                                         Event Selection                                                      //////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -771,6 +816,47 @@ std::vector<double> dEdxind1;
 std::vector<double> rrind1;
 std::vector<double> dEdxind2;
 std::vector<double> rrind2;
+
+std::vector<double> dEdxbestplane;
+std::vector<double> rrbestplane;
+std::vector<double> pitchbestplane;
+
+std::vector<double> pitch_ind1;
+std::vector<double> pitch_ind2;
+
+std::vector<std::vector<double>> pitch_ind1_MU;
+std::vector<std::vector<double>> pitch_ind2_MU;
+
+std::vector<std::vector<double>> pitch_ind1_PRO;
+std::vector<std::vector<double>> pitch_ind2_PRO;
+
+std::vector<std::vector<double>> pitch_ind1_PI;
+std::vector<std::vector<double>> pitch_ind2_PI;
+
+std::vector<std::vector<double>> dEdx_bestplane_MU;
+std::vector<std::vector<double>> rr_bestplane_MU;
+std::vector<std::vector<double>> dEdx_bestplane_PRO;
+std::vector<std::vector<double>> rr_bestplane_PRO;
+std::vector<std::vector<double>> dEdx_bestplane_PI;
+std::vector<std::vector<double>> rr_bestplane_PI;
+std::vector<std::vector<double>> pitch_bestplane_MU;
+std::vector<std::vector<double>> pitch_bestplane_PRO;
+std::vector<std::vector<double>> pitch_bestplane_PI;
+
+std::vector<double> hitxbestplane;
+std::vector<double> hitybestplane;
+std::vector<double> hitzbestplane;
+std::vector<std::vector<double>> hitx_bestplane_MU;
+std::vector<std::vector<double>> hity_bestplane_MU;
+std::vector<std::vector<double>> hitz_bestplane_MU;
+std::vector<std::vector<double>> hitx_bestplane_PRO;
+std::vector<std::vector<double>> hity_bestplane_PRO;
+std::vector<std::vector<double>> hitz_bestplane_PRO;
+std::vector<std::vector<double>> hitx_bestplane_PI;
+std::vector<std::vector<double>> hity_bestplane_PI;
+std::vector<std::vector<double>> hitz_bestplane_PI;
+
+
 
 std::vector<double> CHIr;
 std::vector<double> CHIpitch;
@@ -840,6 +926,7 @@ std::vector<std::vector<double>> CHIdQdxPRO;
 
 std::vector<std::vector<double>> CHIdePI;
 std::vector<std::vector<double>> CHIrrPIninv;
+std::vector<std::vector<double>> CHIpitchPI;
 
 std::vector<std::vector<double>> CHIintegralMU;
 std::vector<std::vector<double>> CHIintegralPRO;
@@ -881,10 +968,6 @@ std::vector<std::vector<double>> CHIgenMomentumPRO;
 std::vector<unsigned int> PROndaughters_reco;
 std::vector<unsigned int> MUndaughters_reco;
 
-std::vector<int> CHIeventIDMU;
-std::vector<int> CHIeventIDPRO;
-std::vector<int> CHIeventIDpi;
-
 std::vector<double> CHItlRECOmu;
 std::vector<double> CHItlRECOpro;
 std::vector<double> CHItlMCmu;
@@ -893,8 +976,12 @@ std::vector<double> CHItlMCpro;
 std::vector<double> CHItlRECOpi;
 std::vector<double> CHItlMCpi;
 
-std::vector<std::vector<double>> CHIvtxRECO;
-std::vector<std::vector<double>> CHIvtxMC;
+std::vector<std::vector<double>> CHIvtxRECOmu;
+std::vector<std::vector<double>> CHIvtxMCmu;
+std::vector<std::vector<double>> CHIvtxRECOpro;
+std::vector<std::vector<double>> CHIvtxMCpro;
+std::vector<std::vector<double>> CHIvtxRECOpi;
+std::vector<std::vector<double>> CHIvtxMCpi;
 
 std::vector<double> vdirx_mu;
 std::vector<double> vdiry_mu;
@@ -923,15 +1010,91 @@ std::vector<int> end_process_pro;
 std::vector<int> end_process_pi;
 
 std::vector<double> dummy;
-
-//std::vector<unsigned> dummy_id;
-
+//std::vector<int> dummy_id;
 
 //std::vector<std::vector<daughtersInfo>> muons_daughter;
 //std::vector<std::vector<daughtersInfo>> protons_daughter;
 
+std::vector<std::vector<double>> rm_mu_coll;
+std::vector<std::vector<double>> rr_rm_mu_coll;
+std::vector<std::vector<double>> rm_pro_coll;
+std::vector<std::vector<double>> rr_rm_pro_coll;
+std::vector<std::vector<double>> rm_pi_coll;
+std::vector<std::vector<double>> rr_rm_pi_coll;
+
+std::vector<std::vector<double>> rm_mu_bestplane;
+std::vector<std::vector<double>> rr_rm_mu_bestplane;
+std::vector<std::vector<double>> rm_pro_bestplane;
+std::vector<std::vector<double>> rr_rm_pro_bestplane;
+std::vector<std::vector<double>> rm_pi_bestplane;
+std::vector<std::vector<double>> rr_rm_pi_bestplane;
+
+std::vector<std::vector<double>> rm_mu_ind1;
+std::vector<std::vector<double>> rr_rm_mu_ind1;
+std::vector<std::vector<double>> rm_pro_ind1;
+std::vector<std::vector<double>> rr_rm_pro_ind1;
+std::vector<std::vector<double>> rm_pi_ind1;
+std::vector<std::vector<double>> rr_rm_pi_ind1;
+
+std::vector<std::vector<double>> rm_mu_ind2;
+std::vector<std::vector<double>> rr_rm_mu_ind2;
+std::vector<std::vector<double>> rm_pro_ind2;
+std::vector<std::vector<double>> rr_rm_pro_ind2;
+std::vector<std::vector<double>> rm_pi_ind2;
+std::vector<std::vector<double>> rr_rm_pi_ind2;
+
+std::vector<bool> has_true_secondaries_MU;
+std::vector<bool> has_true_secondaries_PRO;
+std::vector<bool> has_true_secondaries_PI;
+
+std::vector<double> visible_energy_mu;
+std::vector<double> visible_energy_pro;
+std::vector<double> visible_energy_pi;
+
+std::vector<double> hit_purity_mu;
+std::vector<double> hit_completeness_mu;
+std::vector<double> hit_purity_pro;
+std::vector<double> hit_completeness_pro;
+std::vector<double> hit_purity_pi;
+std::vector<double> hit_completeness_pi;
+
+std::vector<double> energy_purity_mu;
+std::vector<double> energy_completeness_mu;
+std::vector<double> energy_purity_pro;
+std::vector<double> energy_completeness_pro;
+std::vector<double> energy_purity_pi;
+std::vector<double> energy_completeness_pi;
+
+std::vector<std::vector<int>> pdg_matches_mu;
+std::vector<std::vector<double>> energy_matches_mu;
+std::vector<std::vector<double>> end_points_distance_matches_mu;
+std::vector<int> start_process_mu;
+std::vector<double> energy_at_last_hit_mu;
+std::vector<double> energy_at_first_hit_mu;
+
+std::vector<std::vector<int>> pdg_matches_pro;
+std::vector<std::vector<double>> energy_matches_pro;
+std::vector<std::vector<double>> end_points_distance_matches_pro;
+std::vector<int> start_process_pro;
+std::vector<double> energy_at_last_hit_pro;
+std::vector<double> energy_at_first_hit_pro;
+
+std::vector<std::vector<int>> pdg_matches_pi;
+std::vector<std::vector<double>> energy_matches_pi;
+std::vector<std::vector<double>> end_points_distance_matches_pi;
+std::vector<int> start_process_pi;
+std::vector<double> energy_at_last_hit_pi;
+std::vector<double> energy_at_first_hit_pi;
+
+std::vector<std::vector<bool>> is_daughter_mu;
+std::vector<std::vector<bool>> is_daughter_pro;
+std::vector<std::vector<bool>> is_daughter_pi;
+
+ofstream dumpPionSecondaries("dumpPionSecondaries.txt");
+ofstream dumpMuonSecondaries("dumpMuonSecondaries.txt");
+ofstream dumpProtonSecondaries("dumpProtonSecondaries.txt");
+
 bool is_mc=true; 
-int sliceFound=0;
 
 int choosen_plane=2;
 
@@ -944,122 +1107,319 @@ const SpillMultiVar DataLoader([](const caf::SRSpillProxy* sr)-> std::vector<dou
 
   int count_slices=-1;
   for (auto const& islc : sr->slc)
-    {     
-      count_slices+=1;
+  {     
+    count_slices+=1;
 
-      int ipfp_mu=-1;
-      int ipfp_pro=-1;
-      double distanza;
+    int ipfp_mu=-1;
+    std::vector<int> v_ipfp_pro; 
+    std::vector<int> v_ipfp_pi; 
+    double distanza;
 
-      //if (automatic_selection_1muNp(sr,islc,10,100,choosen_plane))//1muNp
-      //if(automatic_selection_1muNp_truth(sr,islc,10,100,choosen_plane))
-	      //{
-          //ipfp_mu=find_muon(islc,10,choosen_plane); //trovo l'indice del muone tra tutte le particelle nella slice
-          ipfp_mu=find_truth_muon(islc,10,choosen_plane);
+      /*
+      if(automatic_selection_1muNp_truth(sr,islc,10,100,choosen_plane))
+	    {
+        ipfp_mu=find_muon(islc,10,choosen_plane); //trovo l'indice del muone tra tutte le particelle nella slice
 
-          //if(ipfp_mu==-1)continue;
+        if(ipfp_mu==-1)continue;
           
-          //if(is_mc) // we check for MC info only if we work on MC data 
-          //{
-	          //if(!(islc.truth.index>=0 && (classification_type(sr,islc)==2 || classification_type(sr,islc)==5 ))) //1mu1p E>50 true
-	            //{
-                //continue;
-              //}
-          //}
+        if(is_mc) // we check for MC info only if we work on MC data 
+        {
+	        if(!(islc.truth.index>=0 && (classification_type(sr,islc)==2 || classification_type(sr,islc)==5 ))) //1mu1p E>50 true
+	        {
+            continue;
+          }
+        }
+      */
+
+    //MUONS
+    ipfp_mu=find_truth_muon(islc,10,choosen_plane);
+    //rolling median muons
+
+    //searching all the matched true particles
+    if(is_mc && ipfp_mu!=-1)
+    {
+
+      cout << islc.reco.pfp[ipfp_mu].trk.truth.p.endE << endl;
+      energy_at_first_hit_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.startE);
+      energy_at_last_hit_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.endE);
+      start_process_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.start_process);
+
+      std::vector<int> temp_pdg;
+      std::vector<double> temp_energy;
+      std::vector<bool> is_daughter;
+      std::vector<double> end_points_distance;
+      std::vector<double> is_primary;
+      for (const auto& true_p : sr->true_particles)
+      {
+        for (auto const& match: islc.reco.pfp[ipfp_mu].trk.truth.matches)
+        {
+          if(true_p.G4ID==match.G4ID)
+          {
+            temp_pdg.push_back(true_p.pdg);
+            temp_energy.push_back(match.energy/3.);
+
+            TVector3 end_point_match;
+            end_point_match.SetXYZ(true_p.end.x, true_p.end.y, true_p.end.z);
+            TVector3 end_point_track;
+            end_point_track.SetXYZ(islc.reco.pfp[ipfp_mu].trk.end.x, islc.reco.pfp[ipfp_mu].trk.end.y, islc.reco.pfp[ipfp_mu].trk.end.z);
+            end_points_distance.push_back( (end_point_match-end_point_track).Mag() );
+
+            if((int)true_p.parent == islc.reco.pfp[ipfp_mu].trk.truth.p.G4ID)is_daughter.push_back(true);
+            else{is_daughter.push_back(false);}
+          }
+        }
+      }
+      pdg_matches_mu.push_back(temp_pdg);
+      end_points_distance_matches_mu.push_back(end_points_distance);
+      energy_matches_mu.push_back(temp_energy);
+      is_daughter_mu.push_back(is_daughter);
+      temp_pdg.clear();
+      end_points_distance.clear();
+      temp_energy.clear();
+      is_daughter.clear();
+    }
 
 
-          vrun_mu.push_back(sr->hdr.run);
-          vsubrun_mu.push_back(sr->hdr.subrun);
-          vevt_mu.push_back(sr->hdr.evt);
-          visMC_mu.push_back(sr->hdr.ismc);
+    if(ipfp_mu!=-1)
+    {
+      int plane_for_rm=-1;
+      int bestplane=islc.reco.pfp[ipfp_mu].trk.bestplane;
+      if(bestplane!=-1 && islc.reco.pfp[ipfp_mu].trk.calo[bestplane].nhit>0){plane_for_rm=bestplane;}
+      else{plane_for_rm=2;}
 
-          sliceFound+=1;
-          CHIeventIDMU.push_back(sliceFound);
+      rr_rm_mu_bestplane.push_back(rollingMedian(islc,ipfp_mu,plane_for_rm)[0]);
+      rr_rm_mu_ind1.push_back(rollingMedian(islc,ipfp_mu,0)[0]);
+      rr_rm_mu_ind2.push_back(rollingMedian(islc,ipfp_mu,1)[0]);
+      rr_rm_mu_coll.push_back(rollingMedian(islc,ipfp_mu,2)[0]);
+      rm_mu_bestplane.push_back(rollingMedian(islc,ipfp_mu,plane_for_rm)[1]);
+      rm_mu_ind1.push_back(rollingMedian(islc,ipfp_mu,0)[1]);
+      rm_mu_ind2.push_back(rollingMedian(islc,ipfp_mu,1)[1]);
+      rm_mu_coll.push_back(rollingMedian(islc,ipfp_mu,2)[1]);
+    }
 
-          std::vector<int> v_ipfp_pro; //stores protons ideces
-          std::vector<int> v_ipfp_pi; //stores pions indeces
+    //CHI2 MUONS
+    if(int(ipfp_mu)!=-1)
+    {
+      std::vector<double> output;
+      std::vector<double> dedx;
+      std::vector<double> rr;
 
-	        for (std::size_t ipfp(0); ipfp < islc.reco.npfp; ++ipfp)
-		        {
-              if(int(ipfp)==ipfp_mu)continue;
+      std::array<std::vector<double>,3> chi_diff_planes_mu;
+      //storing the chi2 of muon in the three wire planes
+      for(int iplane=0; iplane<3; iplane++)
+      {
+        std::vector<double> output;
+        std::vector<double> dedx;
+        std::vector<double> rr;
+        for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[iplane].points.size(); ++ihit )
+        {
+          dedx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[iplane].points[ihit].dedx);
+          rr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[iplane].points[ihit].rr);
+        } // calo points
+        output = chi2_ALG(dedx,rr,0.0,25.0);
+        chi_diff_planes_mu[iplane]=output;
+      }
+      chi_quadro_ind1_MU.push_back(chi_diff_planes_mu[0]);
+      chi_quadro_ind2_MU.push_back(chi_diff_planes_mu[1]);
+      chi_quadro_coll_MU.push_back(chi_diff_planes_mu[2]);
+    
 
-              int use_plane = -1;
-              if(choosen_plane==-1)
+    //RUN and EVT information
+    vrun_mu.push_back(sr->hdr.run);
+    vsubrun_mu.push_back(sr->hdr.subrun);
+    vevt_mu.push_back(sr->hdr.evt);
+    visMC_mu.push_back(sr->hdr.ismc);
+    }
+
+	  for (std::size_t ipfp(0); ipfp < islc.reco.npfp; ++ipfp)
+		{
+      if(int(ipfp)==ipfp_mu)continue;
+
+      int use_plane = -1;
+      if(choosen_plane==-1)
+      {
+        if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
+        else{use_plane=2;}
+      }
+      else{use_plane=choosen_plane;}
+
+      //PROTONS
+      if(id_pfp_truth(islc, ipfp, 10,use_plane)==1)
+			{
+        int ipfp_pro=int(ipfp);
+
+        //searching all the matched true particles
+        if(is_mc)
+        {
+          energy_at_first_hit_pro.push_back(islc.reco.pfp[ipfp_pro].trk.truth.p.startE);
+          energy_at_last_hit_pro.push_back(islc.reco.pfp[ipfp_pro].trk.truth.p.endE);
+          start_process_pro.push_back(islc.reco.pfp[ipfp_pro].trk.truth.p.start_process);
+
+          std::vector<int> temp_pdg;
+          std::vector<double> temp_energy;
+          std::vector<bool> is_daughter;
+          std::vector<double> end_points_distance;
+          for (const auto& true_p : sr->true_particles)
+          {
+            for (auto const& match: islc.reco.pfp[ipfp_pro].trk.truth.matches)
+            {
+              if(true_p.G4ID==match.G4ID)
               {
-                if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
-                else{use_plane=2;}
+                temp_pdg.push_back(true_p.pdg);
+
+                TVector3 end_point_match;
+                end_point_match.SetXYZ(true_p.end.x, true_p.end.y, true_p.end.z);
+                TVector3 end_point_track;
+                end_point_track.SetXYZ(islc.reco.pfp[ipfp_pro].trk.end.x, islc.reco.pfp[ipfp_pro].trk.end.y, islc.reco.pfp[ipfp_pro].trk.end.z);
+                end_points_distance.push_back( (end_point_match-end_point_track).Mag() );
+
+                temp_energy.push_back(match.energy/3.);
+                if((int)true_p.parent == islc.reco.pfp[ipfp_pro].trk.truth.p.G4ID)is_daughter.push_back(true);
+                else{is_daughter.push_back(false);}
               }
-              else{use_plane=choosen_plane;}
+            }
+          } 
+          pdg_matches_pro.push_back(temp_pdg);
+          end_points_distance_matches_pro.push_back(end_points_distance);
+          energy_matches_pro.push_back(temp_energy);
+          is_daughter_pro.push_back(is_daughter);
+          temp_pdg.clear();
+          end_points_distance.clear();
+          temp_energy.clear();
+          is_daughter.clear();
+        }
 
-              //trovo l'indice del protone
+        //rolling median protons
 
-		          //if(id_pfp(islc, ipfp, 10,use_plane)==1)
-              if(id_pfp_truth(islc, ipfp, 10,use_plane)==1)
-			        {
-                  ipfp_pro=int(ipfp);
+        int plane_for_rm=-1;
+        int bestplane=islc.reco.pfp[ipfp_pro].trk.bestplane;
+        if(bestplane!=-1 && islc.reco.pfp[ipfp_pro].trk.calo[bestplane].nhit>0){plane_for_rm=bestplane;}
+        else{plane_for_rm=2;}
 
-                  std::array<std::vector<double>,3> chi_diff_planes;
-                  //storing the chi2 of the protons in the three wire planes
-                  for(int iplane=0; iplane<3; iplane++)
-                  {
-                    std::vector<double> output;
-                    std::vector<double> dedx;
-                    std::vector<double> rr;
-                    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_pro].trk.calo[iplane].points.size(); ++ihit )
-                    {
-                      dedx.push_back(islc.reco.pfp[ipfp_pro].trk.calo[iplane].points[ihit].dedx);
-                      rr.push_back(islc.reco.pfp[ipfp_pro].trk.calo[iplane].points[ihit].rr);
-                    } // calo points
-                    output = chi2_ALG(dedx,rr,0.0,25.0);
-                    chi_diff_planes[iplane]=output;
-                  }
-                  chi_quadro_ind1_PRO.push_back(chi_diff_planes[0]);
-                  chi_quadro_ind2_PRO.push_back(chi_diff_planes[1]);
-                  chi_quadro_coll_PRO.push_back(chi_diff_planes[2]);
+        rr_rm_pro_bestplane.push_back(rollingMedian(islc,ipfp_pro,plane_for_rm)[0]);
+        rr_rm_pro_ind1.push_back(rollingMedian(islc,ipfp_pro,0)[0]);
+        rr_rm_pro_ind2.push_back(rollingMedian(islc,ipfp_pro,1)[0]);
+        rr_rm_pro_coll.push_back(rollingMedian(islc,ipfp_pro,2)[0]);
+        rm_pro_bestplane.push_back(rollingMedian(islc,ipfp_pro,plane_for_rm)[1]);
+        rm_pro_ind1.push_back(rollingMedian(islc,ipfp_pro,0)[1]);
+        rm_pro_ind2.push_back(rollingMedian(islc,ipfp_pro,1)[1]);
+        rm_pro_coll.push_back(rollingMedian(islc,ipfp_pro,2)[1]);
 
-                  v_ipfp_pro.push_back(ipfp_pro);
-                  CHIeventIDPRO.push_back(sliceFound);
-                  vrun_pro.push_back(sr->hdr.run);
-                  vsubrun_pro.push_back(sr->hdr.subrun);
-                  vevt_pro.push_back(sr->hdr.evt);
-                  visMC_pro.push_back(sr->hdr.ismc);
-              }//if it is a proton
+        //CHI2 PROTONS
+        std::array<std::vector<double>,3> chi_diff_planes;          
+        for(int iplane=0; iplane<3; iplane++)
+        {
+          std::vector<double> output;
+          std::vector<double> dedx;
+          std::vector<double> rr;
+          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_pro].trk.calo[iplane].points.size(); ++ihit )
+          {
+            dedx.push_back(islc.reco.pfp[ipfp_pro].trk.calo[iplane].points[ihit].dedx);
+            rr.push_back(islc.reco.pfp[ipfp_pro].trk.calo[iplane].points[ihit].rr);
+          } // calo points
+          output = chi2_ALG(dedx,rr,0.0,25.0);
+          chi_diff_planes[iplane]=output;
+        }
+        chi_quadro_ind1_PRO.push_back(chi_diff_planes[0]);
+        chi_quadro_ind2_PRO.push_back(chi_diff_planes[1]);
+        chi_quadro_coll_PRO.push_back(chi_diff_planes[2]);
 
-              //check if it is a pion
-              //if(int(ipfp)==ipfp_pro)continue;
+        //RUN and EVT informations
+        v_ipfp_pro.push_back(ipfp_pro);
+        vrun_pro.push_back(sr->hdr.run);
+        vsubrun_pro.push_back(sr->hdr.subrun);
+        vevt_pro.push_back(sr->hdr.evt);
+        visMC_pro.push_back(sr->hdr.ismc);
+      }//if it is a proton
 
-              if(id_pfp_truth(islc, ipfp, 10,use_plane)==2)
+      //PIONS
+      if(id_pfp_truth(islc, ipfp, 10,use_plane)==2)
+      {
+
+        //searching all the matched true particles
+        if(is_mc)
+        {
+          energy_at_first_hit_pi.push_back(islc.reco.pfp[ipfp].trk.truth.p.startE);
+          energy_at_last_hit_pi.push_back(islc.reco.pfp[ipfp].trk.truth.p.endE);
+          start_process_pi.push_back(islc.reco.pfp[ipfp].trk.truth.p.start_process);
+
+          std::vector<int> temp_pdg;
+          std::vector<double> temp_energy;
+          std::vector<bool> is_daughter;
+          std::vector<double> end_points_distance;
+          for (const auto& true_p : sr->true_particles)
+          {
+            for (auto const& match: islc.reco.pfp[ipfp].trk.truth.matches)
+            {
+              if(true_p.G4ID==match.G4ID)
               {
+                temp_pdg.push_back(true_p.pdg);
 
-                std::array<std::vector<double>,3> chi_diff_planes;
-                //storing the chi2 of the pion in the three wire planes
-                for(int iplane=0; iplane<3; iplane++)
-                {
-                  std::vector<double> output;
-                  std::vector<double> dedx;
-                  std::vector<double> rr;
-                  for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[iplane].points.size(); ++ihit )
-                  {
-                    dedx.push_back(islc.reco.pfp[ipfp].trk.calo[iplane].points[ihit].dedx);
-                    rr.push_back(islc.reco.pfp[ipfp].trk.calo[iplane].points[ihit].rr);
-                  } // calo points
-                  output = chi2_ALG(dedx,rr,0.0,25.0);
-                  chi_diff_planes[iplane]=output;
-                }
-                chi_quadro_ind1_PI.push_back(chi_diff_planes[0]);
-                chi_quadro_ind2_PI.push_back(chi_diff_planes[1]);
-                chi_quadro_coll_PI.push_back(chi_diff_planes[2]);
+                TVector3 end_point_match;
+                end_point_match.SetXYZ(true_p.end.x, true_p.end.y, true_p.end.z);
+                TVector3 end_point_track;
+                end_point_track.SetXYZ(islc.reco.pfp[ipfp].trk.end.x, islc.reco.pfp[ipfp].trk.end.y, islc.reco.pfp[ipfp].trk.end.z);
+                end_points_distance.push_back( (end_point_match-end_point_track).Mag() );
 
-                v_ipfp_pi.push_back(ipfp);
-                CHIeventIDpi.push_back(sliceFound);
-                vrun_pi.push_back(sr->hdr.run);
-                vsubrun_pi.push_back(sr->hdr.subrun);
-                vevt_pi.push_back(sr->hdr.evt);
-                visMC_pi.push_back(sr->hdr.ismc);
+                temp_energy.push_back(match.energy/3.);
+                if((int)true_p.parent == islc.reco.pfp[ipfp].trk.truth.p.G4ID)is_daughter.push_back(true);
+                else{is_daughter.push_back(false);}
               }
-              
+            }
+          } 
+          pdg_matches_pi.push_back(temp_pdg);
+          end_points_distance_matches_pi.push_back(end_points_distance);
+          energy_matches_pi.push_back(temp_energy);
+          is_daughter_pi.push_back(is_daughter);
+          temp_pdg.clear();
+          end_points_distance.clear();
+          temp_energy.clear();
+          is_daughter.clear();
+        }
 
-            }//loop over all particles in the slice
+      int plane_for_rm=-1;
+      int bestplane=islc.reco.pfp[ipfp].trk.bestplane;
+      if(bestplane!=-1 && islc.reco.pfp[ipfp].trk.calo[bestplane].nhit>0){plane_for_rm=bestplane;}
+      else{plane_for_rm=2;}
+
+      //rolling median pions
+      rr_rm_pi_bestplane.push_back(rollingMedian(islc,ipfp,plane_for_rm)[0]);
+      rr_rm_pi_ind1.push_back(rollingMedian(islc,ipfp,0)[0]);
+      rr_rm_pi_ind2.push_back(rollingMedian(islc,ipfp,1)[0]);
+      rr_rm_pi_coll.push_back(rollingMedian(islc,ipfp,2)[0]);
+      rm_pi_bestplane.push_back(rollingMedian(islc,ipfp,plane_for_rm)[1]);
+      rm_pi_ind1.push_back(rollingMedian(islc,ipfp,0)[1]);
+      rm_pi_ind2.push_back(rollingMedian(islc,ipfp,1)[1]);
+      rm_pi_coll.push_back(rollingMedian(islc,ipfp,2)[1]);
+        
+
+        std::array<std::vector<double>,3> chi_diff_planes;
+        //storing the chi2 of the pion in the three wire planes
+        for(int iplane=0; iplane<3; iplane++)
+        {
+          std::vector<double> output;
+          std::vector<double> dedx;
+          std::vector<double> rr;
+          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[iplane].points.size(); ++ihit )
+          {
+            dedx.push_back(islc.reco.pfp[ipfp].trk.calo[iplane].points[ihit].dedx);
+            rr.push_back(islc.reco.pfp[ipfp].trk.calo[iplane].points[ihit].rr);
+          } // calo points
+          output = chi2_ALG(dedx,rr,0.0,25.0);
+          chi_diff_planes[iplane]=output;
+        }
+        chi_quadro_ind1_PI.push_back(chi_diff_planes[0]);
+        chi_quadro_ind2_PI.push_back(chi_diff_planes[1]);
+        chi_quadro_coll_PI.push_back(chi_diff_planes[2]);
+
+        //RUN and EVT informations
+        v_ipfp_pi.push_back(ipfp);
+        vrun_pi.push_back(sr->hdr.run);
+        vsubrun_pi.push_back(sr->hdr.subrun);
+        vevt_pi.push_back(sr->hdr.evt);
+        visMC_pi.push_back(sr->hdr.ismc);
+    }
+  }//loop over all particles in the slice
 
           /*
           //fill secondaries dEdx and RR of MUON and PROTONS
@@ -1145,686 +1505,703 @@ const SpillMultiVar DataLoader([](const caf::SRSpillProxy* sr)-> std::vector<dou
           }
             */
 
-          //MC informations storage
-          if(is_mc)
-          {
+  //MC informations storage
+  if(is_mc)
+  {
+    //for(int id=0; id<int(islc.reco.pfp[ipfp_mu].trk.truth.p.daughters.size()); id++)
+    //{ dummy_id.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.daughters[id]); //}
+    //MUdaughtersID.push_back(dummy_id);
+    //dummy_id.clear();
 
-            //MUON TRACK TRUE INFO
-            //for(int id=0; id<int(islc.reco.pfp[ipfp_mu].trk.truth.p.daughters.size()); id++)
-            //{
-              //dummy_id.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.daughters[id]);
-            //}
-            //MUdaughtersID.push_back(dummy_id);
-            //dummy_id.clear();
+    //MUON TRACK TRUE INFO
+    if(ipfp_mu!=-1)
+    {
+      dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.genp.x);
+      dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.genp.y);
+      dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.genp.z);
+      CHIgenMomentumMU.push_back(dummy);
+      dummy.clear();
 
-            if(ipfp_mu!=-1)
-            {
-              dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.genp.x);
-              dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.genp.y);
-              dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.genp.z);
-              CHIgenMomentumMU.push_back(dummy);
-              dummy.clear();
-
-              dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.start.x);
-              dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.start.y);
-              dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.start.z);
-              CHIstart3DmcMU.push_back(dummy);
-              dummy.clear();
+      dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.start.x);
+      dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.start.y);
+      dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.start.z);
+      CHIstart3DmcMU.push_back(dummy);
+      dummy.clear();
             
-              dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.end.x);
-              dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.end.y);
-              dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.end.z);
-              CHIend3DmcMU.push_back(dummy);
-              dummy.clear();
+      dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.end.x);
+      dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.end.y);
+      dummy.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.end.z);
+      CHIend3DmcMU.push_back(dummy);
+      dummy.clear();
 
-              CHItlMCmu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.length);
+      if(islc.reco.pfp[ipfp_mu].trk.truth.p.cryostat!=-1)visible_energy_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.plane[islc.reco.pfp[ipfp_mu].trk.truth.p.cryostat][2].visE);
 
-              end_process_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.end_process);
-            }
+      CHItlMCmu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.length);
 
+      end_process_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.p.end_process);
 
-            //PROTONS TRACK TRUE INFO
-            for(int i=0; i<int(v_ipfp_pro.size()); i++)
-            {
-              int ind_ipfp=v_ipfp_pro[i];
+      hit_purity_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.bestmatch.hit_purity);
+      hit_completeness_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.bestmatch.hit_completeness);
+      energy_purity_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.bestmatch.energy_purity);
+      energy_completeness_mu.push_back(islc.reco.pfp[ipfp_mu].trk.truth.bestmatch.energy_completeness);
 
-              //for(int id=0; id<int(islc.reco.pfp[ind_ipfp].trk.truth.p.daughters.size()); id++)
-              //{
-                //dummy_id.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.daughters[id]);
-              //}
-              //PROdaughtersID.push_back(dummy_id);
-              //dummy_id.clear();
-
-              dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.genp.x);
-              dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.genp.y);
-              dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.genp.z);
-              CHIgenMomentumPRO.push_back(dummy);
-              dummy.clear();  
-
-              dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.start.x);
-              dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.start.y);
-              dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.start.z);
-              CHIstart3DmcPRO.push_back(dummy);
-              dummy.clear();
-
-              dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.end.x);
-              dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.end.y);
-              dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.end.z);
-              CHIend3DmcPRO.push_back(dummy);
-              dummy.clear();
-
-              CHItlMCpro.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.length);
-
-              end_process_pro.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.end_process);
-            }
-
-            //PIONS TRACK TRUE INFO
-            for(int i=0; i<int(v_ipfp_pi.size()); i++)
-            {
-              int pfp_index_pi=v_ipfp_pi[i];
-
-              dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.start.x);
-              dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.start.y);
-              dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.start.z);
-              CHIstart3DmcPI.push_back(dummy);
-              dummy.clear();
-
-              dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.end.x);
-              dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.end.y);
-              dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.end.z);
-              CHIend3DmcPI.push_back(dummy);
-              dummy.clear();
-
-              CHItlMCpi.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.length);
-
-              end_process_pi.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.end_process);
-            }
-
-            // VERTEX TRUE INFO            
-            dummy.push_back(islc.truth.position.x);
-            dummy.push_back(islc.truth.position.y);
-            dummy.push_back(islc.truth.position.z);
-            CHIvtxMC.push_back(dummy);
-            dummy.clear();
-
-                
-          }//MC informations storage
-
-          if(ipfp_mu!=-1)
+      dumpMuonSecondaries << "----------------------------------------------------------" << endl;
+      dumpMuonSecondaries << "RUN= " << sr->hdr.run << " EVT= " << sr->hdr.evt << " | " << "particleEP= " << islc.reco.pfp[ipfp_mu].trk.truth.p.end_process << " | secondaries: " ;
+      bool has_true_secondaries = false;
+      int G4ID = islc.reco.pfp[ipfp_mu].trk.truth.p.G4ID;
+      for(const auto& true_particle : sr->true_particles)
+      {
+        if((int)true_particle.parent==G4ID)
+        {
+          has_true_secondaries=true;
+          dumpMuonSecondaries << true_particle.pdg << " ";
+        }
+      }
+      dumpMuonSecondaries << endl;
+      dumpMuonSecondaries << "INDUCTION 1 ";
+      for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[0].points.size(); ++ihit){dumpMuonSecondaries << islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].x << " ";}
+      dumpMuonSecondaries << endl;
+      dumpMuonSecondaries << "INDUCTION 2 ";
+      for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[1].points.size(); ++ihit){dumpMuonSecondaries << islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].x << " ";}
+      dumpMuonSecondaries << endl;
+      dumpMuonSecondaries << "COLLECTION "; 
+      for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[2].points.size(); ++ihit){dumpMuonSecondaries << islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].x << " ";}
+      dumpMuonSecondaries << endl;
+      has_true_secondaries_MU.push_back(has_true_secondaries);
+      //searching all the matched true particles
+      for (const auto& true_p : sr->true_particles)
+      {
+        for (auto const& match: islc.reco.pfp[ipfp_mu].trk.truth.matches)
+        {
+          if(true_p.G4ID==match.G4ID)
           {
-          std::vector<double> output;
-          std::vector<double> dedx;
-          std::vector<double> rr;
-
-          std::array<std::vector<double>,3> chi_diff_planes_mu;
-          //storing the chi2 of muon in the three wire planes
-          for(int iplane=0; iplane<3; iplane++)
-          {
-            std::vector<double> output;
-            std::vector<double> dedx;
-            std::vector<double> rr;
-            for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[iplane].points.size(); ++ihit )
-            {
-              dedx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[iplane].points[ihit].dedx);
-              rr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[iplane].points[ihit].rr);
-            } // calo points
-            output = chi2_ALG(dedx,rr,0.0,25.0);
-            chi_diff_planes_mu[iplane]=output;
+            dumpMuonSecondaries << "matched_energy= " <<match.energy/3 << " pdg= " << true_p.pdg << " | " << endl; 
           }
-          chi_quadro_ind1_MU.push_back(chi_diff_planes_mu[0]);
-          chi_quadro_ind2_MU.push_back(chi_diff_planes_mu[1]);
-          chi_quadro_coll_MU.push_back(chi_diff_planes_mu[2]);
+        }
+      }
+      dumpMuonSecondaries << endl;
 
+      // VERTEX TRUE INFO            
+      dummy.push_back(islc.truth.position.x);
+      dummy.push_back(islc.truth.position.y);
+      dummy.push_back(islc.truth.position.z);
+      CHIvtxMCmu.push_back(dummy);
+      dummy.clear();
+    }
+    
+    //PROTONS TRACK TRUE INFO
+    for(int i=0; i<int(v_ipfp_pro.size()); i++)
+    {
+      int ind_ipfp=v_ipfp_pro[i];
 
-          //RECO MUON TRACK INFO
+      //for(int id=0; id<int(islc.reco.pfp[ind_ipfp].trk.truth.p.daughters.size()); id++)
+      //{ dummy_id.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.daughters[id]);}
+      //PROdaughtersID.push_back(dummy_id);
+      //dummy_id.clear();
 
-          CHIbest_plane_mu.push_back(islc.reco.pfp[ipfp_mu].trk.bestplane);
+      dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.genp.x);
+      dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.genp.y);
+      dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.genp.z);
+      CHIgenMomentumPRO.push_back(dummy);
+      dummy.clear();  
 
-          MUndaughters_reco.push_back(islc.reco.pfp[ipfp_mu].ndaughters);
+      dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.start.x);
+      dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.start.y);
+      dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.start.z);
+      CHIstart3DmcPRO.push_back(dummy);
+      dummy.clear();
 
-          dummy.push_back(islc.reco.pfp[ipfp_mu].trk.start.x);
-          dummy.push_back(islc.reco.pfp[ipfp_mu].trk.start.y);
-          dummy.push_back(islc.reco.pfp[ipfp_mu].trk.start.z);
-          CHIstart3DrecoMU.push_back(dummy);
-          dummy.clear();
+      dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.end.x);
+      dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.end.y);
+      dummy.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.end.z);
+      CHIend3DmcPRO.push_back(dummy);
+      dummy.clear();
 
-          dummy.push_back(islc.reco.pfp[ipfp_mu].trk.end.x);
-          dummy.push_back(islc.reco.pfp[ipfp_mu].trk.end.y);
-          dummy.push_back(islc.reco.pfp[ipfp_mu].trk.end.z);
-          CHIend3DrecoMU.push_back(dummy);
-          dummy.clear();
+      if(islc.reco.pfp[ind_ipfp].trk.truth.p.cryostat!=-1)visible_energy_pro.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.plane[islc.reco.pfp[ind_ipfp].trk.truth.p.cryostat][2].visE);
 
-          CHItlRECOmu.push_back(islc.reco.pfp[ipfp_mu].trk.len);
+      CHItlMCpro.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.length);
 
-          vdirx_mu.push_back(islc.reco.pfp[ipfp_mu].trk.dir.x);
-          vdiry_mu.push_back(islc.reco.pfp[ipfp_mu].trk.dir.y);
-          vdirz_mu.push_back(islc.reco.pfp[ipfp_mu].trk.dir.z);
+      end_process_pro.push_back(islc.reco.pfp[ind_ipfp].trk.truth.p.end_process);
 
-          }
+      hit_purity_pro.push_back(islc.reco.pfp[ind_ipfp].trk.truth.bestmatch.hit_purity);
+      hit_completeness_pro.push_back(islc.reco.pfp[ind_ipfp].trk.truth.bestmatch.hit_completeness);
+      energy_purity_pro.push_back(islc.reco.pfp[ind_ipfp].trk.truth.bestmatch.energy_purity);
+      energy_completeness_pro.push_back(islc.reco.pfp[ind_ipfp].trk.truth.bestmatch.energy_completeness);
 
-          dummy.clear();
-          dummy.push_back(islc.vertex.x);
-          dummy.push_back(islc.vertex.y);
-          dummy.push_back(islc.vertex.z);
-          CHIvtxRECO.push_back(dummy);
-          dummy.clear();
-
-          //RECO PROTON TRACK INFO
-          for(int i=0; i<int(v_ipfp_pro.size()); i++)
-            {
-              int ind_ipfp=v_ipfp_pro[i];
-
-            CHIbest_plane_pro.push_back(islc.reco.pfp[ind_ipfp].trk.bestplane);
-
-            PROndaughters_reco.push_back(islc.reco.pfp[ind_ipfp].ndaughters);
-          
-            dummy.push_back(islc.reco.pfp[ind_ipfp].trk.start.x);
-            dummy.push_back(islc.reco.pfp[ind_ipfp].trk.start.y);
-            dummy.push_back(islc.reco.pfp[ind_ipfp].trk.start.z);
-            CHIstart3DrecoPRO.push_back(dummy);
-            dummy.clear();
-
-            dummy.push_back(islc.reco.pfp[ind_ipfp].trk.end.x);
-            dummy.push_back(islc.reco.pfp[ind_ipfp].trk.end.y);
-            dummy.push_back(islc.reco.pfp[ind_ipfp].trk.end.z);
-            CHIend3DrecoPRO.push_back(dummy);
-            dummy.clear();
-          
-            CHItlRECOpro.push_back(islc.reco.pfp[ind_ipfp].trk.len);
-
-            vdirx_pro.push_back(islc.reco.pfp[ind_ipfp].trk.dir.x);
-            vdiry_pro.push_back(islc.reco.pfp[ind_ipfp].trk.dir.y);
-            vdirz_pro.push_back(islc.reco.pfp[ind_ipfp].trk.dir.z);
-          }
-
-
-
-          //RECO PION TRACK INFO
-          for(int i=0; i<int(v_ipfp_pi.size()); i++)
-            {
-              int index_pfp_pi=v_ipfp_pi[i];
-
-            CHIbest_plane_pi.push_back(islc.reco.pfp[index_pfp_pi].trk.bestplane);
-          
-            dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.start.x);
-            dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.start.y);
-            dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.start.z);
-            CHIstart3DrecoPI.push_back(dummy);
-            dummy.clear();
-
-            dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.end.x);
-            dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.end.y);
-            dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.end.z);
-            CHIend3DrecoPI.push_back(dummy);
-            dummy.clear();
-          
-            CHItlRECOpi.push_back(islc.reco.pfp[index_pfp_pi].trk.len);
-          }
-
-
-
-          //MUONI
-          if(ipfp_mu!=-1)
-          {
-          //CALORIMETRIA IND1
-          //cout << "nuova traccia ind1" << endl;
-          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[0].points.size(); ++ihit )
-          {
-            if(islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].dedx<500.)
-            {
-              dEdxind1.push_back(islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].dedx);
-              rrind1.push_back(islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].rr);
-              //cout << islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].rr << " " << islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].dedx << endl;
-            }
-          }
-          dEdx_ind1_MU.push_back(dEdxind1);
-          dEdxind1.clear();
-          rr_ind1_MU.push_back(rrind1);
-          rrind1.clear();
-
-          //CALORIMETRIA IND2
-
-          //cout << "nuova traccia ind2" << endl;
-          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[1].points.size(); ++ihit )
-          {
-            if(islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].dedx<500.)
-            {
-              dEdxind2.push_back(islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].dedx);
-              rrind2.push_back(islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].rr);
-              //cout << islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].rr << " " << islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].dedx << endl;
-            }
-          }
-          dEdx_ind2_MU.push_back(dEdxind2);
-          dEdxind2.clear();
-          rr_ind2_MU.push_back(rrind2);
-          rrind2.clear();
-
-          //CALORIMENTRIA COLLECTION
-
-          //cout << "nuova traccia collection" << endl;
-        
-          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[2].points.size(); ++ihit )
-            {
-
-              //cout << islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr << endl;
-                //if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr<=25.5)
-                //{
-                      if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx<500.)
-                          {    
-                                  double factor = 1;
-                  
-                                  //factor =(2+correction_function->Eval(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx))/(2-correction_function->Eval(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx));
-
-                                  //dump_controllo_chi2_mu << islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx << " " << factor << endl;
-
-                                  //cout << islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr <<  " " << islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx << endl;
-
-                                  //if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr>=25 && islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr<30)
-                                  //{
-                                    //if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].mult>1)
-                                    //{
-                                      //hit_multmag1++;
-                                      //checksumadc1d <<  islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].mult << " " <<  islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].sumadc << " " <<  islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr << " " << islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].wire << endl;
-                                    //}
-                                    //else if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].mult==1){hit_onlymult1++;}
-                                  //}
-
-                                  wire.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].wire);                                  
-
-                                  CHIdQdx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dqdx);
-
-                                  CHIde.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx*factor);           
-
-                                  CHIpitch.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].pitch);
-
-                                  CHIr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr);
-
-                                  CHImult.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].mult);
-
-                                  CHIwidth.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].width);
-
-                                  CHIintegral.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].integral);
-
-                                  CHIsumadc.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].sumadc);
-
-                                  CHIx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].x);
-
-                                  CHIy.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].y);
-
-                                  CHIz.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].z);
-
-
-
-                          }
-                  //} // only the last 25 cm
-
-            }//loop over all hits of that particle
+      dumpProtonSecondaries << "----------------------------------------------------------" << endl;
+      dumpProtonSecondaries << "RUN= " << sr->hdr.run << " EVT= " << sr->hdr.evt << " | " << "particleEP= " << islc.reco.pfp[ind_ipfp].trk.truth.p.end_process << " | secondaries: " ;
       
+      bool has_true_secondaries = false;
+      int G4ID = islc.reco.pfp[ind_ipfp].trk.truth.p.G4ID;
+      for(const auto& true_particle : sr->true_particles)
+      {
+        if((int)true_particle.parent==G4ID)
+        {
+          has_true_secondaries=true;
+          dumpProtonSecondaries << true_particle.pdg << " " << true_particle.start.x << " " << true_particle.end.x << endl;
+        }
+      }
+      has_true_secondaries_PRO.push_back(has_true_secondaries);
 
-            //cout << endl;
+      dumpProtonSecondaries << endl;
+      dumpProtonSecondaries << "INDUCTION 1 ";
+      for(std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[0].points.size(); ++ihit){dumpProtonSecondaries << islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].x << " ";}
+      dumpProtonSecondaries << endl;
+      dumpProtonSecondaries << "INDUCTION 2 ";
+      for(std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[1].points.size(); ++ihit){dumpProtonSecondaries << islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].x << " ";}
+      dumpProtonSecondaries << endl;
+      dumpProtonSecondaries << "COLLECTION "; 
+      for(std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[2].points.size(); ++ihit){dumpProtonSecondaries << islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].x << " ";}
+      dumpProtonSecondaries << endl;
+      
+      //searching all the matched true particles
+      for (const auto& true_p : sr->true_particles)
+      {
+        for (auto const& match: islc.reco.pfp[ind_ipfp].trk.truth.matches)
+        {
+          if(true_p.G4ID==match.G4ID)
+          {
+            dumpProtonSecondaries << "matched_energy= " <<match.energy/3 << " pdg= " << true_p.pdg << " | " << endl; 
+          }
+        }
+      }
+      dumpProtonSecondaries << endl;
 
-            CHIwireMU.push_back(wire);
-            CHIdQdxMU.push_back(CHIdQdx);
-            CHIdeMU.push_back(CHIde);
-            CHIrrMUninv.push_back(CHIr);
-            CHIwidthMU.push_back(CHIwidth);
-            CHIpitchMU.push_back(CHIpitch);
-            CHIintegralMU.push_back(CHIintegral);
-            CHIsumadcMU.push_back(CHIsumadc);
-            CHImultMU.push_back(CHImult);
-            CHIxMU.push_back(CHIx);
-            CHIyMU.push_back(CHIy);
-            CHIzMU.push_back(CHIz);
+      //HAS SECONDARIES AT TRUTH LEVEL
+      //bool has_true_secondaries = false;
+      //int G4ID = islc.reco.pfp[ind_ipfp].trk.truth.p.G4ID;
+      //for(const auto& true_particle : sr->true_particles)
+      //{if((int)true_particle.parent==G4ID)has_true_secondaries=true;}
+      //has_true_secondaries_PRO.push_back(has_true_secondaries);
 
-            std::reverse(CHIde.begin(),CHIde.end());
-            std::reverse(CHIr.begin(), CHIr.end());
-            std::reverse(CHIpitch.begin(), CHIpitch.end());
+      // VERTEX TRUE INFO
+      dummy.push_back(islc.truth.position.x);
+      dummy.push_back(islc.truth.position.y);
+      dummy.push_back(islc.truth.position.z);
+      CHIvtxMCpro.push_back(dummy);
+      dummy.clear();
+    }
 
-            double Eint=0;
+    //PIONS TRACK TRUE INFO
+    for(int i=0; i<int(v_ipfp_pi.size()); i++)
+    {
+      int pfp_index_pi=v_ipfp_pi[i];
 
-            for(int i=0; i<int(CHIde.size()); i++)
-              {
+      dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.start.x);
+      dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.start.y);
+      dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.start.z);
+      CHIstart3DmcPI.push_back(dummy);
+      dummy.clear();
 
-                Eint = Eint + CHIde[i]*CHIpitch[i];        
-                CHIEint.push_back(Eint);
+      dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.end.x);
+      dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.end.y);
+      dummy.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.end.z);
+      CHIend3DmcPI.push_back(dummy);
+      dummy.clear();
 
-              }     
+      if(islc.reco.pfp[pfp_index_pi].trk.truth.p.cryostat!=-1)visible_energy_pi.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.plane[islc.reco.pfp[pfp_index_pi].trk.truth.p.cryostat][2].visE);
 
+      CHItlMCpi.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.length);
 
-            CHIEintMUallt.push_back(CHIEint);    
-            CHIrrMU.push_back(CHIr);
+      end_process_pi.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.p.end_process);
+
+      hit_purity_pi.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.bestmatch.hit_purity);
+      hit_completeness_pi.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.bestmatch.hit_completeness);
+      energy_purity_pi.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.bestmatch.energy_purity);
+      energy_completeness_pi.push_back(islc.reco.pfp[pfp_index_pi].trk.truth.bestmatch.energy_completeness);
+
+      //HAS SECONDARIES AT TRUTH LEVEL
+      //endprocess codes: 
+      //3 : DECAY
+      //9 : pipInelastic
+      //10 : pimInelastic
+      //45 : BertiniCaptureAtRest
+      dumpPionSecondaries << "----------------------------------------------------------" << endl;
+      dumpPionSecondaries << "RUN= " << sr->hdr.run << " EVT= " << sr->hdr.evt << " | " << "particleEP= " << islc.reco.pfp[pfp_index_pi].trk.truth.p.end_process << " | secondaries: " ;
+      bool has_true_secondaries = false;
+      int G4ID = islc.reco.pfp[pfp_index_pi].trk.truth.p.G4ID;
+      for(const auto& true_particle : sr->true_particles)
+      {
+        if((int)true_particle.parent==G4ID)
+        {
+          has_true_secondaries=true;
+          dumpPionSecondaries << true_particle.pdg << " ";
+        }
+      }
+      dumpPionSecondaries << endl;
+      dumpPionSecondaries << "INDUCTION 1 ";
+      for(std::size_t ihit(0); ihit < islc.reco.pfp[pfp_index_pi].trk.calo[0].points.size(); ++ihit){dumpPionSecondaries << islc.reco.pfp[pfp_index_pi].trk.calo[0].points[ihit].x << " ";}
+      dumpPionSecondaries << endl;
+      dumpPionSecondaries << "INDUCTION 2 ";
+      for(std::size_t ihit(0); ihit < islc.reco.pfp[pfp_index_pi].trk.calo[1].points.size(); ++ihit){dumpPionSecondaries << islc.reco.pfp[pfp_index_pi].trk.calo[1].points[ihit].x << " ";}
+      dumpPionSecondaries << endl;
+      dumpPionSecondaries << "COLLECTION "; 
+      for(std::size_t ihit(0); ihit < islc.reco.pfp[pfp_index_pi].trk.calo[2].points.size(); ++ihit){dumpPionSecondaries << islc.reco.pfp[pfp_index_pi].trk.calo[2].points[ihit].x << " ";}
+      dumpPionSecondaries << endl;
+      has_true_secondaries_PI.push_back(has_true_secondaries);
+
+      // VERTEX TRUE INFO
+      dummy.push_back(islc.truth.position.x);
+      dummy.push_back(islc.truth.position.y);
+      dummy.push_back(islc.truth.position.z);
+      CHIvtxMCpi.push_back(dummy);
+      dummy.clear();
+    }
+  }//MC informations storage
+
+  if(ipfp_mu!=-1)
+  {
+    //RECO MUON TRACK INFO
+    CHIbest_plane_mu.push_back(islc.reco.pfp[ipfp_mu].trk.bestplane);
+
+    MUndaughters_reco.push_back(islc.reco.pfp[ipfp_mu].ndaughters);
+
+    dummy.push_back(islc.reco.pfp[ipfp_mu].trk.start.x);
+    dummy.push_back(islc.reco.pfp[ipfp_mu].trk.start.y);
+    dummy.push_back(islc.reco.pfp[ipfp_mu].trk.start.z);
+    CHIstart3DrecoMU.push_back(dummy);
+    dummy.clear();
+
+    dummy.push_back(islc.reco.pfp[ipfp_mu].trk.end.x);
+    dummy.push_back(islc.reco.pfp[ipfp_mu].trk.end.y);
+    dummy.push_back(islc.reco.pfp[ipfp_mu].trk.end.z);
+    CHIend3DrecoMU.push_back(dummy);
+    dummy.clear();
+
+    CHItlRECOmu.push_back(islc.reco.pfp[ipfp_mu].trk.len);
+
+    vdirx_mu.push_back(islc.reco.pfp[ipfp_mu].trk.dir.x);
+    vdiry_mu.push_back(islc.reco.pfp[ipfp_mu].trk.dir.y);
+    vdirz_mu.push_back(islc.reco.pfp[ipfp_mu].trk.dir.z);
+
+    // VERTEX TRUE INFO
+    dummy.push_back(islc.vertex.x);
+    dummy.push_back(islc.vertex.y);
+    dummy.push_back(islc.vertex.z);
+    CHIvtxRECOmu.push_back(dummy);
+    dummy.clear();
+
+  }
+          
+  //RECO PROTON TRACK INFO
+  for(int i=0; i<int(v_ipfp_pro.size()); i++)
+  {
+    int ind_ipfp=v_ipfp_pro[i];
+
+    CHIbest_plane_pro.push_back(islc.reco.pfp[ind_ipfp].trk.bestplane);
+
+    PROndaughters_reco.push_back(islc.reco.pfp[ind_ipfp].ndaughters);
+          
+    dummy.push_back(islc.reco.pfp[ind_ipfp].trk.start.x);
+    dummy.push_back(islc.reco.pfp[ind_ipfp].trk.start.y);
+    dummy.push_back(islc.reco.pfp[ind_ipfp].trk.start.z);
+    CHIstart3DrecoPRO.push_back(dummy);
+    dummy.clear();
+
+    dummy.push_back(islc.reco.pfp[ind_ipfp].trk.end.x);
+    dummy.push_back(islc.reco.pfp[ind_ipfp].trk.end.y);
+    dummy.push_back(islc.reco.pfp[ind_ipfp].trk.end.z);
+    CHIend3DrecoPRO.push_back(dummy);
+    dummy.clear();
+          
+    CHItlRECOpro.push_back(islc.reco.pfp[ind_ipfp].trk.len);
+
+    vdirx_pro.push_back(islc.reco.pfp[ind_ipfp].trk.dir.x);
+    vdiry_pro.push_back(islc.reco.pfp[ind_ipfp].trk.dir.y);
+    vdirz_pro.push_back(islc.reco.pfp[ind_ipfp].trk.dir.z);
+
+    // VERTEX TRUE INFO
+    dummy.push_back(islc.vertex.x);
+    dummy.push_back(islc.vertex.y);
+    dummy.push_back(islc.vertex.z);
+    CHIvtxRECOpro.push_back(dummy);
+    dummy.clear();
+  }
+
+  //RECO PION TRACK INFO
+  for(int i=0; i<int(v_ipfp_pi.size()); i++)
+  {
+    int index_pfp_pi=v_ipfp_pi[i];
+
+    CHIbest_plane_pi.push_back(islc.reco.pfp[index_pfp_pi].trk.bestplane);
+          
+    dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.start.x);
+    dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.start.y);
+    dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.start.z);
+    CHIstart3DrecoPI.push_back(dummy);
+    dummy.clear();
+
+    dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.end.x);
+    dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.end.y);
+    dummy.push_back(islc.reco.pfp[index_pfp_pi].trk.end.z);
+    CHIend3DrecoPI.push_back(dummy);
+    dummy.clear();
+          
+    CHItlRECOpi.push_back(islc.reco.pfp[index_pfp_pi].trk.len);
+
+    // VERTEX TRUE INFO
+    dummy.push_back(islc.vertex.x);
+    dummy.push_back(islc.vertex.y);
+    dummy.push_back(islc.vertex.z);
+    CHIvtxRECOpi.push_back(dummy);
+    dummy.clear(); 
+  }
+          
+  //CALORIMETRIA MUONI
+  if(ipfp_mu!=-1)
+  {
+    //CALORIMETRIA BESTPLANE
+    int pplane=-1;
+    int bestplane=islc.reco.pfp[ipfp_mu].trk.bestplane;
+    if(bestplane!=-1 && islc.reco.pfp[ipfp_mu].trk.calo[bestplane].nhit>0){pplane=bestplane;}
+    else{pplane=2;}
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[pplane].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[ipfp_mu].trk.calo[pplane].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp_mu].trk.calo[pplane].points[ihit].dedx<500.)
+      {
+        dEdxbestplane.push_back(islc.reco.pfp[ipfp_mu].trk.calo[pplane].points[ihit].dedx);
+        rrbestplane.push_back(islc.reco.pfp[ipfp_mu].trk.calo[pplane].points[ihit].rr);
+        pitchbestplane.push_back(islc.reco.pfp[ipfp_mu].trk.calo[pplane].points[ihit].pitch);
+        hitxbestplane.push_back(islc.reco.pfp[ipfp_mu].trk.calo[pplane].points[ihit].x);
+        hitybestplane.push_back(islc.reco.pfp[ipfp_mu].trk.calo[pplane].points[ihit].y);
+        hitzbestplane.push_back(islc.reco.pfp[ipfp_mu].trk.calo[pplane].points[ihit].z);
+      }
+    }
+    dEdx_bestplane_MU.push_back(dEdxbestplane);
+    dEdxbestplane.clear();
+    rr_bestplane_MU.push_back(rrbestplane);
+    rrbestplane.clear();
+    pitch_bestplane_MU.push_back(pitchbestplane);
+    pitchbestplane.clear();
+    hitx_bestplane_MU.push_back(hitxbestplane);
+    hitxbestplane.clear();
+    hity_bestplane_MU.push_back(hitybestplane);
+    hitybestplane.clear();
+    hitz_bestplane_MU.push_back(hitzbestplane);
+    hitzbestplane.clear();
+
+    //CALORIMETRIA IND1
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[0].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].dedx<500.)
+      {
+        dEdxind1.push_back(islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].dedx);
+        rrind1.push_back(islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].rr);
+        pitch_ind1.push_back(islc.reco.pfp[ipfp_mu].trk.calo[0].points[ihit].pitch);
+      }
+    }
+    dEdx_ind1_MU.push_back(dEdxind1);
+    dEdxind1.clear();
+    rr_ind1_MU.push_back(rrind1);
+    rrind1.clear();
+    pitch_ind1_MU.push_back(pitch_ind1);
+    pitch_ind1.clear();
+
+    //CALORIMETRIA IND2
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[1].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].dedx<500.)
+      {
+        dEdxind2.push_back(islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].dedx);
+        rrind2.push_back(islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].rr);
+        pitch_ind2.push_back(islc.reco.pfp[ipfp_mu].trk.calo[1].points[ihit].pitch);
+      }
+    }
+    dEdx_ind2_MU.push_back(dEdxind2);
+    dEdxind2.clear();
+    rr_ind2_MU.push_back(rrind2);
+    rrind2.clear();
+    pitch_ind2_MU.push_back(pitch_ind2);
+    pitch_ind2.clear();
+
+    //CALORIMENTRIA COLLECTION
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[2].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx<500.)
+      {    
+        wire.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].wire);                                  
+        CHIdQdx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dqdx);
+        CHIde.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].dedx);           
+        CHIpitch.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].pitch);
+        CHIr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].rr);
+        CHImult.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].mult);
+        CHIwidth.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].width);
+        CHIintegral.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].integral);
+        CHIsumadc.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].sumadc);
+        CHIx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].x);
+        CHIy.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].y);
+        CHIz.push_back(islc.reco.pfp[ipfp_mu].trk.calo[2].points[ihit].z);
+      }
+    }//loop over all hits of that particle
+
+    CHIwireMU.push_back(wire);
+    CHIdQdxMU.push_back(CHIdQdx);
+    CHIdeMU.push_back(CHIde);
+    CHIrrMUninv.push_back(CHIr);
+    CHIwidthMU.push_back(CHIwidth);
+    CHIpitchMU.push_back(CHIpitch);
+    CHIintegralMU.push_back(CHIintegral);
+    CHIsumadcMU.push_back(CHIsumadc);
+    CHImultMU.push_back(CHImult);
+    CHIxMU.push_back(CHIx);
+    CHIyMU.push_back(CHIy);
+    CHIzMU.push_back(CHIz);
+
+    std::reverse(CHIde.begin(),CHIde.end());
+    std::reverse(CHIr.begin(), CHIr.end());
+    std::reverse(CHIpitch.begin(), CHIpitch.end());
+
+    double Eint=0;
+    for(int i=0; i<int(CHIde.size()); i++){ Eint = Eint + CHIde[i]*CHIpitch[i]; CHIEint.push_back(Eint); }     
+
+    CHIEintMUallt.push_back(CHIEint);    
+    CHIrrMU.push_back(CHIr);
             
-            wire.clear();
-            CHIdQdx.clear();
-            CHIx.clear();
-            CHIy.clear();
-            CHIz.clear();
-            CHImult.clear();
-            CHIpitch.clear();
-            CHIEint.clear();
-            CHIde.clear();
-            CHIr.clear();
-            CHIwidth.clear();
-            CHIintegral.clear();
-            CHIsumadc.clear();
+    wire.clear();
+    CHIdQdx.clear();
+    CHIx.clear();
+    CHIy.clear();
+    CHIz.clear();
+    CHImult.clear();
+    CHIpitch.clear();
+    CHIEint.clear();
+    CHIde.clear();
+    CHIr.clear();
+    CHIwidth.clear();
+    CHIintegral.clear();
+    CHIsumadc.clear();
 
-          }
+  }
 
+  //CALORIMETRIA PROTONI
 
-          //PROTONI
+  for(int i=0; i<int(v_ipfp_pro.size()); i++)
+  {
+    int ind_ipfp=v_ipfp_pro[i];
 
-          for(int i=0; i<int(v_ipfp_pro.size()); i++)
-          {
-            int ind_ipfp=v_ipfp_pro[i];
+    //CALORIMETRIA BESTPLANE
+    int pplane=-1;
+    int bestplane=islc.reco.pfp[ind_ipfp].trk.bestplane;
+    if(bestplane!=-1 && islc.reco.pfp[ind_ipfp].trk.calo[bestplane].nhit>0){pplane=bestplane;}
+    else{pplane=2;}
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[pplane].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[ind_ipfp].trk.calo[pplane].points[ihit].dedx>0.5 && islc.reco.pfp[ind_ipfp].trk.calo[pplane].points[ihit].dedx<500.)
+      {
+        dEdxbestplane.push_back(islc.reco.pfp[ind_ipfp].trk.calo[pplane].points[ihit].dedx);
+        rrbestplane.push_back(islc.reco.pfp[ind_ipfp].trk.calo[pplane].points[ihit].rr);
+        pitchbestplane.push_back(islc.reco.pfp[ind_ipfp].trk.calo[pplane].points[ihit].pitch);
+        hitxbestplane.push_back(islc.reco.pfp[ind_ipfp].trk.calo[pplane].points[ihit].x);
+        hitybestplane.push_back(islc.reco.pfp[ind_ipfp].trk.calo[pplane].points[ihit].y);
+        hitzbestplane.push_back(islc.reco.pfp[ind_ipfp].trk.calo[pplane].points[ihit].z);
+      }
+    }
+    dEdx_bestplane_PRO.push_back(dEdxbestplane);
+    dEdxbestplane.clear();
+    rr_bestplane_PRO.push_back(rrbestplane);
+    rrbestplane.clear();
+    pitch_bestplane_PRO.push_back(pitchbestplane);
+    pitchbestplane.clear();
+    hitx_bestplane_PRO.push_back(hitxbestplane);
+    hitxbestplane.clear();
+    hity_bestplane_PRO.push_back(hitybestplane);
+    hitybestplane.clear();
+    hitz_bestplane_PRO.push_back(hitzbestplane);
+    hitzbestplane.clear();
 
-            //CALORIMETRIA IND1
-          //cout << "nuova traccia ind1" << endl;
-          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[0].points.size(); ++ihit )
-          {
-            if(islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].dedx>0.5 && islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].dedx<500.)
-            {
-              dEdxind1.push_back(islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].dedx);
-              rrind1.push_back(islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].rr);
-            }
-          }
-          dEdx_ind1_PRO.push_back(dEdxind1);
-          dEdxind1.clear();
-          rr_ind1_PRO.push_back(rrind1);
-          rrind1.clear();
+    //CALORIMETRIA IND1
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[0].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].dedx>0.5 && islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].dedx<500.)
+      {
+        dEdxind1.push_back(islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].dedx);
+        rrind1.push_back(islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].rr);
+        pitch_ind1.push_back(islc.reco.pfp[ind_ipfp].trk.calo[0].points[ihit].pitch);
+      }
+    }
+    dEdx_ind1_PRO.push_back(dEdxind1);
+    dEdxind1.clear();
+    rr_ind1_PRO.push_back(rrind1);
+    rrind1.clear();
+    pitch_ind1_PRO.push_back(pitch_ind1);
+    pitch_ind1.clear();
 
-          //CALORIMETRIA IND2
+    //CALORIMETRIA IND2
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[1].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].dedx>0.5 && islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].dedx<500.)
+      {
+        dEdxind2.push_back(islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].dedx);
+        rrind2.push_back(islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].rr);
+        pitch_ind2.push_back(islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].pitch);
+      }
+    }
+    dEdx_ind2_PRO.push_back(dEdxind2);
+    dEdxind2.clear();
+    rr_ind2_PRO.push_back(rrind2);
+    rrind2.clear();
+    pitch_ind2_PRO.push_back(pitch_ind2);
+    pitch_ind2.clear();
 
-          //cout << "nuova traccia ind2" << endl;
-          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[1].points.size(); ++ihit )
-          {
-            if(islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].dedx>0.5 && islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].dedx<500.)
-            {
-              dEdxind2.push_back(islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].dedx);
-              rrind2.push_back(islc.reco.pfp[ind_ipfp].trk.calo[1].points[ihit].rr);
-            }
-          }
-          dEdx_ind2_PRO.push_back(dEdxind2);
-          dEdxind2.clear();
-          rr_ind2_PRO.push_back(rrind2);
-          rrind2.clear();
+    //CALORIMETRIA COLLECTION
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[2].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx>0.5 && islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx<500.)
+      {   
+        CHIdQdx.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dqdx);
+        CHIde.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx);           
+        vector_active.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx);
+        CHIpitch.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].pitch);
+        CHIr.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].rr);
+        CHImult.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].mult);
+        CHIwidth.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].width);
+        CHIintegral.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].integral);
+        CHIsumadc.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].sumadc);
+        CHIx.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].x);
+        CHIy.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].y);
+        CHIz.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].z);
+      }
+    }//loop over all hits of that particle
 
+    CHIdQdxPRO.push_back(CHIdQdx);
+    CHIdePRO.push_back(CHIde);
+    CHIrrPROninv.push_back(CHIr);
+    CHIwidthPRO.push_back(CHIwidth);
+    CHIpitchPRO.push_back(CHIpitch);
+    CHIintegralPRO.push_back(CHIintegral);
+    CHImultPRO.push_back(CHImult);
+    CHIsumadcPRO.push_back(CHIsumadc);
+    CHIxPRO.push_back(CHIx);
+    CHIyPRO.push_back(CHIy);
+    CHIzPRO.push_back(CHIz);
 
-             //CALORIMETRIA COLLECTION
-            for ( std::size_t ihit(0); ihit < islc.reco.pfp[ind_ipfp].trk.calo[2].points.size(); ++ihit )
-            {
-                //if(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].rr<=25.5)
-                //{
-                      if(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx>0.5 && islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx<500.)
-                          {   
-                            
-                                  CHIdQdx.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dqdx);
+    std::reverse(CHIde.begin(),CHIde.end());
+    std::reverse(CHIr.begin(), CHIr.end());
+    std::reverse(CHIpitch.begin(), CHIpitch.end());
 
-                                  double factor = 1;
-                                  //factor = (2+correction_function->Eval(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx))/(2-correction_function->Eval(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx));
-                                  CHIde.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx*factor);           
+    double Eint=0;
+    for(int i=0; i<int(CHIde.size()); i++){ Eint = Eint + CHIde[i]*CHIpitch[i]; CHIEint.push_back(Eint);}     
 
-                                  //dump_controllo_chi2_pro << islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx <<  " " << factor << endl;
-
-                                  vector_active.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].dedx);
-
-                                  CHIpitch.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].pitch);
-
-                                  CHIr.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].rr);
-
-                                  CHImult.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].mult);
-
-                                  CHIwidth.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].width);
-
-                                  CHIintegral.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].integral);
-
-                                  CHIsumadc.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].sumadc);
-
-                                  CHIx.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].x);
-
-                                  CHIy.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].y);
-
-                                  CHIz.push_back(islc.reco.pfp[ind_ipfp].trk.calo[2].points[ihit].z);
-
-                          }
-                  //} // only the last 25 cm
-
-            }//loop over all hits of that particle
-
-            CHIdQdxPRO.push_back(CHIdQdx);
-            CHIdePRO.push_back(CHIde);
-            CHIrrPROninv.push_back(CHIr);
-            CHIwidthPRO.push_back(CHIwidth);
-            CHIpitchPRO.push_back(CHIpitch);
-            CHIintegralPRO.push_back(CHIintegral);
-            CHImultPRO.push_back(CHImult);
-            CHIsumadcPRO.push_back(CHIsumadc);
-            CHIxPRO.push_back(CHIx);
-            CHIyPRO.push_back(CHIy);
-            CHIzPRO.push_back(CHIz);
-
-
-            std::reverse(CHIde.begin(),CHIde.end());
-            std::reverse(CHIr.begin(), CHIr.end());
-            std::reverse(CHIpitch.begin(), CHIpitch.end());
-
-            double Eint=0;
-
-            for(int i=0; i<int(CHIde.size()); i++)
-              {
-
-                Eint = Eint + CHIde[i]*CHIpitch[i];        
-                CHIEint.push_back(Eint);
-
-              }     
-
-
-            CHIEintPROallt.push_back(CHIEint);    
-            CHIrrPRO.push_back(CHIr);
+    CHIEintPROallt.push_back(CHIEint);    
+    CHIrrPRO.push_back(CHIr);
             
-            CHIdQdx.clear();
-            CHIx.clear();
-            CHIy.clear();
-            CHIz.clear();
-            CHImult.clear();
-            CHIpitch.clear();
-            CHIEint.clear();
-            CHIde.clear();
-            CHIr.clear();
-            CHIwidth.clear();
-            CHIintegral.clear();
-            CHIsumadc.clear();
-          }//loop over all proton track in that slice
+    CHIdQdx.clear();
+    CHIx.clear();
+    CHIy.clear();
+    CHIz.clear();
+    CHImult.clear();
+    CHIpitch.clear();
+    CHIEint.clear();
+    CHIde.clear();
+    CHIr.clear();
+    CHIwidth.clear();
+    CHIintegral.clear();
+    CHIsumadc.clear();
+  }//loop over all proton track in that slice
+
+  //CALORIMETRIA PIONI
+  for(int i=0; i<int(v_ipfp_pi.size()); i++)
+  {
+    int index_pfp_pi=v_ipfp_pi[i];
+
+    //CALORIMETRIA BESTPLANE
+    int pplane=-1;
+    int bestplane=islc.reco.pfp[index_pfp_pi].trk.bestplane;
+    if(bestplane!=-1 && islc.reco.pfp[index_pfp_pi].trk.calo[bestplane].nhit>0){pplane=bestplane;}
+    else{pplane=2;}
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[index_pfp_pi].trk.calo[pplane].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[index_pfp_pi].trk.calo[pplane].points[ihit].dedx>0.5 && islc.reco.pfp[index_pfp_pi].trk.calo[pplane].points[ihit].dedx<500.)
+      {
+        dEdxbestplane.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[pplane].points[ihit].dedx);
+        rrbestplane.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[pplane].points[ihit].rr);
+        pitchbestplane.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[pplane].points[ihit].pitch);
+        hitxbestplane.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[pplane].points[ihit].x);
+        hitybestplane.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[pplane].points[ihit].y);
+        hitzbestplane.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[pplane].points[ihit].z);
+      }
+    }
+    dEdx_bestplane_PI.push_back(dEdxbestplane);
+    dEdxbestplane.clear();
+    rr_bestplane_PI.push_back(rrbestplane);
+    rrbestplane.clear();
+    pitch_bestplane_PI.push_back(pitchbestplane);
+    pitchbestplane.clear();
+    hitx_bestplane_PI.push_back(hitxbestplane);
+    hitxbestplane.clear();
+    hity_bestplane_PI.push_back(hitybestplane);
+    hitybestplane.clear();
+    hitz_bestplane_PI.push_back(hitzbestplane);
+    hitzbestplane.clear();
+
+    //CALORIMETRIA IND1
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[index_pfp_pi].trk.calo[0].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[index_pfp_pi].trk.calo[0].points[ihit].dedx>0.5 && islc.reco.pfp[index_pfp_pi].trk.calo[0].points[ihit].dedx<500.)
+      {
+        dEdxind1.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[0].points[ihit].dedx);
+        rrind1.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[0].points[ihit].rr);
+        pitch_ind1.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[0].points[ihit].pitch);
+      }
+    }
+    dEdx_ind1_PI.push_back(dEdxind1);
+    dEdxind1.clear();
+    rr_ind1_PI.push_back(rrind1);
+    rrind1.clear();
+    pitch_ind1_PI.push_back(pitch_ind1);
+    pitch_ind1.clear();
+    
+
+    //CALORIMETRIA IND2
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[index_pfp_pi].trk.calo[1].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[index_pfp_pi].trk.calo[1].points[ihit].dedx>0.5 && islc.reco.pfp[index_pfp_pi].trk.calo[1].points[ihit].dedx<500.)
+      {
+        dEdxind2.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[1].points[ihit].dedx);
+        rrind2.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[1].points[ihit].rr);
+        pitch_ind2.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[1].points[ihit].pitch);
+      }
+    }
+    dEdx_ind2_PI.push_back(dEdxind2);
+    dEdxind2.clear();
+    rr_ind2_PI.push_back(rrind2);
+    rrind2.clear();
+    pitch_ind2_PI.push_back(pitch_ind2);
+    pitch_ind2.clear();
 
 
-          //PIONI
-
-          for(int i=0; i<int(v_ipfp_pi.size()); i++)
-          {
-            int index_pfp_pi=v_ipfp_pi[i];
-
-          //CALORIMETRIA IND1
-          for ( std::size_t ihit(0); ihit < islc.reco.pfp[index_pfp_pi].trk.calo[0].points.size(); ++ihit )
-          {
-            if(islc.reco.pfp[index_pfp_pi].trk.calo[0].points[ihit].dedx>0.5 && islc.reco.pfp[index_pfp_pi].trk.calo[0].points[ihit].dedx<500.)
-            {
-              dEdxind1.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[0].points[ihit].dedx);
-              rrind1.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[0].points[ihit].rr);
-            }
-          }
-          dEdx_ind1_PI.push_back(dEdxind1);
-          dEdxind1.clear();
-          rr_ind1_PI.push_back(rrind1);
-          rrind1.clear();
-
-          //CALORIMETRIA IND2
-          for ( std::size_t ihit(0); ihit < islc.reco.pfp[index_pfp_pi].trk.calo[1].points.size(); ++ihit )
-          {
-            if(islc.reco.pfp[index_pfp_pi].trk.calo[1].points[ihit].dedx>0.5 && islc.reco.pfp[index_pfp_pi].trk.calo[1].points[ihit].dedx<500.)
-            {
-              dEdxind2.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[1].points[ihit].dedx);
-              rrind2.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[1].points[ihit].rr);
-            }
-          }
-          dEdx_ind2_PI.push_back(dEdxind2);
-          dEdxind2.clear();
-          rr_ind2_PI.push_back(rrind2);
-          rrind2.clear();
+    //CALORIMETRIA COLLECTION
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[index_pfp_pi].trk.calo[2].points.size(); ++ihit )
+    {
+      if(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].dedx>0.5 && islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].dedx<500.)
+      {   
+        CHIde.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].dedx);           
+        CHIr.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].rr);
+        CHIx.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].x);
+        CHIy.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].y);
+        CHIz.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].z);
+        CHIpitch.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].pitch);
+      }
+    }//loop over all hits of that particle
 
 
-          //CALORIMETRIA COLLECTION
-          for ( std::size_t ihit(0); ihit < islc.reco.pfp[index_pfp_pi].trk.calo[2].points.size(); ++ihit )
-          {
-            if(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].dedx>0.5 && islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].dedx<500.)
-            {   
-              CHIde.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].dedx);           
-
-              CHIr.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].rr);
-
-              CHIx.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].x);
-
-              CHIy.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].y);
-
-              CHIz.push_back(islc.reco.pfp[index_pfp_pi].trk.calo[2].points[ihit].z);
-
-            }
-          }//loop over all hits of that particle
-
-
-          CHIdePI.push_back(CHIde);
-          CHIrrPIninv.push_back(CHIr);
-          CHIxPI.push_back(CHIx);
-          CHIyPI.push_back(CHIy);
-          CHIzPI.push_back(CHIz);
+    CHIdePI.push_back(CHIde);
+    CHIrrPIninv.push_back(CHIr);
+    CHIxPI.push_back(CHIx);
+    CHIyPI.push_back(CHIy);
+    CHIzPI.push_back(CHIz);
+    CHIpitchPI.push_back(CHIpitch);
  
-          CHIx.clear();
-          CHIy.clear();
-          CHIz.clear();
-          CHIde.clear();
-          CHIr.clear();
+    CHIx.clear();
+    CHIy.clear();
+    CHIz.clear();
+    CHIde.clear();
+    CHIr.clear();
+    CHIpitch.clear();
 
-        }//loop over all pions track in that slice
-        
-        //}//1muNp
+  }//loop over all pions track in that slice
 
-    }//loop over all slices
+}//loop over all slices
 
   return vector_active;
 });
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////         angular distribution                           ///////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//bool isMC=false;
-//ofstream directions_mu_mc("directions_mu_mc.txt");
-//ofstream directions_pro_mc("directions_pro_mc.txt");
-//ofstream directions_mu("directions_mu.txt");
-//ofstream directions_pro("directions_pro.txt");
-
-/*
-const SpillMultiVar AngularDistribution([](const caf::SRSpillProxy* sr)-> std::vector<double>
-{
-
-std::vector<double> vector_active;
-
-  for (auto const& islc : sr->slc)
-    {     
-      int ipfp_mu=-1;
-      double distanza;
-
-      
-      if (automatic_selection_1muNp(sr,islc,10,100))//1mu1p reco   _mod per 1mu1p
-	      {
-          ipfp_mu=find_muon(islc,10); //trovo l'indice del muone tra tutte le particelle nella slice
-
-          
-          if(isMC) // we check for MC info only if we work on MC data 
-          {
-	          if(!(islc.truth.index>=0 && (classification_type(sr,islc)==2 || classification_type(sr,islc)==5 ))) //1mu1p E>50 true
-	            {
-                continue;
-              }
-          }
-          
-
-          std::vector<int> v_ipfp_pro; //stores protons ideces
-	        //trovo l'indice del protone
-	        for (std::size_t ipfp(0); ipfp < islc.reco.npfp; ++ipfp)
-		        {
-              int ipfp_pro=-1;
-              if(int(ipfp)==ipfp_mu)continue;
-		          if(id_pfp(islc, ipfp, 10)==1)
-			          {
-                  ipfp_pro=int(ipfp);
-                  v_ipfp_pro.push_back(ipfp_pro);
-                }//if it is a proton
-            }//loop over all particles in the slice
-
-            double dirx;
-            double diry;
-            double dirz;
-            //double norm;
-            
-            //if(!isMC){
-            dirx = islc.reco.pfp[ipfp_mu].trk.dir.x;
-            diry = islc.reco.pfp[ipfp_mu].trk.dir.y;
-            dirz = islc.reco.pfp[ipfp_mu].trk.dir.z;
-
-            directions_mu << dirx << " " << diry << " " << dirz << endl;
-            //directions_mu_mc << dirx << " " << diry << " " << dirz << endl;
-            //}
-            //else{
-            //dirx = islc.reco.pfp[ipfp_mu].trk.truth.p.genp.x;
-            //diry = islc.reco.pfp[ipfp_mu].trk.truth.p.genp.y;
-            //dirz = islc.reco.pfp[ipfp_mu].trk.truth.p.genp.z; 
-            //norm = std::sqrt(std::pow(dirx,2) + std::pow(diry,2) + std::pow(dirz,2));
-            //dirx=dirx/norm;
-            //diry=diry/norm;
-            //dirz=dirz/norm;
-
-            //directions_mu_mc << dirx << " " << diry << " " << dirz << endl;
-            //}
-
-            vector_active.push_back(dirx);
-
-            double dirx_pro;
-            double diry_pro;
-            double dirz_pro;
-            //double norm_pro;
-
-            //if(!isMC){
-            for(int ipfp_pro : v_ipfp_pro)
-              {
-              dirx_pro = islc.reco.pfp[ipfp_pro].trk.dir.x;
-              diry_pro = islc.reco.pfp[ipfp_pro].trk.dir.y;
-              dirz_pro = islc.reco.pfp[ipfp_pro].trk.dir.z;
-
-              directions_pro << dirx_pro << " " << diry_pro << " " << dirz_pro << endl;
-              //directions_pro_mc << dirx_pro << " " << diry_pro << " " << dirz_pro << endl;
-              } 
-            //}
-            //else{
-            //for(int ipfp_pro : v_ipfp_pro)
-            //{
-              //dirx_pro = islc.reco.pfp[ipfp_pro].trk.truth.p.genp.x;
-              //diry_pro = islc.reco.pfp[ipfp_pro].trk.truth.p.genp.y;
-              //dirz_pro = islc.reco.pfp[ipfp_pro].trk.truth.p.genp.z; 
-              //norm_pro = std::sqrt(std::pow(dirx_pro,2) + std::pow(diry_pro,2) + std::pow(dirz_pro,2));
-              //dirx_pro=dirx_pro/norm_pro;
-              //diry_pro=diry_pro/norm_pro;
-              //dirz_pro=dirz_pro/norm_pro;
-              
-              //directions_pro_mc << dirx_pro << " " << diry_pro << " " << dirz_pro << endl;
-
-              //}
-
-                 
-            //}
-
-        }//automatic selection
-
-      }//loop over all sliced 
-
-      return vector_active;
-
-});
-*/

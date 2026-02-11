@@ -1,0 +1,106 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from matplotlib.lines import Line2D
+import matplotlib.ticker as ticker
+from matplotlib.ticker import MultipleLocator
+
+df = pd.read_csv("BDT_AUC_results_corretto.csv")
+
+plt.figure(figsize=(10, 7))
+
+# Discrete fill colors for Shrinkage
+shrink_median = df['Shrinkage'].median()
+shrink_low = df['Shrinkage'].quantile(0.33)
+shrink_high = df['Shrinkage'].quantile(0.66)
+
+for idx, row in df.iterrows():
+    # Edge color based on maxDepth
+    if row['maxDepth'] == 3:
+        edge_color = 'red'
+    elif row['maxDepth'] == 4:
+        edge_color = 'blue'
+    elif row['maxDepth'] == 5:
+        edge_color = 'green'
+    else:
+        edge_color = 'black'
+
+    # Marker size based on nTrees
+    if row['nTrees'] == 300:
+        size = 50
+    elif row['nTrees'] == 500:
+        size = 150
+    elif row['nTrees'] == 700:
+        size = 300
+    else:
+        size = 50
+
+    # Marker type based on minNodeSize
+    if row['minNodeSize'] == 1.5:
+        marker_type = 'o'
+    elif row['minNodeSize'] == 2.5:
+        marker_type = 's'
+    elif row['minNodeSize'] == 3.5:
+        marker_type = '^'
+    else:
+        marker_type = 'o'
+
+    # Fill color based on Shrinkage
+    if row['Shrinkage'] == 0.1:
+        face_color = 'yellow'
+    elif row['Shrinkage'] == 0.05:
+        face_color = 'pink'
+    else:
+        face_color = 'gray'
+
+    # Transparency only if BaggedSampleFraction = 0.6
+    alpha = 0.5 if row['BaggedSampleFraction'] == 0.6 else 1.0
+
+    # Scatter plot
+    plt.scatter(
+        row["background_cont_Test"],
+        row["test_training_L2norm"],
+        s=size,
+        c=face_color,
+        edgecolors=edge_color,
+        marker=marker_type,
+        alpha=alpha,
+        linewidths=2
+    )
+
+# Titles and labels
+plt.xlabel("proton contamination at 99 % muon efficiency (Test)", fontsize=22)
+plt.ylabel(r"$\sqrt{\frac{1}{N_{bin}}\sum_i^{N_{bin}}(ROC^{test}_i-ROC^{training}_i})^2$", fontsize=22)
+
+# Tick labels
+plt.xticks(fontsize=16)
+plt.yticks(fontsize=16)
+
+    # Legend with all parameters in English
+legend_elements = [
+    # maxDepth (edge color)
+    Line2D([0], [0], color='w', label='maxDepth = 3 (red)', marker='o', linewidth=5, markerfacecolor='w', markeredgecolor='red', markersize=10),
+    Line2D([0], [0], color='w', label='maxDepth = 4 (blue)', marker='o', linewidth=5,  markerfacecolor='w', markeredgecolor='blue', markersize=10),
+    Line2D([0], [0], color='w', label='maxDepth = 5 (green)', marker='o', linewidth=5,  markerfacecolor='w', markeredgecolor='green', markersize=10),
+    # nTrees (marker size)
+    Line2D([0], [0], color='k', label='nTrees = 300', marker='o', markerfacecolor='gray', markersize=np.sqrt(50), linewidth=2),
+    Line2D([0], [0], color='k', label='nTrees = 500', marker='o', markerfacecolor='gray', markersize=np.sqrt(150), linewidth=2),
+    Line2D([0], [0], color='k', label='nTrees = 700', marker='o', markerfacecolor='gray', markersize=np.sqrt(300), linewidth=2),
+    # BaggedSampleFraction (transparency)
+    Line2D([0], [0], color='k', label='Bagged = 0.6 (transparent)', marker='o', markerfacecolor='gray', alpha=0.5, markersize=10),
+    Line2D([0], [0], color='k', label='Bagged = 0.5 (opaque)', marker='o', markerfacecolor='gray', alpha=1.0, markersize=10),
+    # Shrinkage (fill color)
+    Line2D([0], [0], color='k', label='Shrinkage=0.1 (yellow)', marker='o', markerfacecolor='yellow', markersize=10),
+    Line2D([0], [0], color='k', label='Shrinkage=0.05 (pink)', marker='o', markerfacecolor='pink', markersize=10),
+    Line2D([0], [0], color='k', label='Shrinkage=0.03 (gray)', marker='o', markerfacecolor='gray', markersize=10),
+    # minNodeSize (marker type)
+    Line2D([0], [0], color='k', label='minNodeSize = 1.5 (circle)', marker='o', markersize=10),
+    Line2D([0], [0], color='k', label='minNodeSize = 2.5 (square)', marker='s', markersize=10),
+    Line2D([0], [0], color='k', label='minNodeSize = 3.5 (triangle)', marker='^', markersize=10)
+]
+
+plt.xlim(0.0075,0.011)
+plt.legend(handles=legend_elements, title="Parameter mapping", fontsize=14, title_fontsize=16, loc='upper right')
+
+plt.tight_layout()
+plt.savefig('architettura_bdt.pdf', bbox_inches='tight')

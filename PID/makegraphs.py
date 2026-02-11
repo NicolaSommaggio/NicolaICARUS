@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import awkward as ak
 import pandas
+from matplotlib.colors import LogNorm
 
 def root_hist_to_pyhist(th1d, colore, llabel, rebin=False, rebfactor=1):
     if rebin : th1d.Rebin(rebfactor)
@@ -33,58 +34,7 @@ def root_hist_to_pyhist(th1d, colore, llabel, rebin=False, rebfactor=1):
     plt.ylim(0, max(bin_contents)*1.1)
     #plt.savefig('histo_prova_bar.pdf', format='pdf', bbox_inches='tight')
 
-"""
-def root_hist_to_pyhist_complete(
-        th1d, 
-        colore, 
-        llabel, 
-        histStyle='default_histo',
-        xtitle,
-        ytitle,
-        hist_title,
-        file_name,
-        drawErrors=False,
-        rebin=False, 
-        rebfactor=1):
-    
-    if rebin : th1d.Rebin(rebfactor)
-    n_bins = th1d.GetNbinsX()
-    x_edges = [th1d.GetBinLowEdge(i+1) for i in range(n_bins)]
-    x_edges.append(th1d.GetBinLowEdge(n_bins) + th1d.GetBinWidth(n_bins))
-    bin_contents = [th1d.GetBinContent(i+1) for i in range(n_bins)]
-    bin_errors = [th1d.GetBinError(i+1) for i in range(n_bins)]
-    bin_centers =[th1d.GetBinCenter(i+1) for i in range(n_bins)]
-    x_bin_errors=[th1d.GetBinWidth(i+1)/2 for i in range(n_bins)]
 
-    if histStyle=='step':
-        # Creazione step per linee orizzontali
-        x_step = np.repeat(x_edges, 2)[1:-1]
-        y_step = np.repeat(bin_contents, 2)
-    
-        # Aggiunta linee verticali agli estremi
-        x_step = np.insert(x_step, 0, x_edges[0])
-        y_step = np.insert(y_step, 0, 0)  # parte dal basso
-        x_step = np.append(x_step, x_edges[-1])
-        y_step = np.append(y_step, 0)     # torna a 0 alla fine
-    
-        plt.step(x_step, y_step, where='mid', linewidth=2, color=colore, label=llabel)
-    
-    if histStyle=='default_histo':
-        plt.bar(
-            bin_centers,
-            bin_contents,
-            width=2*x_bin_errors,
-            color=colore,
-            alpha=0.6,
-            label=llabel,
-            align='center'
-        )
-    
-    if drawErrors:
-        plt.errorbar(bin_centers,bin_contents,xerr=x_bin_errors,yerr=bin_errors, fmt='o', color=colore, label=llabel, markersize=1)
-
-    plt.savefig('histo_prova_bar.pdf', format='pdf', bbox_inches='tight')
-"""
 
 def root_hist_to_pyhist_errors(th1d, colore, llabel, rebin=False, rebfactor=1):
     if rebin: th1d.Rebin(rebfactor)
@@ -414,60 +364,8 @@ if False:
     plt.savefig('grafici/chi2_adding_planes_protons.svg', format='svg', bbox_inches='tight')
     plt.close()
 
-if False:
-    file = ROOT.TFile.Open('likelihood_ratios.root')
-    muon_chi2_difference_coll = file.Get("muon_h_diff_chi2_coll")
-    muon_chi2_difference_coll_ind1 = file.Get("muon_h_diff_chi2_coll_ind1")
-    muon_chi2_difference_coll_ind1_ind2 = file.Get("muon_h_diff_chi2_coll_ind1_ind2")
-    #plt.plot([], [], ' ', label="Stats errors only")
-    root_hist_to_pyhist_errors(muon_chi2_difference_coll, 'maroon', r"muons $\chi^2_\mu - \chi^2_p$ COLL",True,4)
-    root_hist_to_pyhist_errors(muon_chi2_difference_coll_ind1, 'red', r"muons $\chi^2_\mu - \chi^2_p$ COLL+IND1",True,4)
-    root_hist_to_pyhist_errors(muon_chi2_difference_coll_ind1_ind2, 'orange', r"muons $\chi^2_\mu - \chi^2_p$ COLL+IND1+IND2",True,4)
-    
-    plt.xlabel(r'$\chi^2_\mu - \chi^2_p$', fontsize=18)
-    plt.ylabel('entries (area normalized)', fontsize=18)
-    plt.title(r"MUONS, MC 2D DECONVOLUTION", fontsize=18)
 
-    leg = plt.legend(loc='upper left', fontsize=10)
-    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
-    leg.get_frame().set_alpha(1.0)          # opaco
-    plt.setp(leg.get_title(), fontweight='bold')
-
-    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
-    plt.xticks(np.arange(-200,-40.,20), fontsize=14, rotation=60)
-    plt.xlim(-200,-40)
-    plt.ylim(0,0.25)
-    plt.yticks(fontsize=14)
-    plt.savefig('grafici/chi2_difference.svg', format='svg', bbox_inches='tight')
-    plt.close()
-
-if False:
-    file = ROOT.TFile.Open('likelihood_ratios.root')
-    proton_chi2_difference_coll = file.Get("proton_h_diff_chi2_coll")
-    proton_chi2_difference_coll_ind1 = file.Get("proton_h_diff_chi2_coll_ind1")
-    proton_chi2_difference_coll_ind1_ind2 = file.Get("proton_h_diff_chi2_coll_ind1_ind2")
-    #plt.plot([], [], ' ', label="Stats errors only")
-    root_hist_to_pyhist_errors(proton_chi2_difference_coll, 'darkblue', r"protons $\chi^2_\mu - \chi^2_p$ COLL",True,4)
-    root_hist_to_pyhist_errors(proton_chi2_difference_coll_ind1, 'dodgerblue', r"protons $\chi^2_\mu - \chi^2_p$ COLL+IND1",True,4)
-    root_hist_to_pyhist_errors(proton_chi2_difference_coll_ind1_ind2, 'cyan', r"protons $\chi^2_\mu - \chi^2_p$ COLL+IND1+IND2",True,4)
-    
-    plt.xlabel(r'$\chi^2_\mu - \chi^2_p$', fontsize=18)
-    plt.ylabel('entries (area normalized)', fontsize=18)
-    plt.title(r"PROTONS, MC 2D DECONVOLUTION", fontsize=18)
-
-    leg = plt.legend(loc='upper left', fontsize=10)
-    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
-    leg.get_frame().set_alpha(1.0)          # opaco
-    plt.setp(leg.get_title(), fontweight='bold')
-
-    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
-    plt.xticks(np.arange(-200,80.,20), fontsize=14, rotation=60)
-    plt.xlim(-200,80)
-    plt.ylim(0,0.25)
-    plt.yticks(fontsize=14)
-    plt.savefig('grafici/chi2_difference_pro.svg', format='svg', bbox_inches='tight')
-    plt.close()
-
+#PROFILES OF dEdx VS RR IN THE THREE DIFF PLANES
 if False:
     file = uproot.open("../datafiles/mc2d.root")
     mutree = file['DATAtreeMU']
@@ -570,10 +468,9 @@ if False:
     plt.close()
 
 
-from matplotlib.colors import LogNorm
 
+#NUMBER OF HITS PER TRACK IN THE THREE DIFF PLANES
 if False:
-
     n_hits_mu_coll=ROOT.TH1D("n_hits_mu_coll","",200,0,200)
     n_hits_mu_ind1=ROOT.TH1D("n_hits_mu_ind1","",200,0,200)
     n_hits_mu_ind2=ROOT.TH1D("n_hits_mu_ind2","",200,0,200)
@@ -638,19 +535,44 @@ if False:
     plt.close()
 
 
-#plot dEdx
-if False :
-    #protoni
+
+#PLOT dEdx vs RR
+if False:
+
+    colore_titolo = (34,73,120)
+    colore_titolo_mpl = tuple(c / 255 for c in colore_titolo)
+
+    file = uproot.open("/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/datafiles/mc2d_general_contained.root")
+    mutree = file['DATAtreeMU']
+    protree = file['DATAtreePRO']
+    pitree = file['DATAtreePI']
+
+    branches_mu = mutree.arrays()
+    branches_pro = protree.arrays()
+    branches_pi = pitree.arrays()
+
+    print(len(ak.to_list(branches_mu['dE_mu'])), "tracce di muone")
+    print(len(ak.to_list(branches_pro['dE_pro'])), "tracce di protone")
+    print(len(ak.to_list(branches_pi['dE_pi'])), "tracce di pione")
+
+    #PROTONS
+    dEdx_pro = np.array(ak.flatten(branches_pro['dE_pro']))
+    rr_pro = np.array(ak.flatten(branches_pro['rr_pro']))
+    dEdx_pro_ind1 = np.array(ak.flatten(branches_pro['dE_pro_ind1']))
+    dEdx_pro_ind2 = np.array(ak.flatten(branches_pro['dE_pro_ind2']))
+    rr_pro_ind1 = np.array(ak.flatten(branches_pro['rr_pro_ind1']))
+    rr_pro_ind2 = np.array(ak.flatten(branches_pro['rr_pro_ind2']))
+
     plt.hist2d(rr_pro, dEdx_pro, bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
     plt.xlabel('Residual Range [cm]', fontsize=18)
     plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title("PROTONS MC 2D DECONV. - COLLECTION PLANE", fontsize=18)
+    plt.title("PROTONS MC 2D OVERLAYS - COLLECTION PLANE", fontsize=18, color=colore_titolo_mpl)
     cbar=plt.colorbar()
     cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
     cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
-    plt.savefig('grafici/pro_dEdx_rr_mc_coll.png', format='png',dpi=600, bbox_inches='tight')
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/pro_dEdx_rr_mc_coll.png', format='png',dpi=600, bbox_inches='tight')
     plt.close()
 
     plt.hist2d(rr_pro_ind1, dEdx_pro_ind1, bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
@@ -658,11 +580,11 @@ if False :
     plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title("PROTONS MC 2D DECONV. - INDUCTION 1 PLANE", fontsize=18)
+    plt.title("PROTONS MC 2D OVERLAYS - INDUCTION 1 PLANE", fontsize=18, color=colore_titolo_mpl)
     cbar=plt.colorbar()
     cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
     cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
-    plt.savefig('grafici/pro_dEdx_rr_mc_ind1.png', format='png',dpi=600, bbox_inches='tight')
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/pro_dEdx_rr_mc_ind1.png', format='png',dpi=600, bbox_inches='tight')
     plt.close()
 
     plt.hist2d(rr_pro_ind2, dEdx_pro_ind2, bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
@@ -670,24 +592,31 @@ if False :
     plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title("PROTONS MC 2D DECONV. - INDUCTION 2 PLANE", fontsize=18)
+    plt.title("PROTONS MC 2D OVERLAYS - INDUCTION 2 PLANE", fontsize=18, color=colore_titolo_mpl)
     cbar=plt.colorbar()
     cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
     cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
-    plt.savefig('grafici/pro_dEdx_rr_mc_ind2.png', format='png',dpi=600, bbox_inches='tight')
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/pro_dEdx_rr_mc_ind2.png', format='png',dpi=600, bbox_inches='tight')
     plt.close()
 
-    #muoni
+    #MUONS
+    dEdx_mu = np.array(ak.flatten(branches_mu['dE_mu']))
+    rr_mu = np.array(ak.flatten(branches_mu['rr_mu']))
+    dEdx_mu_ind1 = np.array(ak.flatten(branches_mu['dE_mu_ind1']))
+    dEdx_mu_ind2 = np.array(ak.flatten(branches_mu['dE_mu_ind2']))
+    rr_mu_ind1 = np.array(ak.flatten(branches_mu['rr_mu_ind1']))
+    rr_mu_ind2 = np.array(ak.flatten(branches_mu['rr_mu_ind2']))
+
     plt.hist2d(rr_mu, dEdx_mu, bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
     plt.xlabel('Residual Range [cm]', fontsize=18)
     plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title("MUONS MC 2D DECONV. - COLLECTION PLANE", fontsize=18)
+    plt.title("MUONS MC 2D OVERLAYS - COLLECTION PLANE", fontsize=18, color=colore_titolo_mpl)
     cbar=plt.colorbar()
     cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
     cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
-    plt.savefig('grafici/mu_dEdx_rr_mc_coll.png', format='png',dpi=600, bbox_inches='tight')
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/mu_dEdx_rr_mc_coll.png', format='png',dpi=600, bbox_inches='tight')
     plt.close()
 
     plt.hist2d(rr_mu_ind1, dEdx_mu_ind1, bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
@@ -695,11 +624,11 @@ if False :
     plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title("MUONS MC 2D DECONV. - INDUCTION 1 PLANE", fontsize=18)
+    plt.title("MUONS MC 2D OVERLAYS - INDUCTION 1 PLANE", fontsize=18, color=colore_titolo_mpl)
     cbar=plt.colorbar()
     cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
     cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
-    plt.savefig('grafici/mu_dEdx_rr_mc_ind1.png', format='png',dpi=600, bbox_inches='tight')
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/mu_dEdx_rr_mc_ind1.png', format='png',dpi=600, bbox_inches='tight')
     plt.close()
 
     plt.hist2d(rr_mu_ind2, dEdx_mu_ind2, bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
@@ -707,19 +636,15 @@ if False :
     plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title("MUONS MC 2D DECONV. - INDUCTION 2 PLANE", fontsize=18)
+    plt.title("MUONS MC 2D OVERLAYS - INDUCTION 2 PLANE", fontsize=18, color=colore_titolo_mpl)
     cbar=plt.colorbar()
     cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
     cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
-    plt.savefig('grafici/mu_dEdx_rr_mc_ind2.png', format='png',dpi=600, bbox_inches='tight')
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/mu_dEdx_rr_mc_ind2.png', format='png',dpi=600, bbox_inches='tight')
     plt.close()
 
-if False: 
-    file = uproot.open("../datafiles/mc2d_general.root")
-    pitree = file['DATAtreePI']
-    branches_pi = pitree.arrays()
-
-    mask = branches_pi['end_process_pi'] == 3
+    #PIONS
+    #mask = branches_pi['end_process_pi'] == 3
     dEdx = np.array(ak.flatten(branches_pi['dE_pi']))
     rr = np.array(ak.flatten(branches_pi['rr_pi']))
     dEdx_ind1 = np.array(ak.flatten(branches_pi['dE_pi_ind1']))
@@ -732,11 +657,11 @@ if False:
     plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title(r"$\pi^{\pm}$ MC 2D DECONV. - COLLECTION PLANE", fontsize=18)
+    plt.title(r"$\pi^{\pm}$ MC 2D OVERLAYS - COLLECTION PLANE", fontsize=18, color=colore_titolo_mpl)
     cbar=plt.colorbar()
     cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
     cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
-    plt.savefig('grafici/pi_dEdx_rr_mc_coll.png', format='png',dpi=600, bbox_inches='tight')
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/pi_dEdx_rr_mc_coll.png', format='png',dpi=600, bbox_inches='tight')
     plt.close()
 
     plt.hist2d(rr_ind1, dEdx_ind1, bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
@@ -744,11 +669,11 @@ if False:
     plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title(r"$\pi^{\pm}$ MC 2D DECONV. - INDUCTION 1 PLANE", fontsize=18)
+    plt.title(r"$\pi^{\pm}$ MC 2D OVERLAYS - INDUCTION 1 PLANE", fontsize=18, color=colore_titolo_mpl)
     cbar=plt.colorbar()
     cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
     cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
-    plt.savefig('grafici/pi_dEdx_rr_mc_ind1.png', format='png',dpi=600, bbox_inches='tight')
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/pi_dEdx_rr_mc_ind1.png', format='png',dpi=600, bbox_inches='tight')
     plt.close()
 
     plt.hist2d(rr_ind2, dEdx_ind2, bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
@@ -756,12 +681,14 @@ if False:
     plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title(r"$\pi^{\pm}$ MC 2D DECONV. - INDUCTION 2 PLANE", fontsize=18)
+    plt.title(r"$\pi^{\pm}$ MC 2D OVERLAYS - INDUCTION 2 PLANE", fontsize=18, color=colore_titolo_mpl)
     cbar=plt.colorbar()
     cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
     cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
-    plt.savefig('grafici/pi_dEdx_rr_mc_ind2.png', format='png',dpi=600, bbox_inches='tight')
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/pi_dEdx_rr_mc_ind2.png', format='png',dpi=600, bbox_inches='tight')
     plt.close()
+
+
 
 
 def copy_dir(src, dst):
@@ -774,8 +701,6 @@ def copy_dir(src, dst):
         else:
             dst.cd()
             obj.Write()
-
-
 
 if False:
     f = ROOT.TFile.Open("/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/newHISTOdistro2dprova.root", "UPDATE")
@@ -815,4 +740,256 @@ if False:
     pro.Write()
     pi.Write()
     ka.Write()
+
+#PLOT ROLLING MEDIAN
+if False:
+    file = uproot.open("/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/datafiles/mc2d_general_contained.root")
+
+    #MUONS
+    mu_tree = file['DATAtreeMU']
+    mu_branches = mu_tree.arrays()
+
+    #mask = (mu_branches["end_process_mu"]==3)
+    rr_rm_mu = np.array(ak.flatten(mu_branches["rr_rm_mu"]))
+    rm_mu = np.array(ak.flatten(mu_branches["rm_mu"]))
+
+    colore_titolo = (34,73,120)
+    colore_titolo_mpl = tuple(c / 255 for c in colore_titolo)
+    
+    h=plt.hist2d(rr_rm_mu, rm_mu, bins=(300,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm(), cmin=1)
+    plt.xlabel('Residual Range [cm]', fontsize=17)
+    plt.ylabel('dE/dx Rolling Median [MeV/cm]', fontsize=17)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title(r"$\mu$ MC 2D OVERLAYS - COLLECTION PLANE", fontsize=18, color=colore_titolo_mpl)
+    cbar=plt.colorbar(h[3])
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/rolling_median_mu.png', format='png',dpi=600, bbox_inches='tight')
+    plt.close()
+
+    #PROTONS
+    pro_tree = file['DATAtreePRO']
+    pro_branches = pro_tree.arrays()
+
+    #mask = (pro_branches["end_process_pro"]==3)
+    rr_rm_pro = np.array(ak.flatten(pro_branches["rr_rm_pro"]))
+    rm_pro = np.array(ak.flatten(pro_branches["rm_pro"]))
+    
+    h=plt.hist2d(rr_rm_pro, rm_pro, bins=(300,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm(), cmin=1)
+    plt.xlabel('Residual Range [cm]', fontsize=17)
+    plt.ylabel('dE/dx Rolling Median [MeV/cm]', fontsize=17)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title(r"$p$ MC 2D OVERLAYS - COLLECTION PLANE", fontsize=18, color=colore_titolo_mpl)
+    cbar=plt.colorbar(h[3])
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/rolling_median_pro.png', format='png',dpi=600, bbox_inches='tight')
+    plt.close()
+
+    #PIONS
+    pi_tree = file['DATAtreePI']
+    pi_branches = pi_tree.arrays()
+
+    #mask = (pro_branches["end_process_pro"]==3)
+    rr_rm_pi = np.array(ak.flatten(pi_branches["rr_rm_pi"]))
+    rm_pi = np.array(ak.flatten(pi_branches["rm_pi"]))
+    
+    h=plt.hist2d(rr_rm_pi, rm_pi, bins=(300,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm(), cmin=1)
+    plt.xlabel('Residual Range [cm]', fontsize=17)
+    plt.ylabel('dE/dx Rolling Median [MeV/cm]', fontsize=17)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title(r"$\pi^{\pm}$ MC 2D OVERLAYS - COLLECTION PLANE", fontsize=18, color=colore_titolo_mpl)
+    cbar=plt.colorbar(h[3])
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici'
+    '/rolling_median_pi.png', format='png',dpi=600, bbox_inches='tight')
+    plt.close()
+
+if False:
+    reference = ROOT.TFile.Open("/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/dEdx/THdedx.root","READ")
+    dedx_range_mu = reference.Get("dedx_range_mu")
+    scatter_dedx = []
+    scatter_rr = []
+    for i in range(1,dedx_range_mu.GetNbinsX()+1):
+        if dedx_range_mu.GetBinContent(i)!=0:
+            scatter_rr.append(dedx_range_mu.GetBinCenter(i))
+            scatter_dedx.append(dedx_range_mu.GetBinContent(i))
+    scatter_dedx = np.array(scatter_dedx)
+    scatter_rr = np.array(scatter_rr)
+    mip_dedx =np.array([2,2])
+    mip_rr = np.array([0,25])
+
+
+
+    file = uproot.open("/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/datafiles/mc2d_general_contained.root")
+    mu_tree = file['DATAtreeMU']
+    mu_branches = mu_tree.arrays()
+
+    #increasing
+    #run = 9960
+    #evt = 52964
+    #chi2_mip = 2.78
+    #chi2_mip_dedx= 6.56
+    #chi2 = 0.36
+    #chi2_dedx = 22.80
+    #range(0,16)
+
+    #mip
+    #run = 9388
+    #evt = 65257
+    #chi2_mip = 0.06
+    #chi2_mip_dedx= 0.36
+    #chi2 = 1.89
+    #chi2_dedx = 5.03
+    #range(0,9)
+
+    #MICHEL
+    #run = 9717
+    #evt = 10481
+    #chi2_mip = 2.22
+    #chi2_mip_dedx= 5.90
+    #chi2 = 1.79
+    #chi2_dedx = 12.91
+    #range(0,20)
+
+    #PION ClASSIFICATO MIP CON PROTON
+    #run = 9448
+    #evt = 57075
+    #chi2_mip = 0.05
+    #chi2_mip_dedx= 1.89
+    #chi2 = 2.38
+    #chi2_dedx = 5.48
+
+    #PION CLASSIFICATO STOPPING CON PROTON
+    #run = 9384
+    #evt = 82560
+    #chi2_mip = 3.59
+    #chi2_mip_dedx= 47.03
+    #chi2 = 0.17
+    #chi2_dedx = 25.48
+
+    #MUONE ESEMPIO
+    #run = 9594
+    #evt = 70308
+
+    run = 9942
+    evt = 2734
+
+    mask = (mu_branches["run"] == run) & (mu_branches["evt"] == evt)
+    bestplane = mu_branches["bestplane_mu"][mask]
+    str_bestplane = ""
+    if bestplane==0 : 
+        print("the best plane is INDUCTION 1")
+        str_bestplane="INDUCTION 1"
+    if bestplane==1 : 
+        print("the best plane is INDUCTION 2")
+        str_bestplane="INDUCTION 2"
+    if bestplane==2 : 
+        print("the best plane is COLLECTION")
+        str_bestplane="COLLECTION"
+    
+    rr = np.array(ak.flatten(mu_branches["rr_mu_bestplane"][mask]))
+    dE = np.array(ak.flatten(mu_branches["dE_mu_bestplane"][mask]))
+    rr_rm = np.array(ak.flatten(mu_branches["rr_rm_mu_bestplane"][mask]))
+    rm = np.array(ak.flatten(mu_branches["rm_mu_bestplane"][mask]))
+
+    plt.plot(scatter_rr,scatter_dedx,lw=2,color="blue",label="Muons dE/dx vs RR Reference Curve", alpha=0.7)
+    plt.plot(mip_rr,mip_dedx,lw=2,color='red',label="dE/dx = 2 MeV/cm", alpha=0.7)
+    #plt.scatter(rr,dE,marker="o",s=40,color='cornflowerblue', edgecolors="black", linewidths=1.2, label=r"dE/dx vs RR, $\chi^2$ Stopping={:.2f} $\chi^2$ MIP={:.2f}".format(chi2_dedx,chi2_mip_dedx))
+    #plt.scatter(rr_rm,rm,marker="^", s=40, color='orange', edgecolors="black", linewidths=1.2, label=r"Rolling Median vs RR, $\chi^2$ Stopping={:.2f} $\chi^2$ MIP={:.2f}".format(chi2,chi2_mip))
+    
+    plt.scatter(rr,dE,marker="o",s=40,color='cornflowerblue', edgecolors="black", linewidths=1.2, label="dE/dx vs RR")
+    plt.scatter(rr_rm,rm,marker="^", s=40, color='orange', edgecolors="black", linewidths=1.2, label="Rolling Median vs RR")
+
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
+    colore_titolo = (34,73,120)
+    colore_titolo_mpl = tuple(c / 255 for c in colore_titolo)
+    plt.title(("RUN={:d} EVT={:d} - MC 2D OVERLAY - {:s}".format(run,evt,str_bestplane)), fontsize=18, color = colore_titolo_mpl)
+
+    leg = plt.legend(loc='upper center', fontsize=10)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0,25.,1), fontsize=14, rotation=60)
+    plt.yticks(fontsize=14)
+    plt.ylim(1,15)
+    plt.xlim(0,25)
+    plt.savefig('grafici/new_grafici/example_muone_RUN_{:d}_EVT_{:d}.pdf'.format(run,evt), format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    increasing_dedx = np.loadtxt("/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/dump_incresing_dedx.txt")
+    incresing_rm = np.loadtxt("/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/dump_incresing_rm.txt")
+    NOT_increasing_dedx = np.loadtxt("/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/dump_NONincresing_dedx.txt")
+    NOT_increasing_rm = np.loadtxt("/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/dump_NONincresing_rm.txt")
+
+    rr_increasing_dedx = increasing_dedx[:,0]
+    dedx_increasing_dedx = increasing_dedx[:,1]
+    rr_increasing_rm = incresing_rm[:,0]
+    dedx_increasing_rm = incresing_rm[:,1]
+    rr_NONincreasing_dedx = NOT_increasing_dedx[:,0]
+    dedx_NONincreasing_dedx = NOT_increasing_dedx[:,1]
+    rr_NONincreasing_rm = NOT_increasing_rm[:,0]
+    dedx_NONincreasing_rm = NOT_increasing_rm[:,1]
+
+    colore_titolo = (34,73,120)
+    colore_titolo_mpl = tuple(c / 255 for c in colore_titolo)
+
+    h=plt.hist2d(rr_increasing_dedx, dedx_increasing_dedx, bins=(250,300), range=[(0,25),(0,30)], cmap='viridis', norm=LogNorm(), cmin=1)
+    plt.xlabel('Residual Range [cm]', fontsize=17)
+    plt.ylabel('dE/dx [MeV/cm]', fontsize=17)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title(r"$\pi^{\pm}$ MC 2D OVERLAYS - COLLECTION PLANE - $\chi^2_{STOP.}\leq\chi^2_{MIP}$", fontsize=18, color=colore_titolo_mpl)
+    cbar=plt.colorbar(h[3])
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/incresing_dedx_pi.png', format='png',dpi=600, bbox_inches='tight')
+    plt.close()
+
+    h=plt.hist2d(rr_NONincreasing_dedx, dedx_NONincreasing_dedx, bins=(250,300), range=[(0,25),(0,30)], cmap='viridis', norm=LogNorm(), cmin=1)
+    plt.xlabel('Residual Range [cm]', fontsize=17)
+    plt.ylabel('dE/dx [MeV/cm]', fontsize=17)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title(r"$\pi^{\pm}$ MC 2D OVERLAYS - COLLECTION PLANE - $\chi^2_{STOP.}>\chi^2_{MIP}$", fontsize=18, color=colore_titolo_mpl)
+    cbar=plt.colorbar(h[3])
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/NONincresing_dedx_pi.png', format='png',dpi=600, bbox_inches='tight')
+    plt.close()
+
+    h=plt.hist2d(rr_increasing_rm, dedx_increasing_rm, bins=(250,300), range=[(0,25),(0,30)], cmap='viridis', norm=LogNorm(), cmin=1)
+    plt.xlabel('Residual Range [cm]', fontsize=17)
+    plt.ylabel('dE/dx Rolling Median [MeV/cm]', fontsize=17)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title(r"$\pi^{\pm}$ MC 2D OVERLAYS - COLLECTION PLANE - $\chi^2_{STOP.}\leq\chi^2_{MIP}$", fontsize=18, color=colore_titolo_mpl)
+    cbar=plt.colorbar(h[3])
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/incresing_rm_pi.png', format='png',dpi=600, bbox_inches='tight')
+    plt.close()
+
+    h=plt.hist2d(rr_NONincreasing_rm, dedx_NONincreasing_rm, bins=(250,300), range=[(0,25),(0,30)], cmap='viridis', norm=LogNorm(), cmin=1)
+    plt.xlabel('Residual Range [cm]', fontsize=17)
+    plt.ylabel('dE/dx Rolling Median [MeV/cm]', fontsize=17)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title(r"$\pi^{\pm}$ MC 2D OVERLAYS - COLLECTION PLANE - $\chi^2_{STOP.}>\chi^2_{MIP}$", fontsize=18, color=colore_titolo_mpl)
+    cbar=plt.colorbar(h[3])
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('/storage/gpfs_data/icarus/local/users/sommaggio/simul_z/PID/grafici/new_grafici/NONincresing_rm_pi.png', format='png',dpi=600, bbox_inches='tight')
+    plt.close()
+
+
+
 
