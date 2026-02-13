@@ -1,4 +1,4 @@
-rm DataStructDict_rdict.pcm
-rm libDataStruct.so
-rm DataStructDict.cxx
+#rm DataStructDict_rdict.pcm
+#rm libDataStruct.so
+#rm DataStructDict.cxx
 rootcling -f DataStructDict.cxx data_struct.h LinkDef.h

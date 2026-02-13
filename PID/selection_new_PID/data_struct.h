@@ -81,6 +81,8 @@ public:
     int subrun = -1;
     int evt = -1;
 
+    std::string true_slice_classifications;
+
     bool is_clear_cosmic = false;
     double true_neutrino_energy = 0;
     bool isinFV = false;

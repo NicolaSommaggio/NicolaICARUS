@@ -660,6 +660,139 @@ int classification_type ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRS
 return 3;
 }
 
+std::string classification_type_generic ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc ) {
+
+    // the output is a string with format abcde_process
+    // a : # muons
+    // b : # protons above 50 MeV
+    // c : # pions above 25 MeV 
+    // d : # gammas above 25 MeV
+    // e : # pi0 with bot gammas above 25 MeV
+    // process : which kind of neutrino interaction
+    //           possibilities are: https://github.com/SBNSoftware/sbnanaobj/blob/0fb95094a2ea457c363b1e3d4b2fada9e9cca4db/sbnanaobj/StandardRecord/SREnums.h#L97 
+    // bad_slice : slice does not satisfy : truth_matching_eff > 0.05 && is_clear_cosmic && true-reco vertex distance < 100 or Nan values
+
+    std::string return_string="bad_slice";
+    
+    TVector3 vertex_true;
+    vertex_true.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
+    TVector3 vertex_reco;
+    vertex_reco.SetXYZ(islc.truth.position.x, islc.truth.position.y, islc.truth.position.z);
+
+    if( !(islc.tmatch.eff > 0.05 && (!islc.is_clear_cosmic) && (vertex_true-vertex_reco).Mag()<100.)) return "bad_slice";
+    if(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)) return 'bad_slice';
+    if(std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)) return 'bad_slice';
+    if (  abs(islc.truth.pdg) == 14 /*&& islc.truth.iscc*/ && isInActive(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z) )
+          {          
+            if(isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z))
+            {
+                if(!all_contained_truth(sr, islc))return "bad_slice"
+                int num_protons_above50 = 0;
+                int num_pions_above25 = 0;
+                int num_gammas_above25 = 0;
+                int num_neutral_pions_both_above25 = 0; 
+                int num_muons = 0; 
+                int interaction_type = (int)islc.truth.genie_evtrec_idx;               
+                double dep_E=0;
+                for ( auto const& ipart : islc.truth.prim )
+                {
+                  if ( ipart.G4ID < 0 )  continue;
+
+                  //MUONS
+                  if(abs(ipart.pdg) == 13 && ipart.ipart.length > 50){num_muons+=1;}  // muons
+
+                  int iG4ID_parent;  
+                  int use_plane = 2;
+                    
+                  //PRIMARY NEUTRAL PIONS
+                  if(abs(ipart.pdg)==111) //Neutral pions - reject if any of its gamma > 25 MeV
+                  {            
+                    if(ipart.daughters.size()>0)
+                    {
+                      for ( auto const& itrue2 : sr->true_particles )
+                      {
+                        iG4ID_parent=itrue2.parent;
+                        //sum depE daughters 
+                        if(iG4ID_parent==ipart.G4ID && abs(itrue2.pdg) == 22)
+                        {
+                          if(itrue2.plane[ipart.cryostat][use_plane].visE*1000>25)
+                          {
+                            num_neutral_pions_both_above25++;
+                          }
+                        }
+                      }
+                    }                        
+                  }
+
+                  //PRIMARY PHOTONS
+                  if(abs(ipart.pdg) == 22)
+                  {                    
+                    if(ipart.daughters.size()>0)
+                    {
+                      for ( auto const& itrue : sr->true_particles )
+                      {
+                        iG4ID_parent=itrue.parent;
+                        //sum depE daughters 
+                        if(iG4ID_parent==ipart.G4ID )
+                        {
+                          dep_E+=itrue.plane[ipart.cryostat][use_plane].visE*1000;
+                        }
+                      }
+                    }
+                    dep_E += ipart.plane[ipart.cryostat][use_plane].visE*1000;
+                  } 
+                  if(abs(ipart.pdg)== 22 && dep_E>25.0){num_gammas_above25++;}   
+                  dep_E=0;
+
+                  //PRIMARY PROTONS
+                  if(abs(ipart.pdg)== 2212)
+                  {                    
+                    if(ipart.daughters.size()>0)
+                    {
+                      for ( auto const& itrue : sr->true_particles )
+                      {
+                        iG4ID_parent=itrue.parent;
+                        //sum depE daughters 
+                        if(iG4ID_parent==ipart.G4ID )
+                        {
+                          dep_E+=itrue.plane[ipart.cryostat][use_plane].visE*1000;
+                        }
+                      }
+                    }
+                    dep_E += ipart.plane[ipart.cryostat][use_plane].visE*1000;
+                  }
+                  if(abs(ipart.pdg)== 2212 && dep_E>50.0){num_protons_above50+=1;} //protons
+                  dep_E=0;  
+
+                  //PRIMARY CHARGED PIONS
+                  if(abs(ipart.pdg)== 211)
+                  {                    
+                    if(ipart.daughters.size()>0)
+                    {
+                      for ( auto const& itrue : sr->true_particles )
+                      {
+                        iG4ID_parent=itrue.parent;
+                        //sum depE daughters 
+                        if(iG4ID_parent==ipart.G4ID )
+                        {
+                          dep_E+=itrue.plane[ipart.cryostat][use_plane].visE*1000;
+                        }
+                      }
+                    }
+                    dep_E += ipart.plane[ipart.cryostat][use_plane].visE*1000;
+                  }
+                  if(abs(ipart.pdg)== 211 && dep_E>25.0){num_pions_above25+=1;} //protons
+                  dep_E=0;
+                }//all true particles in the slice
+
+                return_string = Form("%d%d%d%d%d_%d",num_muons,num_protons_above50,num_pions_above25,num_gammas_above25,num_neutral_pions_both_above25,interaction_type);
+
+              }//fiducial
+            }//active
+         
+    return return_string
+}
+
 bool automatic_selection_1muNp ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, int dist_cut, int cut_baryc, int plane ){
 
         if(!(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)/* || std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)*/)){
@@ -1022,6 +1155,9 @@ const SpillMultiVar DataLoader([](const caf::SRSpillProxy* sr)-> std::vector<dou
     islice.run = sr->hdr.run;
     islice.subrun = sr->hdr.subrun;
     islice.evt = sr->hdr.evt;
+
+    //slice true classification
+    islice.true_slice_classifications = classification_type_generic(sr,islc);
 
     //true neutrino energy
     islice.true_neutrino_energy = islc.truth.E;
