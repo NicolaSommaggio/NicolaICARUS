@@ -680,26 +680,27 @@ std::string classification_type_generic ( const caf::SRSpillProxy* sr, const caf
     vertex_reco.SetXYZ(islc.truth.position.x, islc.truth.position.y, islc.truth.position.z);
 
     if( !(islc.tmatch.eff > 0.05 && (!islc.is_clear_cosmic) && (vertex_true-vertex_reco).Mag()<100.)) return "bad_slice";
-    if(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)) return 'bad_slice';
-    if(std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)) return 'bad_slice';
+    if(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)) return "bad_slice";
+    if(std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)) return "bad_slice";
     if (  abs(islc.truth.pdg) == 14 /*&& islc.truth.iscc*/ && isInActive(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z) )
           {          
             if(isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z))
             {
-                if(!all_contained_truth(sr, islc))return "bad_slice"
+                if(!all_contained_truth(sr, islc))return "bad_slice";
+
                 int num_protons_above50 = 0;
                 int num_pions_above25 = 0;
                 int num_gammas_above25 = 0;
                 int num_neutral_pions_both_above25 = 0; 
                 int num_muons = 0; 
-                int interaction_type = (int)islc.truth.genie_evtrec_idx;               
+                int interaction_type = (int)islc.truth.genie_inttype;               
                 double dep_E=0;
                 for ( auto const& ipart : islc.truth.prim )
                 {
                   if ( ipart.G4ID < 0 )  continue;
 
                   //MUONS
-                  if(abs(ipart.pdg) == 13 && ipart.ipart.length > 50){num_muons+=1;}  // muons
+                  if(abs(ipart.pdg) == 13 && ipart.length > 50){num_muons+=1;}  // muons
 
                   int iG4ID_parent;  
                   int use_plane = 2;
@@ -790,7 +791,7 @@ std::string classification_type_generic ( const caf::SRSpillProxy* sr, const caf
               }//fiducial
             }//active
          
-    return return_string
+    return return_string; 
 }
 
 bool automatic_selection_1muNp ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, int dist_cut, int cut_baryc, int plane ){
