@@ -42,20 +42,6 @@
 
 using namespace ana;
 
-//CNAF
-//TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
-//auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
-//auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
-//auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
-//auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
-
-//FNAL
-TFile* file = TFile::Open("/exp/icarus/data/users/nsommagg/RefCurvesChi2.root");
-auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
-auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
-auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
-auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
-
 // OLD VERSION
 const SpillCut kCRTPMTNeutrino([](const caf::SRSpillProxy* spill){
   //for(const auto& match: spill->crtpmt_matches) {
@@ -139,194 +125,6 @@ bool all_contained ( const caf::Proxy<caf::SRSlice>& islc ) {
 return true;
 }
 
-bool all_contained_truth ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc ) { 
-    //Check only those pfp that are visible 
-                
-                for ( auto const& ipart : islc.truth.prim ){
-                    if ( ipart.G4ID < 0 )  continue;
-                    if ( ipart.cryostat < 0 )  continue;
-                    int iG4ID_parent;
-                    double dep_E=0;   
-                    //check if charged primaries are contained: 
-                    if(abs(ipart.pdg)==13 || abs(ipart.pdg)==2212 || abs(ipart.pdg)==211 || abs(ipart.pdg)==11){
-                        if(isInContained(ipart.end.x,ipart.end.y,ipart.end.z,5.)==false){return false;}
-                    }                   
-                    if(ipart.daughters.size()>0){
-                        for ( auto const& itrue : sr->true_particles ){
-			  if ( itrue.cryostat < 0 )  continue;
-                        iG4ID_parent=itrue.parent;
-                        //sum depE daughters 
-                        if(iG4ID_parent==ipart.G4ID ){
-                        if(abs(itrue.pdg)==13 || abs(itrue.pdg)==2212 || abs(itrue.pdg)==211 || abs(itrue.pdg)==11){
-			  if(itrue.end.x!=-9999 && itrue.end.y!=-9999 && itrue.end.z!=-9999){if(isInContained(ipart.end.x,ipart.end.y,ipart.end.z,5.)==false){return false;}}
-                    }                             
-                        }
-                        }
-                    
-                        } 
- 
-                }  
-return true;
-}
-
-Double_t correction_function_25only(Double_t *x, Double_t *par)
-{
-    if(x[0]<=2) return 0.0127159;
-    else if (x[0]>=15) return -0.0235248;
-    else return exp(par[0]+par[1]*x[0])+par[2]+par[3]*exp(-0.5*pow((x[0]-par[4])/par[5],2));
-}
-TF1 *correction_function = new TF1("correction_function",correction_function_25only, 0., 16., 6 );
-
-
-std::vector<double> chi2_ALG(std::vector<double> &dEdx,std::vector<double> &RR, double rr_min, double rr_max)
-{
-    //The output is chi2s
-
-    ////////////////// correzzione dEdx mc ///////////////////////////////////////////
-    /*
-  correction_function->SetParameters(-1.08107e+00, -1.38302e+00, -2.84635e-02, 5.87297e-02, 7.17814e+00, -3.51461e+00);
-    for(int i=0; i<int(dEdx.size()); i++)
-    {
-        double factor = (2+correction_function->Eval(dEdx[i]))/(2-correction_function->Eval(dEdx[i]));
-        dEdx[i]=dEdx[i]*factor;
-    }
-    */
-    //////////////////////////////////////////////////////////////////////////////////////
-
-    double threshold = 0.5;
-    double max_rr = rr_max;
-    double min_rr = rr_min;
-
-    std::vector<float> trkdedx;
-    std::vector<float> trkres;
-    std::vector<double> vpida;
-    
-
-    for(std::size_t i(0); i<dEdx.size(); ++i){
-      if(i==0 || i==dEdx.size()-1)continue;
-        if(RR[i]<max_rr && RR[i]>rr_min ){trkdedx.push_back(dEdx[i]);trkres.push_back(RR[i]);}       
-    }
-
-
-    int npt = 0;
-    double chi2pro = 0;
-    double chi2ka = 0;
-    double chi2pi = 0;
-    double chi2mu = 0;
-    double avgdedx = 0;
-    double PIDA = 0;
-
-    int used_trkres = 0;
-    for (unsigned i = 0; i < trkdedx.size(); ++i) { 
-      avgdedx += trkdedx[i];
-      if (trkres[i] < 26) {
-        PIDA += trkdedx[i] * pow(trkres[i], 0.42);
-        vpida.push_back(trkdedx[i] * pow(trkres[i], 0.42));
-        used_trkres++;
-      }
-      if (trkdedx[i] > 100 || trkdedx[i]<threshold) continue; //protect against large pulse height
-      int bin = dedx_range_pro->FindBin(trkres[i]);
-      if (bin >= 1 && bin <= dedx_range_pro->GetNbinsX()) {
-        double bincpro = dedx_range_pro->GetBinContent(bin);
-        if (bincpro < 1e-6) { //for 0 bin content, using neighboring bins
-          bincpro =
-            (dedx_range_pro->GetBinContent(bin - 1) + dedx_range_pro->GetBinContent(bin + 1)) / 2;
-        }
-        double bincka = dedx_range_ka->GetBinContent(bin);
-        if (bincka < 1e-6) {
-          bincka =
-            (dedx_range_ka->GetBinContent(bin - 1) + dedx_range_ka->GetBinContent(bin + 1)) / 2;
-        }
-        double bincpi = dedx_range_pi->GetBinContent(bin);
-        if (bincpi < 1e-6) {
-          bincpi =
-            (dedx_range_pi->GetBinContent(bin - 1) + dedx_range_pi->GetBinContent(bin + 1)) / 2;
-        }
-        double bincmu = dedx_range_mu->GetBinContent(bin);
-        if (bincmu < 1e-6) {
-          bincmu =
-            (dedx_range_mu->GetBinContent(bin - 1) + dedx_range_mu->GetBinContent(bin + 1)) / 2;
-        }
-        double binepro = dedx_range_pro->GetBinError(bin);
-        if (binepro < 1e-6) {
-          binepro =
-            (dedx_range_pro->GetBinError(bin - 1) + dedx_range_pro->GetBinError(bin + 1)) / 2;
-        }
-        double bineka = dedx_range_ka->GetBinError(bin);
-        if (bineka < 1e-6) {
-          bineka = (dedx_range_ka->GetBinError(bin - 1) + dedx_range_ka->GetBinError(bin + 1)) / 2;
-        }
-        double binepi = dedx_range_pi->GetBinError(bin);
-        if (binepi < 1e-6) {
-          binepi = (dedx_range_pi->GetBinError(bin - 1) + dedx_range_pi->GetBinError(bin + 1)) / 2;
-        }
-        double binemu = dedx_range_mu->GetBinError(bin);
-        if (binemu < 1e-6) {
-          binemu = (dedx_range_mu->GetBinError(bin - 1) + dedx_range_mu->GetBinError(bin + 1)) / 2;
-        }
-        //double errke = 0.05*trkdedx[i];   //5% KE resolution
-        double errdedx = 0.04231 + 0.0001783 * trkdedx[i] * trkdedx[i]; //resolution on dE/dx
-        errdedx *= trkdedx[i];
-        chi2pro += pow((trkdedx[i] - bincpro) / std::sqrt(pow(binepro, 2) + pow(errdedx, 2)), 2);
-        chi2ka += pow((trkdedx[i] - bincka) / std::sqrt(pow(bineka, 2) + pow(errdedx, 2)), 2);
-        chi2pi += pow((trkdedx[i] - bincpi) / std::sqrt(pow(binepi, 2) + pow(errdedx, 2)), 2);
-        chi2mu += pow((trkdedx[i] - bincmu) / std::sqrt(pow(binemu, 2) + pow(errdedx, 2)), 2);
-        //std::cout<<i<<" "<<trkdedx[i]<<" "<<trkres[i]<<" "<<bincpro<<std::endl;
-        ++npt;
-      }
-    } //hits
-        std::vector<double> chi2s {chi2mu/npt,chi2pro/npt,chi2ka/npt,chi2pi/npt};
-
-    return chi2s;
-}
-
-
-int find_muon ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int plane) { 
-
-    //Select muon as longest track
-    double max_length=-1.0;
-    int ipfp_mu = -1;
-    TVector3 RecoVtx;
-    RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
-    TVector3 RecoStart;
-        for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp ){
-        if(std::isnan(islc.reco.pfp[ipfp].trk.start.x) || std::isnan(islc.reco.pfp[ipfp].trk.len)) continue;
-        RecoStart.SetXYZ(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z);
-        if(islc.reco.pfp[ipfp].trackScore<0.5)continue;
-   
-  //int use_plane = islc.reco.pfp[ipfp].trk.calo[2].nhit>islc.reco.pfp[ipfp].trk.calo[1].nhit ? 2:1;
-    //int use_plane = plane;
-    int use_plane = -1;
-    if(plane==-1)
-    {
-      if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
-      else{use_plane=2;}
-    }
-    else{use_plane=plane;}
-    //compute new chi2
-    std::vector<double> output;
-    std::vector<double> dedx;
-    std::vector<double> rr;
-    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[use_plane].points.size(); ++ihit ){
-                        dedx.push_back(islc.reco.pfp[ipfp].trk.calo[use_plane].points[ihit].dedx);
-                        rr.push_back(islc.reco.pfp[ipfp].trk.calo[use_plane].points[ihit].rr);
-                            } // calo points
-                  //input to chi2_ALG vector dedx, vector rr, rr_min, rr_max
-//output chi2s {chi2mu/npt,chi2pro/npt,chi2ka/npt,chi2pi/npt} 
-    output = chi2_ALG(dedx,rr,0.0,25.0);
-
-
-        if(islc.reco.pfp[ipfp].trk.len>max_length && ((RecoVtx-RecoStart).Mag()<dist_mucut) && islc.reco.pfp[ipfp].trk.len>50 && 
-        output[0]<30 && output[1]>60 && 
-        isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0) && 
-        (islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x)>0 && islc.reco.pfp[ipfp].parent_is_primary){
-        max_length=islc.reco.pfp[ipfp].trk.len;
-        ipfp_mu=ipfp;
-            }
-        }//loop of pfp to find muon
-return ipfp_mu;
-}
-
 
 int find_truth_muon ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int plane) { 
 
@@ -357,76 +155,6 @@ int find_truth_muon ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int 
             }
         }//loop of pfp to find muon
 return ipfp_mu;
-}
-
-int id_pfp ( const caf::Proxy<caf::SRSlice>& islc, int ipfp, int dist_cut, int plane ) { 
-    //return 1 PROTONS
-    //return 2 PIONS
-    //return 3 SHOWER
-    //return 9 other -> nan, not primary, too far, below energy threshold... 
-
-
-    TVector3 RecoVtx;
-    RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
-//    for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp ){
-    //skip secondaries
-    if (!(islc.reco.pfp[ipfp].parent_is_primary ))return 9;
-    if(std::isnan(islc.reco.pfp[ipfp].trk.start.x) || std::isnan(islc.reco.pfp[ipfp].trk.end.x) || std::isnan(islc.reco.pfp[ipfp].trk.len)) return 9;
-    //if(int(ipfp)==ipfp_mu)continue;     //There is always a muon, for a 1mu1p we need 2 tracks - 1 muon = 1 only proton with threshold
-    //consider only primary tracks which are 20cm close to the vertex, either vtx-start or vtx-end
-    TVector3 start(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z);
-    TVector3 end(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z);
-    //condition ? result_if_true : result_if_false
-    double min_dist = ((start-RecoVtx).Mag()< (end-RecoVtx).Mag() ? (start-RecoVtx).Mag() : (end-RecoVtx).Mag());
-    //if(min_dist>50.0)continue;
-    //if(min_dist>10.0) return 9;
-    if(min_dist>50.0) return 9;
-     
-
-    //int use_plane = islc.reco.pfp[ipfp].trk.calo[2].nhit>islc.reco.pfp[ipfp].trk.calo[1].nhit ? 2:1;
-    int use_plane = plane;
-    
-    //compute new chi2
-    std::vector<double> output;
-    std::vector<double> dedx;
-    std::vector<double> rr;
-    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[use_plane].points.size(); ++ihit ){
-                        dedx.push_back(islc.reco.pfp[ipfp].trk.calo[use_plane].points[ihit].dedx);
-                        rr.push_back(islc.reco.pfp[ipfp].trk.calo[use_plane].points[ihit].rr);
-                            } // calo points
-                  //input to chi2_ALG vector dedx, vector rr, rr_min, rr_max
-//output chi2s {chi2mu/npt,chi2pro/npt,chi2ka/npt,chi2pi/npt} 
-    output = chi2_ALG(dedx,rr,0.0,25.0);
-    if(islc.reco.pfp[ipfp].trackScore>=0.5){
-    if (std::isnan(islc.reco.pfp[ipfp].trk.start.x) || std::isnan(islc.reco.pfp[ipfp].trk.end.x) || std::isnan(islc.reco.pfp[ipfp].trk.len)) return 9;
-    if (std::isnan(islc.reco.pfp[ipfp].trk.start.y) || std::isnan(islc.reco.pfp[ipfp].trk.start.z)|| std::isnan(islc.reco.pfp[ipfp].trk.end.y) || std::isnan(islc.reco.pfp[ipfp].trk.end.z) )return 9;
-    
-
-    //skip low energy tagged pions
-    TVector3 Start_mom_v;
-    if(output[1]>=100 ){ Start_mom_v.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.z);}
-    if(output[1]>=100 && ((RecoVtx-start).Mag()<dist_cut) && (sqrt(pow(139.570,2)+pow(Start_mom_v.Mag()*1000,2))-139.570)>=25.0){if (islc.reco.pfp[ipfp].parent_is_primary ) {return 2;}}
-    //skip low energy protons
-    if(output[1]<100 ){ Start_mom_v.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);}
-    if(output[1]<100 && ((RecoVtx-start).Mag()<dist_cut) && (sqrt(pow(938.3,2)+pow(Start_mom_v.Mag()*1000,2))-938.3)>=50.0){if (islc.reco.pfp[ipfp].parent_is_primary ) {return 1;}}
-            
-    }
-    if(islc.reco.pfp[ipfp].trackScore<0.5){
-        if(islc.reco.pfp[ipfp].trackScore>=0.3 && islc.reco.pfp[ipfp].trackScore<0.5 && output[1]<100 ){
-            TVector3 Start_mom_v2;
-            Start_mom_v2.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);
-            if((sqrt(pow(938.3,2)+pow(Start_mom_v2.Mag()*1000,2))-938.3)>=50.0 && ((RecoVtx-start).Mag()<dist_cut) && islc.reco.pfp[ipfp].parent_is_primary){return 1;}
-        }
-    if(!(islc.reco.pfp[ipfp].trackScore>=0.3 && islc.reco.pfp[ipfp].trackScore<0.5 && output[1]<100 )){
-    //int use_plane2 = islc.reco.pfp[ipfp].trk.calo[2].nhit>islc.reco.pfp[ipfp].trk.calo[1].nhit ? 2:1;  
-    //int use_plane2 = 2;
-    int use_plane2=use_plane;
-    if(std::isnan(islc.reco.pfp[ipfp].shw.plane[use_plane2].energy))return 9;
-    if(islc.reco.pfp[ipfp].shw.plane[use_plane2].energy*1000<25.0)return 9;
-    if(islc.reco.pfp[ipfp].shw.plane[use_plane2].energy*1000>25.0){if (islc.reco.pfp[ipfp].parent_is_primary ) {return 3;}}}
-        }
-    
-    return 9;
 }
 
 
@@ -490,353 +218,6 @@ int id_pfp_truth ( const caf::Proxy<caf::SRSlice>& islc, int ipfp, int dist_cut,
     return 9;
 }
 
-
-int classification_type ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc ) { 
-
-    // return 2 -> Visible and true 1mu1p
-    // return 5 -> Visible and true 1muNp
-    // return 3 -> Other 
-
-            //CHECK WHICH TYPE OF INTERACTION 
-    if(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)) return 99;
-    if(std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)) return 99;
-                if ( abs(islc.truth.pdg) == 14 && islc.truth.iscc && !std::isnan(islc.truth.position.x) && !std::isnan(islc.truth.position.y) && !std::isnan(islc.truth.position.z) &&
-		        isInActive(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z) ){          
-                if(isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z)){
-
-                 int num_protons_above50 = 0;
-                 int num_muons = 0; 
-                 double length_muon = 0;                 
-                double dep_E=0;
-                for ( auto const& ipart : islc.truth.prim ){
-                    if ( ipart.G4ID < 0 )  continue;
-
-                    if(abs(ipart.pdg) == 13){num_muons+=1; length_muon =ipart.length;}  // muons
-                    if(abs(ipart.pdg)==211){return 3;}  //Charged pions
-                    int iG4ID_parent;  
-                    //int use_plane = ipart.plane[ipart.cryostat][2].nhit>ipart.plane[ipart.cryostat][1].nhit ? 2:1;
-                    int use_plane = 2;
-                    
-                    if(abs(ipart.pdg)==111){            //Neutral pions - reject if any of its gamma > 25 MeV
-                    if(ipart.daughters.size()>0){
-                        for ( auto const& itrue2 : sr->true_particles ){
-                        iG4ID_parent=itrue2.parent;
-                        //sum depE daughters 
-                        if(iG4ID_parent==ipart.G4ID && abs(itrue2.pdg) == 22){if(itrue2.plane[ipart.cryostat][use_plane].visE*1000>25){return 3;};
-                        }}}                        
-                        }
-                    if(abs(ipart.pdg) == 22){                    
-                    if(ipart.daughters.size()>0){
-                        for ( auto const& itrue : sr->true_particles ){
-                        iG4ID_parent=itrue.parent;
-                        //sum depE daughters 
-                        if(iG4ID_parent==ipart.G4ID ){dep_E+=itrue.plane[ipart.cryostat][use_plane].visE*1000;
-                        }}}
-                        dep_E += ipart.plane[ipart.cryostat][use_plane].visE*1000;
-                        } 
-                    if(abs(ipart.pdg)== 22 && dep_E>25.0){return 3;}   //primary photons   
-
-                    if(abs(ipart.pdg)== 2212){                    
-                    if(ipart.daughters.size()>0){
-                        for ( auto const& itrue : sr->true_particles ){
-                        iG4ID_parent=itrue.parent;
-                        //sum depE daughters 
-                        if(iG4ID_parent==ipart.G4ID ){dep_E+=itrue.plane[ipart.cryostat][use_plane].visE*1000;
-                        }}}
-                        dep_E += ipart.plane[ipart.cryostat][use_plane].visE*1000;
-                        }
-                    if(abs(ipart.pdg)== 2212 && dep_E>50.0){num_protons_above50+=1;} //protons
-                    dep_E=0;  
-                    }
-                if(num_muons == 1 && num_protons_above50 == 1){
-                    if(length_muon > 50. && all_contained_truth(sr, islc)){return 2; }
-                }
-                if(num_muons == 1 && num_protons_above50 > 1){
-                    if(length_muon > 50. && all_contained_truth(sr, islc)){return 5; }
-                }
-             }//fiducial 
-             }//active
-         
-return 3;
-}
-
-std::string classification_type_generic ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc ) {
-
-    // the output is a string with format abcde_process
-    // a : # muons
-    // b : # protons above 50 MeV
-    // c : # pions above 25 MeV 
-    // d : # gammas above 25 MeV
-    // e : # pi0 with bot gammas above 25 MeV
-    // process : which kind of neutrino interaction
-    //           possibilities are: https://github.com/SBNSoftware/sbnanaobj/blob/0fb95094a2ea457c363b1e3d4b2fada9e9cca4db/sbnanaobj/StandardRecord/SREnums.h#L97 
-    // bad_slice : slice does not satisfy : truth_matching_eff > 0.05 && is_clear_cosmic && true-reco vertex distance < 100 or Nan values
-
-    std::string return_string="bad_slice";
-    
-    TVector3 vertex_true;
-    vertex_true.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
-    TVector3 vertex_reco;
-    vertex_reco.SetXYZ(islc.truth.position.x, islc.truth.position.y, islc.truth.position.z);
-
-    if( !(islc.tmatch.eff > 0.05 && (!islc.is_clear_cosmic) && (vertex_true-vertex_reco).Mag()<100.)) return "bad_slice";
-    if(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)) return "bad_slice";
-    if(std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)) return "bad_slice";
-    if (  abs(islc.truth.pdg) == 14 /*&& islc.truth.iscc*/ && isInActive(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z) )
-          {          
-            if(isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z))
-            {
-                if(!all_contained_truth(sr, islc))return "bad_slice";
-
-                int num_protons_above50 = 0;
-                int num_pions_above25 = 0;
-                int num_gammas_above25 = 0;
-                int num_neutral_pions_both_above25 = 0; 
-                int num_muons = 0; 
-                int interaction_type = (int)islc.truth.genie_inttype;               
-                double dep_E=0;
-                for ( auto const& ipart : islc.truth.prim )
-                {
-                  if ( ipart.G4ID < 0 )  continue;
-
-                  //MUONS
-                  if(abs(ipart.pdg) == 13 && ipart.length > 50){num_muons+=1;}  // muons
-
-                  int iG4ID_parent;  
-                  int use_plane = 2;
-                    
-                  //PRIMARY NEUTRAL PIONS
-                  if(abs(ipart.pdg)==111) //Neutral pions - reject if any of its gamma > 25 MeV
-                  {            
-                    if(ipart.daughters.size()>0)
-                    {
-                      for ( auto const& itrue2 : sr->true_particles )
-                      {
-                        iG4ID_parent=itrue2.parent;
-                        //sum depE daughters 
-                        if(iG4ID_parent==ipart.G4ID && abs(itrue2.pdg) == 22)
-                        {
-                          if(itrue2.plane[ipart.cryostat][use_plane].visE*1000>25)
-                          {
-                            num_neutral_pions_both_above25++;
-                          }
-                        }
-                      }
-                    }                        
-                  }
-
-                  //PRIMARY PHOTONS
-                  if(abs(ipart.pdg) == 22)
-                  {                    
-                    if(ipart.daughters.size()>0)
-                    {
-                      for ( auto const& itrue : sr->true_particles )
-                      {
-                        iG4ID_parent=itrue.parent;
-                        //sum depE daughters 
-                        if(iG4ID_parent==ipart.G4ID )
-                        {
-                          dep_E+=itrue.plane[ipart.cryostat][use_plane].visE*1000;
-                        }
-                      }
-                    }
-                    dep_E += ipart.plane[ipart.cryostat][use_plane].visE*1000;
-                  } 
-                  if(abs(ipart.pdg)== 22 && dep_E>25.0){num_gammas_above25++;}   
-                  dep_E=0;
-
-                  //PRIMARY PROTONS
-                  if(abs(ipart.pdg)== 2212)
-                  {                    
-                    if(ipart.daughters.size()>0)
-                    {
-                      for ( auto const& itrue : sr->true_particles )
-                      {
-                        iG4ID_parent=itrue.parent;
-                        //sum depE daughters 
-                        if(iG4ID_parent==ipart.G4ID )
-                        {
-                          dep_E+=itrue.plane[ipart.cryostat][use_plane].visE*1000;
-                        }
-                      }
-                    }
-                    dep_E += ipart.plane[ipart.cryostat][use_plane].visE*1000;
-                  }
-                  if(abs(ipart.pdg)== 2212 && dep_E>50.0){num_protons_above50+=1;} //protons
-                  dep_E=0;  
-
-                  //PRIMARY CHARGED PIONS
-                  if(abs(ipart.pdg)== 211)
-                  {                    
-                    if(ipart.daughters.size()>0)
-                    {
-                      for ( auto const& itrue : sr->true_particles )
-                      {
-                        iG4ID_parent=itrue.parent;
-                        //sum depE daughters 
-                        if(iG4ID_parent==ipart.G4ID )
-                        {
-                          dep_E+=itrue.plane[ipart.cryostat][use_plane].visE*1000;
-                        }
-                      }
-                    }
-                    dep_E += ipart.plane[ipart.cryostat][use_plane].visE*1000;
-                  }
-                  if(abs(ipart.pdg)== 211 && dep_E>25.0){num_pions_above25+=1;} //protons
-                  dep_E=0;
-                }//all true particles in the slice
-
-                return_string = Form("%d%d%d%d%d_%d",num_muons,num_protons_above50,num_pions_above25,num_gammas_above25,num_neutral_pions_both_above25,interaction_type);
-
-              }//fiducial
-            }//active
-         
-    return return_string; 
-}
-
-bool automatic_selection_1muNp ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, int dist_cut, int cut_baryc, int plane ){
-
-        if(!(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)/* || std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)*/)){
-        {            
-
-        {
-        int ipfp_mu = -1;
-        int ipfp_pro = -1;
-    if( !(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z) || std::isnan(islc.charge_center.z)) && isInFV(islc.vertex.x,islc.vertex.y,islc.vertex.z)){
-
-        if(islc.barycenterFM.deltaZ_Trigger < cut_baryc && islc.barycenterFM.deltaZ_Trigger>0)   
-    {
-            if(all_contained(islc)){
-                ipfp_mu=find_muon(islc,dist_cut,plane);
-                if(ipfp_mu!=-1){
-                    int num_protons =0;
-                    int num_pions =0;
-                    int num_showers =0; 
-
-                    for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp ){
-
-                        int use_plane = -1;
-                        if(plane==-1)
-                        {
-                          if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
-                          else{use_plane=2;}
-                        }
-                        else{use_plane=plane;}
-
-                        if(int(ipfp)==ipfp_mu)continue;
-                        if(id_pfp(islc, ipfp,dist_cut, use_plane)==1){num_protons+=1;}
-                        if(id_pfp(islc, ipfp,dist_cut, use_plane)==2){num_pions+=1;}
-                        if(id_pfp(islc, ipfp,dist_cut, use_plane)==3){num_showers+=1;}
-                    }
-                    if(num_protons>0 && num_pions==0 && num_showers==0){
-                        return true;
-                            }//1mu1p 
-                        }//muon with conditions found
-                    
-                    }//all tracks of slice contained  
-        }//new Barycenter match
-    }//fiducial condition
- 
-    }//signal
-    }//only neutrinos in active!
-    }//check no nan in true info
-
-   
-return false;
-}
-
-bool automatic_selection_1muNp_truth ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, int dist_cut, int cut_baryc, int plane ){
-
-        if(!(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)/* || std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)*/))
-        {
-          int ipfp_mu = -1;
-          int ipfp_pro = -1;
-          if(!(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z) || std::isnan(islc.charge_center.z)) && isInFV(islc.vertex.x,islc.vertex.y,islc.vertex.z))
-          {
-            if(islc.barycenterFM.deltaZ_Trigger < cut_baryc && islc.barycenterFM.deltaZ_Trigger>0)   
-            {
-              if(all_contained(islc))
-              {
-
-                ipfp_mu=find_truth_muon(islc,dist_cut,plane);
-                if(ipfp_mu!=-1)
-                {
-                    int num_protons =0;
-                    int num_pions =0;
-                    int num_showers =0; 
-
-                    for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
-                    {
-                        if(int(ipfp)==ipfp_mu)continue;
-                        int use_plane = -1;
-                        if(plane==-1)
-                        {
-                          if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
-                          else{use_plane=2;}
-                        }
-                        else{use_plane=plane;}
-
-                        if(id_pfp_truth(islc, ipfp,dist_cut, use_plane)==1){num_protons+=1;}
-                        if(id_pfp_truth(islc, ipfp,dist_cut, use_plane)==2){num_pions+=1;}
-                        if(id_pfp_truth(islc, ipfp,dist_cut, use_plane)==3){num_showers+=1;}
-                    }
-                    if(num_protons>0 && num_pions==0 && num_showers==0)
-                    {
-                        return true;
-                    }//1mu1p 
-                }//muon with conditions found
-              }//all tracks of slice contained  
-            }//new Barycenter match
-          }//fiducial condition
-        }//check no nan in true info
-return false;
-}
-
-double mediana(std::vector<double> dummy)
-{
-    std::sort(dummy.begin(), dummy.end());
-    double mediana=0;
-    int idx=0;
-    if(int(dummy.size())%2==1)
-    {
-        idx=(dummy.size()-1)/2;
-        mediana=dummy.at(idx);
-    }
-    if(dummy.size()%2==0)
-    {
-        idx =dummy.size()/2-1;
-        mediana=( dummy.at(dummy.size()/2) + dummy.at(idx) )/2.;
-    }
-    return mediana;
-}
-
-std::array<std::vector<double>,2> rollingMedian(const caf::Proxy<caf::SRSlice>& islc, int ipfp, int plane)
-{
-    std::vector<double> dedx_temp;
-    std::vector<double> rr_temp;
-    std::vector<double> temp_rr_rm={-1.};
-    std::vector<double> temp_rm={-1.};
-    std::array<std::vector<double>,2> rm;
-    for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit)
-    {
-        if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<30)
-        {
-            dedx_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);
-            rr_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr);
-        }
-    }
-    if(dedx_temp.size()<9)return {temp_rr_rm,temp_rm};
-    
-    for(int i=4; i+4<int(dedx_temp.size()); i++)
-    {
-        std::vector<double> dummy = {dedx_temp[i-4], dedx_temp[i-3], dedx_temp[i-2], dedx_temp[i-1], dedx_temp[i] ,dedx_temp[i+1],dedx_temp[i+2], dedx_temp[i+3], dedx_temp[i+4]};
-        double media_rr = (rr_temp[i-4] + rr_temp[i-3] + rr_temp[i-2] + rr_temp[i-1] + rr_temp[i] + rr_temp[i+1] + rr_temp[i+2] + rr_temp[i+3] + rr_temp[i+4])/9.;
-        rm[0].push_back(media_rr);
-        rm[1].push_back(mediana(dummy));
-    }
-    return rm;
-}
-
 int find_idx(double rr)
 {
     if(rr==25.)return 47;
@@ -875,7 +256,7 @@ int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& 
     bool hasValidHits=false;
     for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit)
     {
-      if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>1. && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<30.)
+      if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>1. && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>1. && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<30.)
       {
         hasValidHits=true;
       }
@@ -968,30 +349,6 @@ int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& 
     return true_class;
 }
 
-double bar_flash (const caf::SRSpillProxy* spill,const caf::Proxy<caf::SRSlice>& islc){
-  for(const auto& match: spill->crtpmt_matches) {
-      //Define the interval depending on Data or MC files
-    double min_time =-1; double max_time =-1;
-    if(spill->hdr.ismc){min_time = 0.0; max_time = 1.6;}
-    if(!spill->hdr.ismc){min_time = -0.4; max_time = 1.5;}
-    if((islc.vertex.x*match.flashPosition.x>0) && match.flashGateTime > min_time && match.flashGateTime < max_time && match.flashClassification == 0){  return match.flashPosition.z;} 
-
-  }
-  return -10000;
-};
-
-double bar_flash_x (const caf::SRSpillProxy* spill,const caf::Proxy<caf::SRSlice>& islc){
-  for(const auto& match: spill->crtpmt_matches) {
-      //Define the interval depending on Data or MC files
-    double min_time =-1; double max_time =-1;
-    if(spill->hdr.ismc){min_time = 0.0; max_time = 1.6;}
-    if(!spill->hdr.ismc){min_time = -0.4; max_time = 1.5;}
-    if((islc.vertex.x*match.flashPosition.x>0) && match.flashGateTime > min_time && match.flashGateTime < max_time && match.flashClassification == 0){  return match.flashPosition.x;} 
-
-  }
-  return 0;
-};
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////                              seleclet true class to make prob densities                                      //////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1012,8 +369,8 @@ std::vector<std::vector<double>> rr_pi_class5;
 std::vector<double> rr_temp;
 std::vector<double> dedx_temp;
 
+int plane;
 
-int plane = 0;
 const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
   std::vector<double> vector_active;
@@ -1034,7 +391,7 @@ const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vec
         
         for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[plane].points.size(); ++ihit )
         {
-            if(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx<500.)
+            if(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr>1 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx>1 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx<30.)
             {    
                 dedx_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx);                                  
                 rr_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr);
@@ -1054,7 +411,7 @@ const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vec
         {
             for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit )
             {
-                if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<500.)
+                if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<30.)
                 {    
                     dedx_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);                                  
                     rr_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr);
@@ -1070,7 +427,7 @@ const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vec
         {
             for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit )
             {
-                if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>0.5 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<500.)
+                if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<30.)
                 {    
                     dedx_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);                                  
                     rr_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr);

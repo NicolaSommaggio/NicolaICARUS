@@ -276,6 +276,11 @@ if(ismc)
 //0.59322
 //0.76369
 
+//10211 tot selected 1muNp
+//7814 correct
+//efficiency 0.592688
+//purity 0.765253
+
 //stitching only with daughters
 
 

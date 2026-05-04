@@ -1642,8 +1642,12 @@ int get_n_valid_hit(const caf::Proxy<caf::SRSlice>& islc, int ipfp)
   return nhit;
 }
 
-ofstream debug1mu0p0pi("debug1mu0p0pi_dedxmag1.txt"); 
-ofstream debug1muNp("debug1muNp_dedxmag1.txt");
+
+//ofstream debug1mu0p0pi("debug1mu0p0pi_dedxmag1_newtrain_onlycoll.txt"); 
+//ofstream debug1muNp("debug1muNp_dedxmag1_newtrain_onlycoll.txt");
+
+ofstream debug1mu0p0pi("debug1mu0p0pi_features.txt");
+ofstream debug1muNp("debug1muNp_feature.txt");
 
 const SpillMultiVar fdebug1mu0p0pi([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
@@ -1667,9 +1671,24 @@ const SpillMultiVar fdebug1mu0p0pi([](const caf::SRSpillProxy* sr)-> std::vector
 
             int bestplane = find_best_plane(islc,ipfp);
 
-            std::vector<double> prediction_proba;
-            prediction_proba = PIDproba(islc,ipfp);
+            //std::vector<double> prediction_proba;
+            //prediction_proba = PIDproba(islc,ipfp);
 
+            std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+            double depE = compute_depE(islc,ipfp,bestplane);
+            std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+
+            std::vector<double> track_features;
+
+            track_features.insert(track_features.end(), lr.begin(), lr.end());
+            track_features.push_back(depE);
+            track_features.insert(track_features.end(), dvars.begin(), dvars.end());
+
+            debug1mu0p0pi << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+            for(const auto &feature : track_features){debug1mu0p0pi << feature << " ";}
+            debug1mu0p0pi << endl;
+
+            /*
             debug1mu0p0pi << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
             debug1mu0p0pi << bestplane << " " << get_n_valid_hit(islc,ipfp) << " " << islc.reco.pfp[ipfp].trk.len << " " << compute_depE(islc,ipfp,bestplane) << " " << islc.reco.pfp[ipfp].trk.truth.p.pdg << " ";
 
@@ -1693,6 +1712,7 @@ const SpillMultiVar fdebug1mu0p0pi([](const caf::SRSpillProxy* sr)-> std::vector
             } 
             
             debug1mu0p0pi << endl;
+            */
         }
     }
 
@@ -1705,9 +1725,24 @@ const SpillMultiVar fdebug1mu0p0pi([](const caf::SRSpillProxy* sr)-> std::vector
         {
             int bestplane = find_best_plane(islc,ipfp);
 
-            std::vector<double> prediction_proba;
-            prediction_proba = PIDproba(islc,ipfp);
+            //std::vector<double> prediction_proba;
+            //prediction_proba = PIDproba(islc,ipfp);
 
+            std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+            double depE = compute_depE(islc,ipfp,bestplane);
+            std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+
+            std::vector<double> track_features;
+
+            track_features.insert(track_features.end(), lr.begin(), lr.end());
+            track_features.push_back(depE);
+            track_features.insert(track_features.end(), dvars.begin(), dvars.end());
+
+            debug1muNp << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+            for(const auto &feature : track_features){debug1muNp << feature << " ";}
+            debug1muNp << endl;
+
+            /*
             debug1muNp << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
             debug1muNp << bestplane << " " << get_n_valid_hit(islc,ipfp) << " " << islc.reco.pfp[ipfp].trk.len << " " << compute_depE(islc,ipfp,bestplane) << " " << islc.reco.pfp[ipfp].trk.truth.p.pdg << " ";
             
@@ -1731,6 +1766,7 @@ const SpillMultiVar fdebug1mu0p0pi([](const caf::SRSpillProxy* sr)-> std::vector
             } 
             
             debug1muNp << endl;
+            */
         }
     }
     

@@ -22,9 +22,10 @@
 
 using namespace ana;
 
-void make_file()
+void make_file(std::string filename)
 {
-    TFile * f = new TFile("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root","RECREATE");
+    //TFile * f = new TFile("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root","RECREATE");
+    TFile * f = new TFile(filename.c_str(),"RECREATE");
     TDirectory * d_mu_class0 = (TDirectory*)f->mkdir("muon_class0");
     TDirectory * d_mu_class1 = (TDirectory*)f->mkdir("muon_class1");
     TDirectory * d_pro_class2 = (TDirectory*)f->mkdir("proton_class2");
@@ -44,7 +45,7 @@ void make_file()
 
 }
 
-void macro_make_prob_densities_6_classes(){
+void macro_make_prob_densities_6_classes(std::string filename, int USE_PLANE){
 
   
 //10 % DEI DATI
@@ -120,23 +121,17 @@ const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_20
 //MPVMPR from NU
 //const std::string fdata = "/exp/icarus/data/users/nsommagg/MPVMPR/nu_1_tot/*.root";
 
-//CNAF
-//TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
-//auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
-//auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
-//auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
-//auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
-
-//FNAL
-TFile* file = TFile::Open("/exp/icarus/data/users/nsommagg/RefCurvesChi2.root");
-auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
-auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
-auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
-auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
-
 SpectrumLoader loader(fdata);         
 
 const Binning kBinz = Binning::Simple(300,0,30);
+
+plane = USE_PLANE;
+
+std::string string_plane = "";
+
+if(plane==0)string_plane = "ind1";
+if(plane==1)string_plane = "ind2";
+if(plane==2)string_plane = "coll";
 
 Spectrum s1("", kBinz, loader, select_true_class ,kCRTPMTNeutrino );
 
@@ -146,7 +141,7 @@ double factor = s1.POT();
 
 TH1D* h1 = s1.ToTH1(factor);
 
-make_file();
+make_file(filename);
 
 std::vector<std::pair<std::string,int>> classes = {{"muon_class0",0}, {"muon_class1",1}, {"proton_class2",2}, {"proton_class3",3}, {"pion_class4",4}, {"pion_class5",5}};
 std::vector<std::vector<std::vector<double>>> rr_classes ={rr_mu_class0, rr_mu_class1, rr_pro_class2, rr_pro_class3, rr_pi_class4, rr_pi_class5};
@@ -154,7 +149,8 @@ std::vector<std::vector<std::vector<double>>> dedx_classes ={dedx_mu_class0, ded
 
 for(int i=0; i<6; i++){cout << rr_classes[i].size() << endl;}
 
-TFile *f = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root", "UPDATE");
+//TFile *f = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root", "UPDATE");
+TFile *f = TFile::Open(filename.c_str(), "UPDATE");
 
 for(const auto &clas : classes)
 {
@@ -199,7 +195,7 @@ for(const auto &clas : classes)
         while(keep_coll)
         {
             keep_coll = false;
-            dEdx_coll = new TH1D(Form("dEdx_ind1_rr_%.1f", rr),"", Nbins_coll, binlowedges_coll.data());
+            dEdx_coll = new TH1D(Form("dEdx_%s_rr_%.1f", string_plane.c_str(), rr),"", Nbins_coll, binlowedges_coll.data());
 
             for(int track=0; track<(int)rr_classes[clas.second].size(); track++)
             {

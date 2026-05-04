@@ -3,8 +3,8 @@
 #include "sbnana/CAFAna/Core/SpectrumLoader.h"
 #include "sbnana/CAFAna/Core/Spectrum.h"
 
-//#include "likelihood.h"
-#include "check_daughter.h"
+#include "likelihood.h"
+//#include "check_daughter.h"
 //#include "likelihood_old.h"
 #include "TCanvas.h"
 #include "TFile.h"
@@ -73,12 +73,12 @@ void macro_likelihood(){
 
 //MC 2D large stat
 //const std::string fdata = "production_mc_2025A_ICARUS_Overlays_BNB_MC_RUN2_summer_2025_v10_06_00_06p01_flatcaf";
-const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026/*flat.caf.root";
+//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026/*flat.caf.root";
 //const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_1/*flat.caf.root";
 // 1 file
 //const std::string fdata = "/pnfs/sbn/data/sbn_fd/poms_production/mc/2025A_ICARUS_Overlays_BNB_MC_RUN2/summer_2025/v10_06_00_06p01/flatcaf/39/51/overlay_neutrino_stage1_66812186_2689.flat.caf-009e8064-a5da-49d8-8634-3acebbf4b82f.root";
 // small stat MC
-//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlay_neutrino_stage1_flat_cafs_v10_06_00_04p04_concat.root";
+const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlay_neutrino_stage1_flat_cafs_v10_06_00_04p04_concat.root";
 
 //const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_[1,2,3]/*flat.caf.root";
 
@@ -114,9 +114,13 @@ auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
 //TFile * f_prob_densities_ind1_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning_IND1.root", "READ");
 //TFile * f_prob_densities_ind2_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning_IND2.root", "READ");
 
-TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_stat.root", "READ");
-TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root", "READ");
-TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND2.root", "READ");
+//TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_stat.root", "READ");
+//TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root", "READ");
+//TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND2.root", "READ");
+
+TFile * f_prob_densities_coll = TFile::Open("collection.root", "READ");
+TFile * f_prob_densities_ind1 = TFile::Open("induction1.root", "READ");
+TFile * f_prob_densities_ind2 = TFile::Open("induction2.root", "READ");
 
 //prob_d_coll_150 = load_prob_densities("coll",f_prob_densities_coll_150);
 //prob_d_ind1_150 = load_prob_densities("ind1",f_prob_densities_ind1_150);

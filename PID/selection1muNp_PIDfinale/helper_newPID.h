@@ -263,9 +263,10 @@ std::vector<double> likelihood(const caf::Proxy<caf::SRSlice>& islc, std::size_t
     if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
     else{use_plane=2;}
 
-    if(use_plane == 0){probDensities = ind1_pd;}
-    else if(use_plane == 1){probDensities = ind2_pd;}
-    else if(use_plane == 2){probDensities = coll_pd;}
+    //--> trying using prob densities only from coll
+    //if(use_plane == 0){probDensities = ind1_pd;}
+    //else if(use_plane == 1){probDensities = ind2_pd;}
+    //else if(use_plane == 2){probDensities = coll_pd;}
 
     for(int j=0; j<6; j++)
     { 
@@ -374,9 +375,13 @@ std::vector<double> compute_daughter_vars(const caf::Proxy<caf::SRSlice>& islc, 
     return {daughter_depE,angle_end};
 }
 
-TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/PID_include_files/HISTO_prob_densities_6_classes_30percent_COLL.root", "READ");
-TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/PID_include_files/HISTO_prob_densities_6_classes_30percent_IND1.root", "READ");
-TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/PID_include_files/HISTO_prob_densities_6_classes_30percent_IND2.root", "READ");
+//TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/PID_include_files/HISTO_prob_densities_6_classes_30percent_COLL.root", "READ");
+//TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/PID_include_files/HISTO_prob_densities_6_classes_30percent_IND1.root", "READ");
+//TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/PID_include_files/HISTO_prob_densities_6_classes_30percent_IND2.root", "READ");
+
+TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/collection.root", "READ");
+TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/induction1.root", "READ");
+TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/induction2.root", "READ");
 
 std::array<std::vector<TH1D*>,6> prob_d_coll = load_prob_densities("coll",f_prob_densities_coll);
 std::array<std::vector<TH1D*>,6> prob_d_ind1 = load_prob_densities("ind1",f_prob_densities_ind1);
@@ -384,7 +389,8 @@ std::array<std::vector<TH1D*>,6> prob_d_ind2 = load_prob_densities("ind2",f_prob
 
 
 //PID model ------------------------------------------------------------------
-std::string path_BDT_model = "/exp/icarus/data/users/nsommagg/PID_include_files/GBDT.txt";
+//std::string path_BDT_model = "/exp/icarus/data/users/nsommagg/PID_include_files/GBDT.txt";
+std::string path_BDT_model = "/exp/icarus/data/users/nsommagg/PID_include_files/GBDT_dedx_mag1.txt";
 #include "/exp/icarus/data/users/nsommagg/PID_include_files/GBDT_model_inport.h"
 GBDTModel model = load_model(path_BDT_model.c_str());
 //----------------------------------------------------------------------------
