@@ -1,0 +1,34 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+dedx_data = np.genfromtxt(
+    'dedx_data.txt',
+    dtype = [
+        ('class',str),
+        ('rr', float),
+        ('dedx',float)],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+lr_data = np.genfromtxt(
+    'le_data.txt',
+    dtype=[('class',int),
+    ('lr1',float),
+    ('lr2',float),
+    ('lr3',float),
+    ('lr4',float),
+    ('lr5',float),
+    ('lr6',float),
+    ('lr7',float),
+    ('lr8',float),
+    ('lr9',float),
+    ('lr10',float),
+    ('lr11',float),
+    ('lr12',float),
+    ('lr13',float),
+    ('lr14',float),
+    ('lr15',float)],
+    encoding="utf-8",
+    delimiter=" "
+)

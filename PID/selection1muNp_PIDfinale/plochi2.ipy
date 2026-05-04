@@ -1,0 +1,60 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+data = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/chi2dump.txt',
+    dtype = [
+        ('par','U10'),
+        ('chi2mu',float),
+        ('chi2pro',float)
+    ],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+muon_data = data[data['par']=='muon']
+proton_data = data[data['par']=='proton']
+pion_data = data[data['par']=='pion']
+
+plt.hist(muon_data['chi2mu'], bins=100, range=(0,100), histtype='step', color='cornflowerblue', lw=3, label=r'$\mu$', density=True)
+#plt.hist(muon_data['chi2mu'], bins=100, range=(0,200), histtype='stepfilled', color='cornflowerblue', lw=2, alpha=0.7, density=True)
+
+plt.hist(proton_data['chi2mu'], bins=100, range=(0,100), histtype='step', color='green', lw=3, label=r'$p$', density=True)
+#plt.hist(proton_data['chi2mu'], bins=100, range=(0,200), histtype='stepfilled', color='green', lw=3, label=r'$p$',density=True)
+
+plt.hist(pion_data['chi2mu'], bins=100, range=(0,100), histtype='step', color='orange', lw=3, label=r'$\pi$', density=True)
+#plt.hist(pion_data['chi2mu'], bins=100, range=(0,200), histtype='stepfilled', color='orange', lw=3, label=r'$\pi$', density=True)
+
+plt.xlabel(r'$\chi^2_{\mu}$', fontsize=18)
+plt.ylabel('entries (area normalized)', fontsize=18)
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,100,10), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.savefig('chi2mu.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+
+plt.hist(muon_data['chi2pro'], bins=100, range=(0,200), histtype='step', color='cornflowerblue', lw=2, label=r'$\mu$', density=True)
+#plt.hist(muon_data['chi2pro'], bins=100, range=(0,200), histtype='stepfilled', color='cornflowerblue', lw=2, alpha=0.7, density=True)
+
+plt.hist(proton_data['chi2pro'], bins=100, range=(0,200), histtype='step', color='green', lw=3, label=r'$p$', density=True)
+#plt.hist(proton_data['chi2pro'], bins=100, range=(0,200), histtype='stepfilled', color='green', lw=3, label=r'$p$',density=True)
+
+plt.hist(pion_data['chi2pro'], bins=100, range=(0,200), histtype='step', color='orange', lw=3, label=r'$\pi$', density=True)
+#plt.hist(pion_data['chi2pro'], bins=100, range=(0,200), histtype='stepfilled', color='orange', lw=3, label=r'$\pi$', density=True)
+
+plt.xlabel(r'$\chi^2_{p}$', fontsize=18)
+plt.ylabel('entries (area normalized)', fontsize=18)
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,200,10), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.savefig('chi2pro.pdf', format='pdf', bbox_inches='tight')
+plt.close()

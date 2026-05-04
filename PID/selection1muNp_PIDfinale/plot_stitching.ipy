@@ -1,0 +1,112 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+raw = np.loadtxt('/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/dump_stitching_new.txt') 
+
+data = {
+    'endx_true':         raw[:, 0],
+    'endy_true':         raw[:, 1],
+    'endz_true':         raw[:, 2],
+    'endx_reco':         raw[:, 3],
+    'endy_reco':         raw[:, 4],
+    'endz_reco':         raw[:, 5],
+    'endx_reco_stitched': raw[:, 6],
+    'endy_reco_stitched': raw[:, 7],
+    'endz_reco_stitched': raw[:, 8],
+    'len_true':          raw[:, 9],
+    'len_reco':          raw[:,10],
+    'len_reco_stitched': raw[:,11],
+    'p_true' :           raw[:,12],
+    'p_reco' :           raw[:,13],
+    'p_reco_stitched' :  raw[:,14]
+}
+
+#150 correctly stitched out of 155 stitched tracks
+
+dx_reco = data['endx_reco'] - data['endx_true']
+dy_reco = data['endy_reco'] - data['endy_true']
+dz_reco = data['endz_reco'] - data['endz_true']
+
+distanza = np.sqrt(dx_reco**2 + dy_reco**2 + dz_reco**2)
+
+dx_stitched = data['endx_reco_stitched'] - data['endx_true']
+dy_stitched = data['endy_reco_stitched'] - data['endy_true']
+dz_stitched = data['endz_reco_stitched'] - data['endz_true']
+
+distanza_stitched = np.sqrt(dx_stitched**2 + dy_stitched**2 + dz_stitched**2)
+
+len_diff = (data['len_reco']-data['len_true'])/data['len_true']
+
+len_diff_stitched = (data['len_reco_stitched']-data['len_true'])/data['len_true']
+
+momentum_diff = (data['p_reco']-data['p_true'])/data['p_true']
+
+momentum_diff_stitched = (data['p_reco_stitched']-data['p_true'])/data['p_true']
+
+plt.hist(distanza, bins=100, range=(0,200), histtype='step', color='cornflowerblue', lw=2, label='before stitching')
+plt.hist(distanza_stitched, bins=100, range=(0,200), histtype='step', color='orange', lw=3, ls='--', label='after stitching')
+plt.xlabel(r'3D $\mu$ end reco - $\mu$ end true [cm]', fontsize=18)
+plt.ylabel('entries', fontsize=18)
+plt.title(r"3D end distance $-$ $\boldsymbol{\mathrm{true\ 1\mu Np\ slices}}$", fontsize=18)
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,200,10), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.savefig('end_distance.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+plt.hist(len_diff, bins=100, range=(-2,2), histtype='step', color='cornflowerblue', lw=2, label='before stitching')
+plt.hist(len_diff_stitched, bins=100, range=(-2,2), histtype='step', color='orange', lw=3, ls='--', label='after stitching')
+plt.xlabel(r'$\mu$ $(L_{reco} - L_{true})/L_{true}$', fontsize=18)
+plt.ylabel('entries', fontsize=18)
+plt.title(r"length difference $-$ $\boldsymbol{\mathrm{true\ 1\mu Np\ slices}}$", fontsize=18)
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(-2,2,0.2), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.savefig('length_difference.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+plt.hist(momentum_diff, bins=100, range=(-2,2), histtype='step', color='cornflowerblue', lw=2, label='before stitching')
+plt.hist(momentum_diff_stitched, bins=100, range=(-2,2), histtype='step', color='orange', lw=3, ls='--', label='after stitching')
+plt.xlabel(r'$\mu$ $(p_{reco} - p_{true})/p_{true}$', fontsize=18)
+plt.ylabel('entries', fontsize=18)
+plt.title(r"momentum difference $-$ $\boldsymbol{\mathrm{true\ 1\mu Np\ slices}}$", fontsize=18)
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(-2,2,0.2), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.savefig('momentum_difference.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+from matplotlib.colors import LogNorm
+plt.hist2d(data['len_true'], data['len_reco'], bins=(50,50), range=[(0,500),(0,500)], cmap='viridis', norm=LogNorm())
+plt.xlabel(r'$\mu$ length true [cm]', fontsize=18)
+plt.ylabel(r'$\mu$ length reco [cm]', fontsize=18)
+plt.title(r"$\boldsymbol{\mathrm{true\ 1\mu Np\ slices}}$", fontsize=18)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+cbar=plt.colorbar()
+plt.savefig('len_reco_vs_true.png', format='png', dpi=600, bbox_inches='tight')
+plt.close()
+
+from matplotlib.colors import LogNorm
+plt.hist2d(data['len_true'], data['len_reco_stitched'], bins=(50,50), range=[(0,500),(0,500)], cmap='viridis', norm=LogNorm())
+plt.xlabel(r'$\mu$ length true [cm]', fontsize=18)
+plt.ylabel(r'$\mu$ length reco [cm]', fontsize=18)
+plt.title(r"after stitching $-$ $\boldsymbol{\mathrm{true\ 1\mu Np\ slices}}$", fontsize=18)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+cbar=plt.colorbar()
+plt.savefig('len_reco_stitched_vs_true.png', format='png', dpi=600, bbox_inches='tight')
+plt.close()

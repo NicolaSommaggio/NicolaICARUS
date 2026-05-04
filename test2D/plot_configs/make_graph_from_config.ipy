@@ -1,0 +1,206 @@
+import ROOT
+#import uproot
+import matplotlib.pyplot as plt
+import numpy as np
+#import awkward as ak
+#import pandas
+import json
+from matplotlib.ticker import AutoMinorLocator, MultipleLocator
+import argparse
+
+def leggi_configurazione(file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    return config
+
+def plotpy(config): #accetta in input un dizionario
+    object = config.get("object","draw_hist")
+    naxes = config.get("naxes","hist")
+    logy = config.get("logy", False)
+    xlabel = config.get("xlabel", "")
+    ylabel = config.get("ylabel", "")
+    title = config.get("title", "")
+    location = config.get("location", "best")
+    xlow = config.get("xlow", 0)
+    xhigh = config.get("xhigh", 10)
+    ylow = config.get("ylow", 1e-4)
+    yhigh = config.get("yhigh", 10)
+    xticks_interval = config.get("xticks_interval", 1)
+    minor_tick_x = config.get("minor_tick_x",1)
+    rotation = config.get("rotation", 0)
+    savepath = config.get("savepath", "grafico.png")
+    fmt = config.get("format", "png")
+    rebin = config.get("rebin", False)
+    rebfactor = config.get("rebfactor", 1)
+    legend_fontsize = config.get('leg_fontsize',16)
+
+    if naxes == 2:
+        fig, (ax1,ax2) = plt.subplots(2, 1, sharex=True)
+    else:
+        fig, ax1 = plt.subplots(1, 1)
+        ax2 = None
+    
+    bmaxs=[]
+    if object == "hist":
+        for hist in config["istogrammi"]:
+            file_path, hist_name = hist["path"].split(":")
+            #print('processin',hist_name,'in',file_path)
+            drawErrors = hist.get("drawErrors", False)
+            draw_type = hist.get("local_draw_type", "hist")
+            colore = hist.get("colore", "blue")
+            llabel = hist.get("label", "")
+            aaplha = hist.get("alpha", 1)
+            ls = hist.get("ls", 2)
+            lw = hist.get("lw", 2)
+            msize = int(hist.get("msize", 2))
+            mstyle = hist.get("mstyle","o")
+            s = hist.get("s",20)
+
+            f = ROOT.TFile.Open(file_path)
+            th1d = f.Get(hist_name)
+
+            
+
+            if rebin : th1d.Rebin(rebfactor)
+            n_bins = th1d.GetNbinsX()
+
+            #trovo l'istogramma più alto
+            ymax=th1d.GetBinContent(1)
+            for bin in range(1,th1d.GetNbinsX()+1):
+                if th1d.GetBinContent(bin) > ymax : ymax = th1d.GetBinContent(bin)
+            bmaxs.append(ymax)
+            #print(ymax)
+
+            x_edges = [th1d.GetBinLowEdge(i+1) for i in range(n_bins)]
+            x_edges.append(th1d.GetBinLowEdge(n_bins) + th1d.GetBinWidth(n_bins))
+            bin_contents = [th1d.GetBinContent(i+1) for i in range(n_bins)]
+            bin_errors = [th1d.GetBinError(i+1) for i in range(n_bins)]
+            bin_centers =[th1d.GetBinCenter(i+1) for i in range(n_bins)]
+            x_bin_errors=[th1d.GetBinWidth(i+1)/2 for i in range(n_bins)]
+
+            bin_errors_new = bin_errors
+            bin_contents_new = bin_contents
+            yerr_low  = np.minimum(np.array(bin_errors_new), 0.999 * np.array(bin_contents_new))  
+            yerr_high = np.array(bin_errors_new)      
+
+            # Creazione step per linee orizzontali
+            x_step = np.repeat(x_edges, 2)[1:-1]
+            y_step = np.repeat(bin_contents, 2)
+
+            # Aggiunta linee verticali agli estremi
+            x_step = np.insert(x_step, 0, x_edges[0])
+            y_step = np.insert(y_step, 0, 0)  # parte dal basso
+            x_step = np.append(x_step, x_edges[-1])
+            y_step = np.append(y_step, 0)     # torna a 0 alla fine
+
+            if draw_type == "draw_hist":
+                ax1.step(x_step, y_step, where='mid', linewidth=lw, color=colore, label=llabel, alpha=aaplha, linestyle=ls)
+                if drawErrors:
+                    ax1.errorbar(bin_centers,bin_contents,yerr=[yerr_low, yerr_high], fmt='o', color=colore, markersize=1, alpha=0.6, capsize=2)
+            elif draw_type == "draw_graph":
+                if drawErrors:
+                    ax1.errorbar(bin_centers,bin_contents,yerr=[yerr_low, yerr_high], fmt=mstyle, color=colore, markersize=msize, alpha=aaplha, capsize=2, label=llabel, markeredgecolor='black', markeredgewidth=1.)
+                else : ax1.scatter(bin_centers,bin_contents, color=colore, s=s, marker=mstyle, alpha=aaplha, label=llabel, edgecolors='black', linewidths=1.)
+            elif draw_type == "fit":
+                ax1.errorbar(bin_centers,bin_contents,yerr=[yerr_low, yerr_high], fmt=mstyle, color=colore, markersize=msize, alpha=aaplha, capsize=2, label=llabel, markeredgecolor='black', markeredgewidth=1.)
+
+    if object == "graph":
+        for g in config["grafici"]:
+            file_path, g_name = g["path"].split(":")
+            colore = g.get("colore", "")
+            llabel = g.get("label", "")
+            aalpha = g.get("alpha",1)   
+
+            f = ROOT.TFile.Open(file_path)
+            graph = f.Get(g_name)
+            n_points = graph.GetN()
+            x = np.array([graph.GetPointX(i) for i in range(n_points)], dtype=float)
+            y = np.array([graph.GetPointY(i) for i in range(n_points)], dtype=float)
+
+            if drawErrors:
+                ex = np.array([graph.GetErrorX(i) for i in range(n_points)], dtype=float)
+                ey = np.array([graph.GetErrorY(i) for i in range(n_points)], dtype=float)
+                ax1.errorbar(x,y,yerr=ey, fmt='o', color=colore, markersize=2, alpha=aalpha, capsize=2, label=llabel)
+            else:
+                ax1.plot(x,y,color=colore, alpha=aalpha, label=llabel)
+
+
+    if logy: ax1.set_yscale('log')
+
+    maxy = 0
+    for max_val in bmaxs:
+        if max_val > maxy: 
+            maxy = max_val
+
+    if draw_type == "fit":
+        tf1s = config.get("tf1s", [])
+        for tf1 in tf1s:
+            file_path, tf1_name = tf1["path"].split(":")
+            label = tf1.get("label")
+            ms = tf1.get("ms", 2)
+            lw = tf1.get("lw", 2)
+            color = tf1.get("color", "black")
+
+            f = ROOT.TFile.Open(file_path)
+            func = f.Get(tf1_name)
+            f_vec = np.vectorize(lambda x: func.Eval(x))
+            xvals = np.linspace(xlow, xhigh, 6000)
+            fvals = f_vec(xvals)
+            ax1.plot(xvals, fvals, label=label, linewidth=lw, color=color,zorder=10)
+        
+        #sax2.set_xlabel(xlabel, fontsize=18)
+        #sax2.set_ylabel("DATA-FIT", fontsize=18)
+
+        colore_titolo = (34,73,120)
+        colore_titolo_mpl = tuple(c / 255 for c in colore_titolo)
+        ax1.set_title(title, fontsize=18, color=colore_titolo_mpl)
+
+        leg = ax1.legend(loc=location, fontsize=legend_fontsize)
+        leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+        leg.get_frame().set_alpha(1.0)          # opaco
+        leg.get_title().set_fontweight('bold')
+
+        ax1.set_xticks(np.arange(xlow, xhigh, xticks_interval))
+        ax1.tick_params(axis='x', labelsize=14, rotation=rotation)
+        ax1.set_xlim(xlow, xhigh)
+        ax1.set_ylim(ylow, maxy*1.1)
+        ax1.tick_params(axis='y', labelsize=14)
+        ax1.set_ylabel(ylabel, fontsize=18)
+        ax1.set_xlabel(xlabel, fontsize=18)
+
+        ax1.xaxis.set_minor_locator(AutoMinorLocator(minor_tick_x))
+
+        plt.tight_layout()
+        plt.savefig(savepath, format=fmt, dpi=600, bbox_inches='tight')
+        plt.close()
+
+    else:     
+        colore_titolo = (34,73,120)
+        colore_titolo_mpl = tuple(c / 255 for c in colore_titolo)
+        ax1.set_xlabel(xlabel, fontsize=18)
+        ax1.set_ylabel(ylabel, fontsize=18)
+        ax1.set_title(title, fontsize=18, color=colore_titolo_mpl)
+
+        leg = ax1.legend(loc=location, fontsize=legend_fontsize)
+        leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+        leg.get_frame().set_alpha(1.0)          # opaco
+        leg.get_title().set_fontweight('bold')
+
+        ax1.set_xticks(np.arange(xlow, xhigh, xticks_interval))
+        ax1.tick_params(axis='x', labelsize=14, rotation=rotation)
+        ax1.set_xlim(xlow, xhigh)
+        ax1.set_ylim(ylow, maxy*1.1)
+        ax1.tick_params(axis='y', labelsize=14)
+
+        ax1.xaxis.set_minor_locator(AutoMinorLocator(minor_tick_x))
+
+        plt.savefig(savepath, format=fmt, dpi=600, bbox_inches='tight')
+        plt.close()
+    
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config_file", type=str)
+    args = parser.parse_args()
+    config = leggi_configurazione("/exp/icarus/app/users/nsommagg/plot_configs/plot_config_{:s}.json".format(args.config_file))
+    plotpy(config)
+

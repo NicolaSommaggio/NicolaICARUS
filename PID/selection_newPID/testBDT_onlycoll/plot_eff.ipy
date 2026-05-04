@@ -1,0 +1,237 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import random 
+
+all_selected_nocuts = np.genfromtxt(
+    'dump_purity.txt',
+    dtype=[
+        ('pdg',int),
+        ('len',float),
+        ('Ek',float),
+        ('prediction',int),
+        ('trackscore',float),
+        ('is_primary',int),
+        ('start_distance',float),
+        ('end_distance',float),
+        ('is_contained',int),
+        ('hit_completeness',float),
+        ('hit_purity',float)],
+        encoding = 'utf-8',
+        delimiter = ' '
+)
+
+#bin_edges = np.arange(0,101,1)
+#bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+#fig, ax1 = plt.subplots()
+
+######################
+#     efficiency     #
+######################
+
+"""
+mu_length = all_selected_nocuts[np.abs(all_selected_nocuts['pdg'])==13]
+mu_length_hitpc = all_selected_nocuts[(np.abs(all_selected_nocuts['pdg'])==13) & (all_selected_nocuts['hit_completeness']>0.5) & (all_selected_nocuts['hit_purity']>0.5)]
+pro_length = all_selected_nocuts[np.abs(all_selected_nocuts['pdg'])==2212]
+pro_length_hitpc = all_selected_nocuts[(np.abs(all_selected_nocuts['pdg'])==2212) & (all_selected_nocuts['hit_completeness']>0.5) & (all_selected_nocuts['hit_purity']>0.5)]
+pi_length = all_selected_nocuts[np.abs(all_selected_nocuts['pdg'])==211]
+pi_length_hitpc = all_selected_nocuts[(np.abs(all_selected_nocuts['pdg'])==211) & (all_selected_nocuts['hit_completeness']>0.5) & (all_selected_nocuts['hit_purity']>0.5)]
+
+plt.hist(mu_length['len'], bins=200, range=(0,200), histtype='step', lw=2, color='blue', label=r'$\mu$', density=False)
+plt.hist(mu_length_hitpc['len'], bins=200, range=(0,200), histtype='step', lw=2, color='deepskyblue', label=r'$\mu$ hit purity & completeness > 0.5', density=False)
+#plt.hist(mu_length['len'], bins=200, range=(0,200), histtype='stepfilled', lw=2, color='cornflowerblue', alpha=0.7, density=False)
+
+plt.hist(pro_length['len'], bins=200, range=(0,200), histtype='step', lw=2, color='darkgreen', label=r'$p$', density=False)
+plt.hist(pro_length_hitpc['len'], bins=200, range=(0,200), histtype='step', lw=2, color='limegreen', label=r'$p$ hit purity & completeness > 0.5', density=False)
+#plt.hist(pro_length['len'], bins=200, range=(0,200), histtype='stepfilled', lw=2, color='green', alpha=0.7, density=False)
+
+plt.hist(pi_length['len'], bins=200, range=(0,200), histtype='step', lw=2, color='red', label=r'$\pi$', density=False)
+plt.hist(pi_length_hitpc['len'], bins=200, range=(0,200), histtype='step', lw=2, color='orange', label=r'$\pi$ hit purity & completeness > 0.5', density=False)
+#plt.hist(pi_length['len'], bins=200, range=(0,200), histtype='stepfilled', lw=2, color='orange', alpha=0.7, density=False)
+
+plt.xticks(np.arange(0,200,10), fontsize=14, rotation=60)
+plt.yticks(np.arange(0,9000,1000), fontsize=14)
+plt.title('tracks length - 1,033090E+20 POT', fontsize=18)
+plt.xlabel('track length length [cm]', fontsize=18) 
+plt.ylabel('counts', fontsize=18) 
+plt.legend(loc = 'best', fontsize=12)
+plt.savefig("tracks_length.pdf", format='pdf', bbox_inches='tight') 
+plt.close()  
+
+"""
+#"""
+
+def efficiency(all_selected,particle,bins) :
+
+    bin_edges = np.arange(0,bins+1,1)
+
+    if particle == 'mu' :
+        p = all_selected[np.abs(all_selected['pdg'])==13]
+        selected_p = p[(p['prediction']==0) | (p['prediction']==1)]
+
+    if particle == 'pro' :
+        p = all_selected[np.abs(all_selected['pdg'])==2212]
+        selected_p = p[(p['prediction']==2) | (p['prediction']==3)]
+
+    if particle == 'pi' :
+        p = all_selected[np.abs(all_selected['pdg'])==211]
+        selected_p = p[(p['prediction']==4) | (p['prediction']==5)]
+
+    counts_all,_ = np.histogram(p['len'],bins=bin_edges)
+    counts_sel,_ = np.histogram(selected_p['len'],bins=bin_edges)
+
+    ratio = np.zeros_like(counts_all, dtype=float)
+    mask = counts_all > 0
+    ratio[mask] = counts_sel[mask] / counts_all[mask]
+
+    errors = np.zeros_like(ratio)
+    errors[mask] = np.sqrt(ratio[mask] * (1 - ratio[mask]) / counts_all[mask])
+
+    return ratio,errors
+
+#ax1.stairs(ratio, bin_edges, color='blue', linewidth=1,label=r'$\mu$ selection eff.')
+
+#ax1.errorbar(bin_centers, ratio, yerr=errors, fmt='o', markersize=2, color='blue', alpha=0.8, elinewidth=1)
+
+##################
+#     purity     #
+##################
+
+def purity(all_selected,particle_type,bins):
+
+    # --- Preprocessing una sola volta ---
+    lengths = np.array([t['len'] for t in all_selected])
+    preds   = np.array([t['prediction'] for t in all_selected])
+    pdg     = np.abs(np.array([t['pdg'] for t in all_selected]))
+
+    # codifica numerica: 0=muon, 1=proton, 2=pion
+    particle = np.full(len(pdg), -1)
+    particle[pdg == 13]   = 0
+    particle[pdg == 2212] = 1
+    particle[pdg == 211]  = 2
+
+    # output
+    predicted = {'mu': [], 'pro': [], 'pi': []}
+    correct   = {'mu': [], 'pro': [], 'pi': []}
+
+    # --- loop sui bin (molto più leggero) ---
+    for bin_val in range(bins):
+
+        mask = (lengths < (bin_val + 1)) & (lengths >= bin_val)
+
+        idx = np.where(mask)[0]
+
+        if len(idx) == 0:
+            for k in predicted:
+                predicted[k].append(0)
+                correct[k].append(0)
+            continue
+
+        # separa per tipo
+        mu_idx  = idx[particle[idx] == 0]
+        pro_idx = idx[particle[idx] == 1]
+        pi_idx  = idx[particle[idx] == 2]
+
+        #print(len(mu_idx), 'muon tracks', len(pro_idx), 'proton tracks', len(pi_idx), 'pion tracks in bin [', bin_val, bin_val+1, ')' )
+
+        n_tracks_in_this_bin = min(len(mu_idx),len(pro_idx),len(pi_idx))
+
+        # sampling
+        sel_mu  = np.random.choice(mu_idx,  size=n_tracks_in_this_bin,  replace=False)
+        sel_pro = np.random.choice(pro_idx, size=n_tracks_in_this_bin, replace=False)
+        sel_pi  = np.random.choice(pi_idx,  size=n_tracks_in_this_bin,  replace=False)
+
+        chosen = np.concatenate([sel_mu, sel_pro, sel_pi]).astype(int)
+
+        chosen_preds = preds[chosen]
+        chosen_part  = particle[chosen]
+
+        # --- muon ---
+        mask_mu = np.isin(chosen_preds, [0, 1])
+        predicted['mu'].append(np.sum(mask_mu))
+        correct['mu'].append(np.sum(mask_mu & (chosen_part == 0)))
+
+        # --- proton ---
+        mask_pro = np.isin(chosen_preds, [2, 3])
+        predicted['pro'].append(np.sum(mask_pro))
+        correct['pro'].append(np.sum(mask_pro & (chosen_part == 1)))
+
+        # --- pion ---
+        mask_pi = np.isin(chosen_preds, [4, 5])
+        predicted['pi'].append(np.sum(mask_pi))
+        correct['pi'].append(np.sum(mask_pi & (chosen_part == 2)))
+
+
+    pred = np.array(predicted[particle_type], dtype=float)
+    corr = np.array(correct[particle_type],   dtype=float)
+    
+    mask_purity = pred > 0
+    ratio_purity = np.zeros(len(pred))
+    ratio_purity[mask_purity] = corr[mask_purity] / pred[mask_purity]
+    
+    errors_purity = np.zeros(len(pred))
+    errors_purity[mask_purity] = np.sqrt(ratio_purity[mask_purity] * (1 - ratio_purity[mask_purity]) / pred[mask_purity])
+ 
+    return ratio_purity,errors_purity
+
+all_tracks_nocuts = all_selected_nocuts
+all_tracks_is_primary = all_selected_nocuts[all_selected_nocuts['is_primary']==1]
+all_tracks_trackscore = all_selected_nocuts[all_selected_nocuts['trackscore']>0.5]
+all_tracks_start_distance = all_selected_nocuts[all_selected_nocuts['start_distance']<10]
+all_tracks_contained = all_selected_nocuts[all_selected_nocuts['is_contained']==1]
+all_tracks_hit_c_and_p = all_selected_nocuts[(all_selected_nocuts['hit_completeness']>0.5) & (all_selected_nocuts['hit_purity']>0.5)]
+
+#all_tracks = [all_tracks_nocuts,all_tracks_is_primary,all_tracks_trackscore,all_tracks_start_distance,all_tracks_contained,all_tracks_hit_c_and_p]
+#colors = ['blue','green','red','deepskyblue','orange','limegreen']
+#labels = ['no conditions','primary', 'trackscore > 0.5', 'vertex-start dist. < 10 cm', 'contained', 'hit compl. and pur. > 0.5']
+
+all_tracks = [all_tracks_nocuts,all_tracks_hit_c_and_p]
+colors = ['red','orange']
+labels = ['no conditions', 'hit compl. and pur. > 0.5']
+
+
+for i,dataset in enumerate(all_tracks):
+    #ratio,errors = efficiency(dataset,'pi',100) #<--
+    ratio,errors = purity(dataset,'pi',100) #<--
+
+    bin_edges = np.arange(0,101,1)
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+    plt.stairs(ratio, bin_edges, color=colors[i], linewidth=1,label=labels[i])
+    plt.errorbar(bin_centers, ratio, yerr=errors, fmt='o',markersize=2, color=colors[i], alpha=0.8, elinewidth=1) 
+
+plt.title("pion selection purity", fontsize=18) #<--
+plt.xticks(np.arange(0,100,5), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlabel('pion length [cm]', fontsize=18) #<--
+plt.ylabel('purity', fontsize=18) #<--
+plt.legend(loc = 'best', fontsize=12)
+plt.savefig("new_pion_selection_cuts_purity.pdf", format='pdf', bbox_inches='tight') #<--
+plt.close()  
+
+#ax2 = ax1.twinx()
+ 
+#ax2.stairs(ratio_purity, bin_edges, color='deepskyblue', linewidth=1,label=r'$\mu$ selection pur.')
+#ax2.errorbar(bin_centers, ratio_purity, yerr=errors_purity, fmt='o',markersize=2, color='deepskyblue', alpha=0.8, elinewidth=1)
+ 
+#lines1, labels1 = ax1.get_legend_handles_labels()
+#lines2, labels2 = ax2.get_legend_handles_labels()
+#ax1.legend(lines1 + lines2, labels1 + labels2, loc='lower center', fontsize=14)
+ 
+#ax1.set_xlabel(r'reco $\mu$ length [cm]', fontsize=18)
+#ax1.set_ylabel('efficiency', fontsize=18)
+#ax2.set_ylabel('purity', fontsize=18)
+#ax1.set_xticks(np.arange(0, 100, 5)) 
+#ax1.tick_params(axis='x', labelsize=18, rotation=60)
+#ax1.tick_params(axis='y', labelsize=18)
+#ax2.tick_params(axis='y', labelsize=18)
+#ax1.set_ylim(0,1)
+#ax2.set_ylim(0,1)
+
+#plt.text(0.90, 0.95, "", fontsize=12, color='gray')
+ 
+#plt.savefig('muon_selection_contained.pdf', format='pdf', bbox_inches='tight')
+#plt.close()
+
+
+#"""

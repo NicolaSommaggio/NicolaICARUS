@@ -1,0 +1,114 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import argparse
+from matplotlib.colors import LogNorm
+
+mpvmpr = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_new_PID/MPVMPR_dedx_nu.txt',
+    dtype=[('class', 'U20'),
+           ('rr', float),
+           ('dedx', float),
+           ('pitch',float),
+           ('dirx',float),
+           ('diry',float),
+           ('dirz',float)],
+    encoding="utf-8",
+    delimiter=" "
+)
+
+#print(mpvmpr['class'][0], mpvmpr['rr'][0], mpvmpr['dedx'][0])
+
+training_set = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/dedx_rr_dump_nuovo.txt',
+    dtype=[('class', 'U20'),
+           ('rr', float),
+           ('dedx', float),
+           ('pitch',float),
+           ('dirx',float),
+           ('diry',float),
+           ('dirz',float)],
+    encoding="utf-8",
+    delimiter=" "
+)
+
+#print(training_set['class'][0], training_set['rr'][0], training_set['dedx'][0])
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("classe", type=str, help="particle class")
+parser.add_argument("particle", type=str, help="particle")
+parser.add_argument("rr_low", type=float, help="lower RR")
+parser.add_argument("rr_high", type=float, help="upper RR")
+parser.add_argument("range_low", type=float, help='plot range low')
+parser.add_argument("range_high", type=float, help='plot range high')
+
+args = parser.parse_args()
+
+classe = args.classe
+particle = args.particle
+rr_low = args.rr_low
+rr_high = args.rr_high
+range_low = args.range_low  
+range_high = args.range_high
+
+dedx_mpvmpr = mpvmpr[mpvmpr['class']==classe]
+dedx_ts = training_set[training_set['class']==classe]
+
+dedx_mpvmpr_sel = dedx_mpvmpr[(dedx_mpvmpr['rr']>rr_low) & (dedx_mpvmpr['rr']<rr_high)]
+dedx_ts_sel = dedx_ts[(dedx_ts['rr']>rr_low) & (dedx_ts['rr']<rr_high)]
+
+plt.hist(dedx_ts_sel['dedx'], range=(range_low,range_high), bins=100, histtype='step', color='cornflowerblue', label='overlays', linewidth=2, density=True)
+plt.hist(dedx_mpvmpr_sel['dedx'], range=(range_low,range_high), bins=100, histtype='step', color='orange', label='mpv', linewidth=2, density=True)
+plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+plt.ylabel('counts (area normalized)', fontsize=18)
+plt.title("{} - {} cm < RR < {} cm".format(particle,rr_low,rr_high), fontsize=18)
+leg = plt.legend(loc='upper right', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(range_low,range_high,range_high/20), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+#plt.yscale('log')
+plt.savefig('ww_{}_dedx_{}_{}_cm.pdf'.format(classe,rr_low,rr_high), format='pdf', bbox_inches='tight')
+plt.close()
+
+plt.hist(dedx_ts['pitch'], range=(0,5), bins=100, histtype='step', color='cornflowerblue', label='overlays', linewidth=2, density=True)
+plt.hist(dedx_mpvmpr['pitch'], range=(0,5), bins=100, histtype='step', color='orange', label='mpv', linewidth=2, density=True)
+plt.xlabel('pitch [cm]', fontsize=18)
+plt.ylabel('counts (area normalized)', fontsize=18)
+plt.title("{}".format(particle), fontsize=18)
+leg = plt.legend(loc='upper right', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,5,5/20), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+#plt.yscale('log')
+plt.savefig('ww_{}_pitch.pdf'.format(classe), format='pdf', bbox_inches='tight')
+plt.close()
+
+plt.hist2d(dedx_mpvmpr['rr'], dedx_mpvmpr['dedx'], bins=(300,150), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
+plt.xlabel('Residual Range [cm]', fontsize=18)
+plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
+plt.title("MPV - dE/dx vs RR - {}".format(particle), fontsize=18)
+plt.xticks(np.arange(0.,30.,2), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0.,30.)
+plt.ylim(0.,30.)
+cbar=plt.colorbar()
+plt.savefig('ww_mpv_dedx_range_{}.png'.format(particle).replace(" ","_"), format='png', dpi=300, bbox_inches='tight')
+plt.close()
+
+plt.hist2d(dedx_ts['rr'], dedx_ts['dedx'], bins=(300,150), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
+plt.xlabel('Residual Range [cm]', fontsize=18)
+plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
+plt.title("OVERLAYS - dE/dx vs RR - {}".format(particle), fontsize=18)
+plt.xticks(np.arange(0.,30.,2), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0.,30.)
+plt.ylim(0.,30.)
+cbar=plt.colorbar()
+plt.savefig('ww_overlays_dedx_range_{}.png'.format(particle).replace(" ","_"), format='png', dpi=300, bbox_inches='tight')
+plt.close()

@@ -1,0 +1,133 @@
+from sklearn.ensemble import GradientBoostingClassifier, AdaBoostClassifier, RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, log_loss
+from sklearn.utils.class_weight import compute_sample_weight 
+from sklearn.model_selection import GridSearchCV
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import pandas as pd
+
+import joblib
+
+classes_labels = ['muon_rising', 'muon mip', 'proton_rising', 'proton_interacting', 'pion_rising', 'pion_interacting']
+
+samples = np.genfromtxt("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/dump_lkl_ratios_gbdt_withdepE.txt", names=None, dtype=float, encoding="utf-8", delimiter=" ")
+samples_features = samples[:,1:samples.shape[1]]
+samples_labels = samples[:,0]
+X_train, X_test, y_train, y_test = train_test_split(samples_features,samples_labels,test_size=0.30,random_state=42,stratify=samples_labels)
+
+print("The TRAINING set contains")
+for i,class_name in enumerate(classes_labels):
+    print(np.sum(y_train==i), '{} tracks'.format(class_name))
+print("The TEST set contains")
+for i,class_name in enumerate(classes_labels):
+    print(np.sum(y_test==i), '{} tracks'.format(class_name))
+
+grid_search_active = True
+
+if grid_search_active:
+    parameters = {
+              'n_estimators' : [30, 35, 40, 45, 50, 55, 60 ],
+              'learning_rate':[0.005,0.001],
+              'estimator__max_depth': [2,3,4,5] }
+
+    bdt = AdaBoostClassifier( 
+        estimator=DecisionTreeClassifier(),    
+        #loss="exponential" ,
+        random_state=42            
+    )
+
+    sample_weight = compute_sample_weight(class_weight='balanced', y=y_train)
+    grid_search = GridSearchCV(bdt,parameters,cv=5,scoring='roc_auc_ovr_weighted', refit=True, n_jobs=-1)
+    grid_search.fit(X_train,y_train,sample_weight=sample_weight)
+
+    bdt = grid_search.best_estimator_
+    best_params = grid_search.best_params_
+else:
+    bdt = AdaBoostClassifier(  
+        estimator=DecisionTreeClassifier(max_depth=5),  
+        #loss="exponential",
+        n_estimators=200,  
+        learning_rate=0.01,
+        random_state=42          
+    )
+    bdt.fit(X_train, y_train, compute_sample_weight(class_weight='balanced', y=y_train))
+
+
+joblib.dump(bdt, "/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_new_PID/AdaBoost/adaboost_model_30percent_stat.pkl")
+
+training_score = np.zeros(bdt.n_estimators)
+for i,y_pred_stage in enumerate(bdt.staged_predict_proba(X_train)):
+    training_score[i] = log_loss(y_train, y_pred_stage)
+
+test_score = np.zeros(bdt.n_estimators)
+for i,y_pred_stage in enumerate(bdt.staged_predict_proba(X_test)):
+    test_score[i] = log_loss(y_test, y_pred_stage)
+
+plt.plot(training_score, label='training loss', color='orange')
+plt.plot(test_score, label='test loss', color='green')
+plt.xlabel("Iteration number")
+plt.ylabel("loss")
+plt.ylim(1.64,1.68)
+plt.legend()
+if grid_search_active:
+    plt.title("AdaBoost_training/test deviance\nn estimators: {} learning rate: {} max depth: {}".format(best_params['n_estimators'], best_params['learning_rate'],best_params['estimator__max_depth']), fontsize=14)
+    plt.savefig("AdaBoost_nuova_prova_withdepE_train_test_loss_{}_{}_{}.pdf".format(best_params['n_estimators'],best_params['learning_rate'],best_params['estimator__max_depth']), format="pdf", bbox_inches="tight")
+else:
+    plt.title("AdaBoost_training/test deviance\nn_estimators: {} learning rate: {} max depth: {}".format(bdt.get_params()['n_estimators'], bdt.get_params()['learning_rate'], bdt.get_params()['estimator__max_depth']), fontsize=14)
+    plt.savefig("AdaBoost_nuova_prova_withdepE_train_test_loss_{}_{}_{}.pdf".format(bdt.get_params()['n_estimators'], bdt.get_params()['learning_rate'], bdt.get_params()['estimator__max_depth']), format="pdf", bbox_inches="tight")
+plt.close()
+
+train_test_deviance = np.average(test_score[-10:]-training_score[-10:])
+accuracy = bdt.score(X_test,y_test)
+
+print('train test deviance: ', train_test_deviance, ' accuracy: ', accuracy)
+
+y_pred = bdt.predict(X_test)
+disp_confusion_matrix_efficiency = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize='true', cmap=plt.cm.Blues)
+plt.xticks(rotation=60)
+if grid_search_active:
+    plt.title("AdaBoost_efficiency confusion matrix\nn_estimators: {} learning rate: {} max depth: {}".format(best_params['n_estimators'],best_params['learning_rate'],best_params['estimator__max_depth']), fontsize=14)
+    plt.savefig("AdaBoost_nuova_prova_withdepE_efficiency_confusion_matrix_{}_{}_{}.pdf".format(best_params['n_estimators'],best_params['learning_rate'],best_params['estimator__max_depth']), format='pdf', bbox_inches='tight')
+else:
+    plt.title("AdaBoost_efficiency confusion matrix\nn estimators: {} learning rate: {} max depth: {}".format(bdt.get_params()['n_estimators'],bdt.get_params()['learning_rate'], bdt.get_params()['estimator__max_depth']), fontsize=14)
+    plt.savefig("AdaBoost_nuova_prova_withdepE_efficiency_confusion_matrix_{}_{}_{}.pdf".format(bdt.get_params()['n_estimators'],bdt.get_params()['learning_rate'], bdt.get_params()['estimator__max_depth']), format='pdf', bbox_inches='tight')
+plt.close()
+
+disp_confusion_matrix_purity = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize='pred', cmap=plt.cm.Blues)
+plt.xticks(rotation=60)
+if grid_search_active:
+    plt.title("AdaBoost_purity confusion matrix\nn_estimators: {} learning rate: {} max depth: {}".format(best_params['n_estimators'],best_params['learning_rate'],best_params['estimator__max_depth']), fontsize=14)
+    plt.savefig("AdaBoost_nuova_prova_withdepE_purity_confusion_matrix_{}_{}_{}.pdf".format(best_params['n_estimators'],best_params['learning_rate'],best_params['estimator__max_depth']), format='pdf', bbox_inches='tight')
+else:
+    plt.title("AdaBoost_purity confusion matrix\nn estimators: {} learning rate: {} max depth: {}".format(bdt.get_params()['n_estimators'],bdt.get_params()['learning_rate'], bdt.get_params()['estimator__max_depth']), fontsize=14)
+    plt.savefig("AdaBoost_nuova_prova_withdepE_purity_confusion_matrix_{}_{}_{}.pdf".format(bdt.get_params()['n_estimators'],bdt.get_params()['learning_rate'], bdt.get_params()['estimator__max_depth']), format='pdf', bbox_inches='tight')
+plt.close()
+
+disp_confusion_matrix_row = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize=None, cmap=plt.cm.Blues)
+plt.xticks(rotation=60)
+if grid_search_active:
+    plt.title("AdaBoost_confusion matrix\nn estimators: {} learning rate: {} max depth: {}".format(best_params['n_estimators'],best_params['learning_rate'],best_params['estimator__max_depth']), fontsize=14)
+    plt.savefig("AdaBoost_nuova_prova_withdepE_row_confusion_matrix_{}_{}_{}.pdf".format(best_params['n_estimators'],best_params['learning_rate'],best_params['estimator__max_depth']), format='pdf', bbox_inches='tight')
+else:
+    plt.title("AdaBoost_confusion matrix\nn estimators: {} learning rate: {} max depth: {}".format(bdt.get_params()['n_estimators'], bdt.get_params()['learning_rate'], bdt.get_params()['estimator__max_depth']), fontsize=14)
+    plt.savefig("AdaBoost_nuova_prova_withdepE_row_confusion_matrix_{}_{}_{}.pdf".format(bdt.get_params()['n_estimators'],bdt.get_params()['learning_rate'], bdt.get_params()['estimator__max_depth']), format='pdf', bbox_inches='tight')
+plt.close()
+                
+print("predicted_classes")
+print(bdt.predict_proba(X_test))
+
+print("predicted_probabilities")
+print(bdt.predict_proba(X_test))
+
+print("feature_importance")
+print(bdt.feature_importances_)
+
+print(classification_report(y_test, y_pred, target_names=classes_labels))
+

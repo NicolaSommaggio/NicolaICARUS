@@ -1,0 +1,137 @@
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, log_loss
+from sklearn.utils.class_weight import compute_sample_weight 
+from sklearn.model_selection import GridSearchCV
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.inspection import permutation_importance
+
+
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import pandas as pd
+
+import joblib
+
+classes_labels = ['muon_rising', 'muon mip', 'proton_rising', 'proton_interacting', 'pion_rising', 'pion_interacting']
+
+samples = np.genfromtxt("/exp/icarus/data/users/nsommagg/dump_lkl_ratios_gbdt_withdepE_30percent_stat.txt", names=None, dtype=float, encoding="utf-8", delimiter=" ")
+samples_features = samples[:,1:samples.shape[1]]
+samples_labels = samples[:,0]
+X_train, X_test, y_train, y_test = train_test_split(samples_features,samples_labels,test_size=0.30,random_state=42,stratify=samples_labels)
+
+print("The TRAINING set contains")
+for i,class_name in enumerate(classes_labels):
+    print(np.sum(y_train==i), '{} tracks'.format(class_name))
+print("The TEST set contains")
+for i,class_name in enumerate(classes_labels):
+    print(np.sum(y_test==i), '{} tracks'.format(class_name))
+
+grid_search_active = True
+
+if grid_search_active:
+
+    param_dist = {
+        'learning_rate': np.logspace(-4, -1, 30),   # 0.0001 → 0.1
+        'max_depth': [None, 3,4,5,6,8],
+        'max_leaf_nodes': [15, 31, 63, 127],
+        'min_samples_leaf': [10, 20, 30, 50]
+    }
+
+
+    gbdt = HistGradientBoostingClassifier(
+        loss="log_loss",
+        max_iter=500,
+        learning_rate=0.01,
+        max_depth=5,
+        random_state=42,
+        early_stopping=True,
+        validation_fraction=0.2,
+        n_iter_no_change=10,
+        verbose=1
+    )
+
+    sample_weight = compute_sample_weight(class_weight='balanced', y=y_train)
+
+    random_search = RandomizedSearchCV(
+    estimator=gbdt,
+    param_distributions=param_dist,
+    n_iter=40,                         # numero di combinazioni casuali
+    scoring='roc_auc_ovr_weighted',
+    cv=5,
+    verbose=2,
+    random_state=42,
+    n_jobs=-1,
+    refit=True
+    )
+
+    random_search.fit(X_train,y_train,sample_weight=sample_weight)
+
+    gbdt = random_search.best_estimator_
+    best_params = random_search.best_params_
+
+
+else:
+    gbdt = HistGradientBoostingClassifier(
+        loss="log_loss",
+        max_iter=500,
+        learning_rate=0.01,
+        max_depth=5,
+        random_state=42,
+        early_stopping=True,
+        validation_fraction=0.2,
+        n_iter_no_change=10,
+        verbose=1
+    )
+
+    gbdt.fit(X_train, y_train, compute_sample_weight(class_weight='balanced', y=y_train))
+
+
+joblib.dump(gbdt, "/exp/icarus/data/users/nsommagg/gbdt_model_30percent_stat.pkl")
+
+y_pred = gbdt.predict(X_test)
+disp_confusion_matrix_efficiency = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize='true', cmap=plt.cm.Blues)
+plt.xticks(rotation=60)
+if grid_search_active:
+    plt.title("efficiency CM - lr: {:.3f} depth: {} leaf_nodes: {}".format(best_params['learning_rate'], best_params['max_depth'], best_params['max_leaf_nodes']), fontsize=14)
+    plt.savefig("efficiency_confusion_matrix_lr_{}_depth_{}_leaf_nodes_{}.pdf".format(best_params['learning_rate'], best_params['max_depth'], best_params['max_leaf_nodes']),format='pdf',bbox_inches='tight')
+else:
+    plt.title("efficiency CM - lr: {:.3f} depth: {} leaf_nodes: {}".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['max_leaf_nodes']), fontsize=14)
+    plt.savefig("efficiency_confusion_matrix_lr_{}_depth_{}_leaf_nodes_{}.pdf".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['max_leaf_nodes']),format='pdf',bbox_inches='tight')
+plt.close()
+
+disp_confusion_matrix_purity = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize='pred', cmap=plt.cm.Blues)
+plt.xticks(rotation=60)
+if grid_search_active:
+    plt.title("purity CM - lr: {:.3f} depth: {} leaf_nodes: {}".format(best_params['learning_rate'], best_params['max_depth'], best_params['max_leaf_nodes']), fontsize=14)
+    plt.savefig("purity_confusion_matrix_lr_{}_depth_{}_leaf_nodes_{}.pdf".format(best_params['learning_rate'], best_params['max_depth'], best_params['max_leaf_nodes']),format='pdf',bbox_inches='tight')
+else:
+    plt.title("purity CM - lr: {:.3f} depth: {} leaf_nodes: {}".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['max_leaf_nodes']), fontsize=14)
+    plt.savefig("purity_confusion_matrix_lr_{}_depth_{}_leaf_nodes_{}.pdf".format(gbdt.get_params()['learning_rate'], gbdt.get_params()['max_depth'], gbdt.get_params()['max_leaf_nodes']),format='pdf',bbox_inches='tight')
+plt.close()
+                
+print("predicted_classes")
+print(gbdt.predict_proba(X_test))
+
+print("predicted_probabilities")
+print(gbdt.predict_proba(X_test))
+
+print("feature_importance")
+result = permutation_importance(
+    gbdt,
+    X_test,
+    y_test,
+    n_repeats=10,
+    random_state=42,
+    n_jobs=-1
+)
+
+print(result.importances_mean)
+
+print(classification_report(y_test, y_pred, target_names=classes_labels))
+

@@ -1,0 +1,1048 @@
+import ROOT
+import uproot
+import matplotlib.pyplot as plt
+import numpy as np
+import awkward as ak
+import pandas
+
+if False:
+    #file = uproot.open("../datafiles/dati10percento_nuovi_caf_2d.root")
+    file = uproot.open("../datafiles/datiDAT_1muNp_fullRR.root")
+    mutree = file['DATAtreeMU']
+    protree = file['DATAtreePRO']
+    branches_mu = mutree.arrays()
+    branches_pro = protree.arrays()
+
+    print(mutree.keys())
+    dEdx_mu = np.array(ak.flatten(branches_mu['dE_mu']))
+    dEdx_pro = np.array(ak.flatten(branches_pro['dE_pro']))
+    Eint_mu = np.array(ak.flatten(branches_mu['Eint_mu']))
+    Eint_pro = np.array(ak.flatten(branches_pro['Eint_pro']))
+    rr_mu = np.array(ak.flatten(branches_mu['rr_mu']))
+    rr_pro = np.array(ak.flatten(branches_pro['rr_pro']))
+    rr_mu_invertito = np.array(ak.flatten(branches_mu['rr_mu_invertito']))
+    rr_pro_invertito = np.array(ak.flatten(branches_pro['rr_pro_invertito']))
+    pitch_mu = np.array(ak.flatten(branches_mu['pitch_mu']))
+    pitch_pro = np.array(ak.flatten(branches_pro['pitch_pro']))
+    mult_mu = np.array(ak.flatten(branches_mu['mult_mu']))
+    mult_pro = np.array(ak.flatten(branches_pro['mult_pro']))
+
+    #dEdx_mu_ind1 = np.array(ak.flatten(branches_mu['dE_mu_ind1']))
+    #dEdx_mu_ind2 = np.array(ak.flatten(branches_mu['dE_mu_ind2']))
+    #rr_mu_ind1 = np.array(ak.flatten(branches_mu['rr_mu_ind1']))
+    #rr_mu_ind2 = np.array(ak.flatten(branches_mu['rr_mu_ind2']))
+
+    print(len(ak.to_list(branches_mu['dE_mu'])), "tracce di muone")
+    print(len(ak.to_list(branches_pro['dE_pro'])), "tracce di protone")
+
+
+from matplotlib.colors import LogNorm
+
+
+#plot dEdx
+if False :
+    #plt.hist2d(rr_mu, dEdx_mu, bins=(250,300), range=[(0,25),(0,30)], cmap='viridis', norm=LogNorm())
+    plt.hist2d(rr_mu[mult_mu==1], dEdx_mu[mult_mu==1], bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title("MUONS 100% DATA 1D DECONV. MULTIPLICITY=1")
+    if False:    
+        plt.text(
+        15, 27, "MUONS MC",
+        fontsize=18,                   
+        color="black",                 
+        ha="center", va="center",      
+        bbox=dict(
+            facecolor="white",        
+            edgecolor="lightgray",         
+            boxstyle="round,pad=0.5",  
+            alpha=0.8                  
+        )
+        )
+    cbar=plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('mu_dEdx_1d_mult=1.png', format='png',dpi=500, bbox_inches='tight')
+    plt.close()
+
+#plot dEdx
+if False :
+    #plt.hist2d(rr_mu, dEdx_mu, bins=(250,300), range=[(0,25),(0,30)], cmap='viridis', norm=LogNorm())
+    #rr_mu_mult1 = np.array([rr_mu[i] for i in range(len(rr_mu)) if mult_mu[i]==1])
+    plt.hist2d(rr_mu, dEdx_mu, bins=(100,300), range=[(0,30),(0,30)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title("MUONS 10% DATA 2D DECONV. COLL PLANE")
+    if False:    
+        plt.text(
+        15, 27, "MUONS MC",
+        fontsize=18,                   
+        color="black",                 
+        ha="center", va="center",      
+        bbox=dict(
+            facecolor="white",        
+            edgecolor="lightgray",         
+            boxstyle="round,pad=0.5",  
+            alpha=0.8                  
+        )
+        )
+    cbar=plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('mu_dEdx_2d_10_coll.png', format='png',dpi=500, bbox_inches='tight')
+    plt.close()
+
+if False:
+    plt.hist2d(rr_pro, dEdx_pro, bins=(250,300), range=[(0,25),(0,30)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('dE/dx [MeV/cm]',fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.text(
+    15, 27, "PROTONS MC",
+    fontsize=18,                   
+    color="black",                 
+    ha="center", va="center",      
+    bbox=dict(
+        facecolor="white",        
+        edgecolor="lightgray",         
+        boxstyle="round,pad=0.5",  
+        alpha=0.8                  
+    )
+    )
+    cbar=plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('pro_dEdx.png', format='png', dpi=500, bbox_inches='tight')
+    plt.close()
+
+
+
+#plot pitch
+if False:
+    plt.hist(pitch_pro*10, 60, range=(0,15), histtype='step', linewidth=2, density=True, label='protons MC')
+    plt.hist(pitch_mu*10, 60, range=(0,15), histtype='step', linewidth=2, density=True, label='muons MC')
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlabel('pitch [mm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(loc='upper right', fontsize=18)
+    plt.savefig('pitch.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+def root_hist_to_pyhist(th1d, colore, llabel):
+    th1d.Rebin(2)
+    n_bins = th1d.GetNbinsX()
+    x_edges = [th1d.GetBinLowEdge(i+1) for i in range(n_bins)]
+    x_edges.append(th1d.GetBinLowEdge(n_bins) + th1d.GetBinWidth(n_bins))
+    bin_contents = [th1d.GetBinContent(i+1) for i in range(n_bins)]
+    bin_errors = [th1d.GetBinError(i+1) for i in range(n_bins)]
+    bin_centers =[th1d.GetBinCenter(i+1) for i in range(n_bins)]
+    x_bin_errors=[th1d.GetBinWidth(i+1)/2 for i in range(n_bins)]
+
+    
+    # Creazione step per linee orizzontali
+    x_step = np.repeat(x_edges, 2)[1:-1]
+    y_step = np.repeat(bin_contents, 2)
+    
+    # Aggiunta linee verticali agli estremi
+    x_step = np.insert(x_step, 0, x_edges[0])
+    y_step = np.insert(y_step, 0, 0)  # parte dal basso
+    x_step = np.append(x_step, x_edges[-1])
+    y_step = np.append(y_step, 0)     # torna a 0 alla fine
+    
+    plt.step(x_step, y_step, where='mid', linewidth=2, color=colore, label=llabel)
+    
+    #plt.errorbar(bin_centers,bin_contents,xerr=x_bin_errors,yerr=bin_errors, fmt='o', color=colore, label=llabel, markersize=1)
+
+    plt.ylim(0, max(bin_contents)*1.1)
+    #plt.savefig('histo_prova_bar.pdf', format='pdf', bbox_inches='tight')
+
+def root_hist_to_pyhist_errors(th1d, colore, llabel, rebin=False, rebfactor=1):
+    if rebin: th1d.Rebin(rebfactor)
+    n_bins = th1d.GetNbinsX()
+    x_edges = [th1d.GetBinLowEdge(i+1) for i in range(n_bins)]
+    x_edges.append(th1d.GetBinLowEdge(n_bins) + th1d.GetBinWidth(n_bins))
+    bin_contents = [th1d.GetBinContent(i+1) for i in range(n_bins)]
+    bin_errors = [th1d.GetBinError(i+1) for i in range(n_bins)]
+    bin_centers =[th1d.GetBinCenter(i+1) for i in range(n_bins)]
+    x_bin_errors=[th1d.GetBinWidth(i+1)/2 for i in range(n_bins)]
+
+    
+    # Creazione step per linee orizzontali
+    x_step = np.repeat(x_edges, 2)[1:-1]
+    y_step = np.repeat(bin_contents, 2)
+    
+    # Aggiunta linee verticali agli estremi
+    x_step = np.insert(x_step, 0, x_edges[0])
+    y_step = np.insert(y_step, 0, 0)  # parte dal basso
+    x_step = np.append(x_step, x_edges[-1])
+    y_step = np.append(y_step, 0)     # torna a 0 alla fine
+    
+    plt.step(x_step, y_step, where='mid', linewidth=2, color=colore, label=llabel)
+
+    plt.errorbar(
+        bin_centers,
+        bin_contents,
+        yerr=bin_errors,
+        fmt='',           
+        markersize=0,
+        color=colore,
+        ecolor=colore,
+        capsize=3,
+        alpha=0.7,
+        linestyle='none',
+        label=None
+    )
+
+    #plt.grid(color='lightgray', linestyle='--', linewidth=0.5, alpha=0.7, axis='x')
+    
+    #plt.errorbar(bin_centers,bin_contents,xerr=x_bin_errors,yerr=bin_errors, fmt='o', color=colore, label=llabel, markersize=1)
+
+    plt.ylim(0, max(bin_contents)*1.1)
+    #plt.savefig('histo_prova_bar.pdf', format='pdf', bbox_inches='tight')
+
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dQdx_onlymult1 = file.Get("muon/dati/hdQdx_onlymult1")
+    dQdx_multmag1 = file.Get("muon/dati/hdQdx_multmag1")
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dQdx_multmag1, 'orange', "1D DECONV. MULT>1", True,5)
+    root_hist_to_pyhist_errors(dQdx_onlymult1, 'cornflowerblue', "1D DECONV. MULT==1", True,5)
+    
+    plt.xlabel('dQ/dx [ADC/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+
+    leg = plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.,2000.,150), fontsize=14, rotation=60)
+    plt.xticks(fontsize=14, rotation=60)
+    plt.yticks(fontsize=14)
+    #plt.xlim(0.,6.)
+    plt.savefig('multcond_dQdx_dati_1d.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdx_onlymult1 = file.Get("muon/dati/hdEdx_onlymult1")
+    dEdx_multmag1 = file.Get("muon/dati/hdEdx_multmag1")
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dEdx_multmag1, 'orange', "1D DECONV. MULT>1")
+    root_hist_to_pyhist_errors(dEdx_onlymult1, 'cornflowerblue', "1D DECONV. MULT==1")
+    
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+
+    leg = plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.,6.,0.3), fontsize=14, rotation=60)
+    plt.xticks(fontsize=14, rotation=60)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.,6.)
+    plt.savefig('multcond_dEdx_dati_1d.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dQdx_onlymult1 = file.Get("muon/dati2d10/hdQdx_onlymult1")
+    dQdx_multmag1 = file.Get("muon/dati2d10/hdQdx_multmag1")
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dQdx_multmag1, 'orange', "2D DECONV. MULT>1", True,5)
+    root_hist_to_pyhist_errors(dQdx_onlymult1, 'cornflowerblue', "2D DECONV. MULT==1", True,5)
+    
+    plt.xlabel('dQ/dx [ADC/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+
+    leg = plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.,2000.,150), fontsize=14, rotation=60)
+    plt.xticks(fontsize=14, rotation=60)
+    plt.yticks(fontsize=14)
+    #plt.xlim(0.,6.)
+    plt.savefig('multcond_dQdx_dati_2d10.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdx_onlymult1 = file.Get("muon/dati2d10/hdEdx_onlymult1")
+    dEdx_multmag1 = file.Get("muon/dati2d10/hdEdx_multmag1")
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dEdx_multmag1, 'orange', "2D DECONV. MULT>1")
+    root_hist_to_pyhist_errors(dEdx_onlymult1, 'cornflowerblue', "2D DECONV. MULT==1")
+    
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+
+    leg = plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.,6.,0.3), fontsize=14, rotation=60)
+    plt.xticks(fontsize=14, rotation=60)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.,6.)
+    plt.savefig('multcond_dEdx_dati_2d_10.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dQdx_1d = file.Get("muon/dati/hdQdx")
+    dQdx_2d = file.Get("muon/dati2d10/hdQdx")
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dQdx_1d, 'cornflowerblue', "1D DECONV", True)
+    root_hist_to_pyhist_errors(dQdx_2d, 'orange', "2D DECONV", True)
+    plt.xlabel('dQ/dx [ADC/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+
+    leg = plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.,2000.,150), fontsize=14, rotation=60)
+    plt.xticks(fontsize=14, rotation=60)
+    plt.yticks(fontsize=14)
+    #plt.xlim(0.,6.)
+    plt.savefig('dQdx_dati_1d2d_10percento.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdx_1d = file.Get("muon/dati/hdEdx")
+    dEdx_2d = file.Get("muon/dati2d10/hdEdx")
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dEdx_1d, 'cornflowerblue', "1D DECONV")
+    root_hist_to_pyhist_errors(dEdx_2d, 'orange', "2D DECONV")
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+    #plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    
+    leg = plt.legend(title='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.,6.,0.3), fontsize=14, rotation=60)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.,6.)
+    plt.savefig('dEdx_dati_1d2d_10percento.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdx_2d_coll = file.Get("muon/dati2d10/hdEdx")
+    dEdx_2d_ind1 = file.Get("muon/dati2d10/hdEdx_ind1")
+    dEdx_2d_ind2 = file.Get("muon/dati2d10/hdEdx_ind2")
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dEdx_2d_coll, 'cornflowerblue', "2D DECONV. COLL")
+    root_hist_to_pyhist_errors(dEdx_2d_ind1, 'orange', "2D DECONV. IND1")
+    root_hist_to_pyhist_errors(dEdx_2d_ind2, 'green', "2D DECONV. IND2")
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+    #plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    
+    leg = plt.legend(title='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.,6.,0.3), fontsize=14, rotation=60)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.,6.)
+    plt.ylim(0.,0.08)
+    plt.savefig('dEdx_diffPlanes_dati_1d2d_10percento.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdx_2d_coll = file.Get("proton/dati2d10/hdEdx")
+    dEdx_2d_ind1 = file.Get("proton/dati2d10/hdEdx_ind1")
+    dEdx_2d_ind2 = file.Get("proton/dati2d10/hdEdx_ind2")
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dEdx_2d_coll, 'cornflowerblue', "2D DECONV. COLL",True,2)
+    root_hist_to_pyhist_errors(dEdx_2d_ind1, 'orange', "2D DECONV. IND1",True,2)
+    root_hist_to_pyhist_errors(dEdx_2d_ind2, 'green', "2D DECONV. IND2",True,2)
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+    #plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    
+    leg = plt.legend(title='DATA PROTONS 25<RR<30 cm', loc='upper right', fontsize=10)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.,10.,0.5), fontsize=14, rotation=60)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.,10.)
+    plt.ylim(0.,0.08)
+    plt.savefig('dEdx_diffPlanes_dati_1d2d_10percento_proton.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdx_1d = file.Get("muon/dati/hdEdx")
+    dEdx_2d = file.Get("muon/dati2d/hdEdx")
+    root_hist_to_pyhist(dEdx_1d, 'cornflowerblue', "1D DECONV")
+    root_hist_to_pyhist(dEdx_2d, 'orange', "2D DECONV")
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+
+    leg = plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,5.5,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,5.5)
+    plt.savefig('dEdx_dati_1d2d.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    median_1d = file.Get("muon/dati/h_median")
+    median_2d = file.Get("muon/dati2d10/h_median")
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(median_1d, 'cornflowerblue', "1D DECONV", True)
+    root_hist_to_pyhist_errors(median_2d, 'orange', "2D DECONV", True)
+    plt.xlabel('median dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.title("MEDIAN dE/dx last 5 cm (no last 2 hits)", fontsize=18)
+    
+    leg = plt.legend(title ='DATA MU 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0,10,1), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0,10)
+    plt.savefig('median_dati_1d2d_10percento.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('../other/outTPC_dati_1d_vs_2d.root')
+    dEdxEE = file.Get('DATI_2D_10/dEdx_EE')
+    dEdxEW = file.Get('DATI_2D_10/dEdx_EW')
+    dEdxWE = file.Get('DATI_2D_10/dEdx_WE')
+    dEdxWW = file.Get('DATI_2D_10/dEdx_WW')
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dEdxEE, 'blue', r'EE mpv=2.012, width=0.280', True)
+    root_hist_to_pyhist_errors(dEdxEW, 'orange', r'EW mpv=2.014, width=0.291', True)
+    root_hist_to_pyhist_errors(dEdxWE, 'red', r'WE mpv=1.995, width=0.258', True)
+    root_hist_to_pyhist_errors(dEdxWW, 'green', r'WW mpv=2.026, width=0.280', True)
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.title("DATI 2D DECONV.", fontsize=18)
+
+    leg=plt.legend(title ='MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,6.5,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,6.5)
+    plt.savefig('dEdx_differentTPC_dati_2d_10percento.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdxEE = file.Get('DATI_2D_10/dEdx_EE')
+    dEdxEW = file.Get('DATI_2D_10/dEdx_EW')
+    dEdxWE = file.Get('DATI_2D_10/dEdx_WE')
+    dEdxWW = file.Get('DATI_2D_10/dEdx_WW')
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dEdxEE, 'blue', r'EE mpv=2.013, width=0.288', True,2)
+    root_hist_to_pyhist_errors(dEdxEW, 'orange', r'EW mpv=2.017, width=0.303', True,2)
+    root_hist_to_pyhist_errors(dEdxWE, 'red', r'WE mpv=1.999, width=0.282', True,2)
+    root_hist_to_pyhist_errors(dEdxWW, 'green', r'WW mpv=2.024, width=0.272', True,2)
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.title("DATI 2D DECONV. 10% STATS.", fontsize=18)
+
+    leg=plt.legend(title ='MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,6.5,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,6.5)
+    plt.savefig('new_dEdx_differentTPC_dati_2d_10percento.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdxEE = file.Get('DATI_10/dEdx_EE')
+    dEdxEW = file.Get('DATI_10/dEdx_EW')
+    dEdxWE = file.Get('DATI_10/dEdx_WE')
+    dEdxWW = file.Get('DATI_10/dEdx_WW')
+    plt.plot([], [], ' ', label="Stats errors only")
+    root_hist_to_pyhist_errors(dEdxEE, 'blue', r'EE mpv=1.979, width=0.269', True,2)
+    root_hist_to_pyhist_errors(dEdxEW, 'orange', r'EW mpv=1.962, width=0.278', True,2)
+    root_hist_to_pyhist_errors(dEdxWE, 'red', r'WE mpv=1.962, width=0.256', True,2)
+    root_hist_to_pyhist_errors(dEdxWW, 'green', r'WW mpv=1.960, width=0.263', True,2)
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.title("DATI 1D DECONV. 10% STATS.", fontsize=18)
+
+    leg=plt.legend(title ='MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,6.5,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,6.5)
+    plt.savefig('new_dEdx_differentTPC_dati_1d_10percento.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('../other/outTPC_dati_1d_vs_2d.root')
+    dEdxEE = file.Get('DATI/dEdx_EE')
+    dEdxEW = file.Get('DATI/dEdx_EW')
+    dEdxWE = file.Get('DATI/dEdx_WE')
+    dEdxWW = file.Get('DATI/dEdx_WW')
+    root_hist_to_pyhist(dEdxEE, 'blue', r'EE mpv=1.974, width=0.266')
+    root_hist_to_pyhist(dEdxEW, 'orange', r'EW mpv=1.967, width=0.265')
+    root_hist_to_pyhist(dEdxWE, 'red', r'WE mpv=1.970, width=0.254')
+    root_hist_to_pyhist(dEdxWW, 'green', r'WW mpv=1.980, width=0.258')
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.title("DATI 1D DECONV.", fontsize=18)
+
+    leg = plt.legend(title ='MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,6.5,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,6.5)
+    plt.savefig('dEdx_differentTPC_dati_1d.svg', format='svg', bbox_inches='tight')
+    plt.close()
+
+if False:
+    import matplotlib.patches as patches
+    import matplotlib.colors as mcolors
+
+    dat_2d = [2.01163, 2.01403, 1.99483, 2.02611]
+    print('dat_2d', np.mean(dat_2d), np.std(dat_2d,ddof=1), np.std(dat_2d,ddof=1)/np.mean(dat_2d)*100)
+    dat_2d_err = [0.00268223, 0.00266895, 0.00242079, 0.00264015]
+    dat = [1.9738, 1.96683, 1.96956, 1.97983]
+    print('dat', np.mean(dat), np.std(dat,ddof=1), np.std(dat,ddof=1)/np.mean(dat)*100)
+    dat_err = [0.00243129, 0.00235635, 0.00229888, 0.00233032]
+    tpc = [1, 2, 3, 4]
+    xerr = [0, 0, 0, 0]
+
+    fig, ax = plt.subplots(facecolor='white')  # sfondo figura bianco
+    ax.set_facecolor('white')                  # sfondo area grafico bianco
+
+    # Plot dei punti con barre di errore
+    ax.errorbar(tpc, dat_2d, xerr=xerr, yerr=dat_2d_err, fmt='o', label='2D DECONV.', color='orange', markersize=3)
+    ax.errorbar(tpc, dat, xerr=xerr, yerr=dat_err, fmt='o', label='1D DECONV.', color='green', markersize=3)  
+
+    # Aggiunta rettangolo semitrasparente
+    orange_alpha = mcolors.to_rgba('orange', alpha=0.3)
+    rectmc = patches.Rectangle(
+        (0, 2.02611), 5, -0.03128,
+        facecolor=orange_alpha,
+        edgecolor='orange'
+        #alpha=0.3
+    )
+    ax.add_patch(rectmc)
+
+    green_alpha = mcolors.to_rgba('green', alpha=0.3)
+    rectdat = patches.Rectangle(
+        (0, 1.97983), 5, -0.013,
+        facecolor=green_alpha,
+        edgecolor='green'
+        #alpha=0.3
+    )
+    ax.add_patch(rectdat)
+
+    ax.text(0.1, 1.992 , 'av.=2.012, std dev.=0.64%',fontsize=11, color='orange')
+    ax.axhline(y=2.012, xmin=0.05, xmax=0.95, color='orange', linestyle='--', linewidth=1)
+    ax.text(0.1, 1.981, 'av.=1.973, std dev.=0.29%',fontsize=11, color='green')
+    ax.axhline(y=1.973, xmin=0.05, xmax=0.95, color='green', linestyle='--', linewidth=1)
+    ax.text(2.6, 1.985, '2%',fontsize=14, color='black')
+    ax.annotate(
+        '',                      # testo vuoto
+        xy=(2.5,2.012 ),           # punta superiore
+        xytext=(2.5, 1.973),     # punta inferiore
+        arrowprops=dict(
+            arrowstyle='<->',    # freccia a due punte
+            color='black',
+            linewidth=1.5
+        )
+    )
+
+    print(2*(2.0116500000000004-1.972505)/(2.0116500000000004+1.972505)*100)
+
+    ax.set_xticks([1, 2, 3, 4])
+    ax.set_xticklabels(['EE', 'EW', 'WE', 'WW'], fontsize=14)
+    ax.tick_params(axis='y', labelsize=14)
+    ax.set_xlabel('TPC', fontsize=18)
+    ax.set_ylabel('mpv [MeV/cm]', fontsize=18)
+    #ax.legend(loc='upper center', fontsize=14)
+    leg = ax.legend(loc='upper center', fontsize=14)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco
+    leg.get_frame().set_alpha(1.0)          # opaco
+    fig.savefig("difference_mpv_tpc_dati_1d2d.svg", format='svg', bbox_inches='tight')
+
+if False:
+    import matplotlib.patches as patches
+    import matplotlib.colors as mcolors
+
+    dat_2d = [2.01287, 2.01702, 1.99886, 2.02396]
+    print('dat_2d', np.mean(dat_2d), np.std(dat_2d,ddof=1), np.std(dat_2d,ddof=1)/np.mean(dat_2d)*100)
+    dat_2d_err = [0.0081, 0.0083, 0.0081, 0.0080]
+    dat = [1.97914, 1.96239, 1.96237, 1.95990]
+    print('dat', np.mean(dat), np.std(dat,ddof=1), np.std(dat,ddof=1)/np.mean(dat)*100)
+    dat_err = [0.0075, 0.0077, 0.0068, 0.0073]
+    tpc = [1, 2, 3, 4]
+    xerr = [0, 0, 0, 0]
+
+    fig, ax = plt.subplots(facecolor='white')  # sfondo figura bianco
+    ax.set_facecolor('white')                  # sfondo area grafico bianco
+
+    # Plot dei punti con barre di errore
+    ax.errorbar(tpc, dat_2d, xerr=xerr, yerr=dat_2d_err, fmt='o', label='2D DECONV.', color='orange', markersize=3)
+    ax.errorbar(tpc, dat, xerr=xerr, yerr=dat_err, fmt='o', label='1D DECONV.', color='green', markersize=3)  
+
+    # Aggiunta rettangolo semitrasparente
+    orange_alpha = mcolors.to_rgba('orange', alpha=0.3)
+    rectmc = patches.Rectangle(
+        (0, 2.02396), 5, -0.0251,
+        facecolor=orange_alpha,
+        edgecolor='orange'
+        #alpha=0.3
+    )
+    ax.add_patch(rectmc)
+
+    green_alpha = mcolors.to_rgba('green', alpha=0.3)
+    rectdat = patches.Rectangle(
+        (0, 1.97914), 5, -0.01924,
+        facecolor=green_alpha,
+        edgecolor='green'
+        #alpha=0.3
+    )
+    ax.add_patch(rectdat)
+
+    ax.text(0.1, 1.992 , 'av.=2.013, std dev.=0.01',fontsize=11, color='orange')
+    ax.axhline(y=2.013, xmin=0.05, xmax=0.95, color='orange', linestyle='--', linewidth=1)
+    ax.text(0.1, 1.981, 'av.=1.966, std dev.=0.01',fontsize=11, color='green')
+    ax.axhline(y=1.966, xmin=0.05, xmax=0.95, color='green', linestyle='--', linewidth=1)
+    ax.text(2.6, 1.985, '2.4%',fontsize=14, color='black')
+    ax.annotate(
+        '',                      # testo vuoto
+        xy=(2.5,2.013 ),           # punta superiore
+        xytext=(2.5, 1.966),     # punta inferiore
+        arrowprops=dict(
+            arrowstyle='<->',    # freccia a due punte
+            color='black',
+            linewidth=1.5
+        )
+    )
+
+    print(2*(2.0131775000000003-1.96595)/(2.0131775000000003+1.96595)*100)
+
+    ax.set_xticks([1, 2, 3, 4])
+    ax.set_xticklabels(['EE', 'EW', 'WE', 'WW'], fontsize=14)
+    ax.tick_params(axis='y', labelsize=14)
+    ax.set_xlabel('TPC', fontsize=18)
+    ax.set_ylabel('mpv [MeV/cm]', fontsize=18)
+    #ax.legend(loc='upper center', fontsize=14)
+    leg = ax.legend(loc='upper center', fontsize=13)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco
+    leg.get_frame().set_alpha(1.0)          # opaco
+    fig.savefig("new_difference_mpv_tpc_dati_1d2d.svg", format='svg', bbox_inches='tight')
+
+
+def tgrapherrors_to_matplotlib(graph, llabel):
+    # Estrazione punti e errori
+    n_points = graph.GetN()
+    x = np.array([graph.GetPointX(i) for i in range(n_points)], dtype=float)
+    y = np.array([graph.GetPointY(i) for i in range(n_points)], dtype=float)
+    ex = np.array([graph.GetErrorX(i) for i in range(n_points)], dtype=float)
+    ey = np.array([graph.GetErrorY(i) for i in range(n_points)], dtype=float)
+
+    # Disegno errorbar
+    plt.errorbar(x, y, xerr=ex, yerr=ey, fmt='o', label=llabel, markersize=1.5)
+
+
+def tgrapherrors_to_matplotlib_ax(ax,graph, llabel, mmarkersize,ccolor, zzorder=5):
+    # Estrazione punti e errori
+    n_points = graph.GetN()
+    x = np.array([graph.GetPointX(i) for i in range(n_points)], dtype=float)
+    y = np.array([graph.GetPointY(i) for i in range(n_points)], dtype=float)
+    ex = np.array([graph.GetErrorX(i) for i in range(n_points)], dtype=float)
+    ey = np.array([graph.GetErrorY(i) for i in range(n_points)], dtype=float)
+
+    # Disegno errorbar
+    ax.errorbar(x, y, xerr=ex, yerr=ey, fmt='o', label=llabel, markersize=mmarkersize, color=ccolor, elinewidth=1, zorder=zzorder)
+
+def tgraph_to_matplotlib_ax(ax,graph, llabel, ss,ccolor):
+    # Estrazione punti e errori
+    n_points = graph.GetN()
+    x = np.array([graph.GetPointX(i) for i in range(n_points)], dtype=float)
+    y = np.array([graph.GetPointY(i) for i in range(n_points)], dtype=float)
+
+    # Disegno errorbar
+    ax.scatter(x, y, label=llabel, s=ss, color=ccolor, zorder=10)
+
+from matplotlib.ticker import MultipleLocator
+
+#mpv difference data mc muoni
+if False:
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    #tgrapherrors_to_matplotlib(dati_mpvs_muon,'DATA muon mpvs')
+    #tgrapherrors_to_matplotlib(mc_mpvs_muon,'MC muon mpvs')
+    #tgrapherrors_to_matplotlib(dati_mpvs_proton,'DATA proton mpvs')
+    #tgrapherrors_to_matplotlib(mc_mpvs_proton,'MC proton mpvs')
+    tgrapherrors_to_matplotlib_ax(ax1,dati_mpvs_muon,'DATA muon mpvs',1, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax1,mc_mpvs_muon,'MC muon mpvs',1, 'orange')
+    tgrapherrors_to_matplotlib_ax(ax2,muon_diff_rr,'(DATA-MC)/average mpv',1.5, 'dimgray')
+    tgraph_to_matplotlib_ax(ax2,fit_total_rr,'fit',0.5, 'springgreen')
+    ax1.set_ylabel('mpv [MeV/cm]', fontsize=14)
+    ax1.legend(loc='upper right', fontsize=10)
+    ax1.yaxis.set_major_locator(MultipleLocator(1))
+    ax1.yaxis.set_minor_locator(MultipleLocator(0.5))
+    ax1.tick_params(axis='y', labelsize=12)
+    ax2.set_ylabel('(DATA-MC)/average mpv', fontsize=14)
+    ax2.legend(loc='lower right', fontsize=10)
+    ax2.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax2.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax2.tick_params(axis='y', labelsize=12)
+    ax2.tick_params(axis='x', labelsize=12)     
+    ax2.set_xlabel('Residual Range [cm]', fontsize=14)
+    plt.savefig('mu_mpv_dati_mc.png', format='png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+def root_hist_to_pyerrorbar(ax,th1d, colore, llabel, rebin=False):
+    if rebin: th1d.Rebin(2)
+    n_bins = th1d.GetNbinsX()
+    bin_contents = [th1d.GetBinContent(i) for i in range(10,n_bins+1,2)]
+    bin_errors = [th1d.GetBinError(i) for i in range(10,n_bins+1,2)]
+    bin_centers =[th1d.GetBinCenter(i) for i in range(10,n_bins+1,2)]
+    x_bin_errors=[th1d.GetBinWidth(i)/2 for i in range(10,n_bins+1,2)]
+    
+    ax.errorbar(bin_centers, bin_contents, xerr=x_bin_errors, yerr=bin_errors, fmt='o', label=llabel, markersize=1, color=colore, elinewidth=1)
+
+#mpv difference data 1d 2d
+if False:
+    f = ROOT.TFile.Open("plotMPV_1d2d.root")
+    mpvs_muon_1d = f.Get("muon/dati_mpvs_1d_muon")
+    mpv_muon_2d = f.Get("muon/dati_mpvs_2d_muon")
+    muon_diff_dEdx = f.Get('muon/gdiff_dEdx')
+    muon_diff_rr = f.Get('muon/differenza_su_media_graph')
+    f_ref = ROOT.TFile.Open("hReference.root")
+    dedx_range_mu = f_ref.Get("hdedx_range_mu_AN")
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+    tgrapherrors_to_matplotlib_ax(ax1,mpvs_muon_1d,'DATA muon mpvs 1D',1, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax1,mpv_muon_2d,'DATA muon mpvs 2D',1, 'orange')
+    root_hist_to_pyerrorbar(ax1,dedx_range_mu,'green',"muon dE/dx reference curve")
+
+    tgrapherrors_to_matplotlib_ax(ax2,muon_diff_rr,'(1D-2D)/average mpv',1.5, 'dimgray')
+    #tgraph_to_matplotlib_ax(ax2,fit_total_rr,'fit',0.5, 'springgreen')
+    ax1.set_ylabel('mpv [MeV/cm]', fontsize=14)
+    ax1.legend(loc='upper right', fontsize=10)
+    ax1.yaxis.set_major_locator(MultipleLocator(1))
+    ax1.yaxis.set_minor_locator(MultipleLocator(0.5))
+    ax1.tick_params(axis='y', labelsize=12)
+    ax2.set_ylabel('(1D-2D)/average mpv', fontsize=14)
+    ax2.legend(loc='lower right', fontsize=10)
+    ax2.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax2.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax2.tick_params(axis='y', labelsize=12)
+    ax2.tick_params(axis='x', labelsize=12)     
+    ax2.set_xlabel('Residual Range [cm]', fontsize=14)
+    plt.savefig('mpvs_1d2d.png', format='png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+
+if False:
+    file1d = uproot.open("../datafiles/fullRun9435_1D.root")
+    mutree1d = file1d['DATAtreeMU']
+    branches1d = mutree1d.arrays()
+
+    dEdx1d = branches1d['dE_mu']
+    rr1d = branches1d['rr_mu']
+    pitch1d = branches1d['pitch_mu']
+    wire1d = branches1d['wire_mu']
+    run1d = branches1d['run']
+    evt1d = branches1d['evt']
+
+    file2d = uproot.open("../datafiles/fullRun9435_2D.root")
+    mutree2d = file2d['DATAtreeMU']
+    branches2d = mutree2d.arrays()
+
+    dEdx2d = branches2d['dE_mu']
+    rr2d = branches2d['rr_mu']
+    pitch2d = branches2d['pitch_mu']
+    wire2d = branches2d['wire_mu']
+    run2d = branches2d['run']
+    evt2d = branches2d['evt']
+
+    #dEdx_mu_ind1 = np.array(ak.flatten(branches_mu['dE_mu_ind1']))
+    #dEdx_mu_ind2 = np.array(ak.flatten(branches_mu['dE_mu_ind2']))
+    #rr_mu_ind1 = np.array(ak.flatten(branches_mu['rr_mu_ind1']))
+    #rr_mu_ind2 = np.array(ak.flatten(branches_mu['rr_mu_ind2']))
+
+    print(len(branches1d['dE_mu']), "tracce di muone con 1D")
+    print(len(branches2d['dE_mu']), "tracce di muone con 2D")
+
+    target_evt=19286
+    mask1d = (run1d == 9435) & (evt1d == target_evt)
+    mask2d = (run2d == 9435) & (evt2d == target_evt)
+    dEdx_temp_1d = np.array(dEdx1d[mask1d][0])
+    dEdx_temp_2d = np.array(dEdx2d[mask2d][0])
+    wire_temp_1d = np.array(wire1d[mask1d][0])
+    wire_temp_2d = np.array(wire2d[mask2d][0])
+    rr_temp_1d = np.array(rr1d[mask1d][0])
+    rr_temp_2d = np.array(rr2d[mask2d][0])
+    pitch_temp_1d = np.array(pitch1d[mask1d][0])
+    pitch_temp_2d = np.array(pitch2d[mask2d][0])
+
+    print(target_evt)
+    print("1D")
+    print("wire")
+    print(wire_temp_1d[rr_temp_1d<5])
+    print("dEdx")
+    print(dEdx_temp_1d[rr_temp_1d<5])
+    print("rr")
+    print(rr_temp_1d[rr_temp_1d<5])
+    print("pitch")
+    print(pitch_temp_1d[rr_temp_1d<5])
+    print("median= ", np.median(dEdx_temp_1d[rr_temp_1d<5][:-2]))
+    
+    print("\n","2D")
+    print("wire")
+    print(wire_temp_2d[rr_temp_2d<5])
+    print("dEdx")
+    print(dEdx_temp_2d[rr_temp_2d<5])
+    print("rr")
+    print(rr_temp_2d[rr_temp_2d<5])
+    print("pitch")
+    print(pitch_temp_2d[rr_temp_2d<5])
+    print("median= ", np.median(dEdx_temp_2d[rr_temp_2d<5][:-2]))
+
+
+    #print(np.median(dEdx_temp_1d[rr_temp_1d<5][:-2]))
+
+    plt.scatter(wire_temp_1d[rr_temp_1d<5][:-2],dEdx_temp_1d[rr_temp_1d<5][:-2],color='cornflowerblue', marker='o', s=4, label='1D DECONV.')
+    plt.scatter(wire_temp_2d[rr_temp_2d<5][:-2], dEdx_temp_2d[rr_temp_2d<5][:-2], color='orange', marker='o', s=4, label='2D DECONV.')
+
+    leg = plt.legend( loc='upper center', fontsize=11)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+    leg.get_frame().set_alpha(1.0)          # opaco
+    plt.setp(leg.get_title(), fontweight='bold')
+
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    #plt.xticks(np.arange(0.,6.,0.3), fontsize=14, rotation=60)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    #plt.xlim(0.,6.)
+    plt.savefig('dEdx_vs_wire_1d2d_run9435_evt19286.svg', format='pdf', bbox_inches='tight')
+    plt.close()
+
+
+np.set_printoptions(suppress=True, precision=3)
+if False:
+    info_1d = np.loadtxt("med9435_1D.txt", delimiter=' ')
+    info_2d = np.loadtxt("med9435_2D.txt", delimiter=' ')
+
+    #info_1d = np.loadtxt("Run2_1D_v09_89_full.txt", delimiter=' ')
+    #info_2d = np.loadtxt("Run2_2D_full.txt", delimiter=' ')
+
+    run1d, evt1d, med1d = info_1d[:,0], info_1d[:,1], info_1d[:,6]
+    run2d, evt2d, med2d = info_2d[:,0], info_2d[:,1], info_2d[:,6]
+    
+    med1d_common,med2d_common=[],[]
+
+    up_left_indeces_1d,up_left_indeces_2d,down_right_indeces_1d,down_right_indeces_2d=[],[],[],[]
+
+    for i in range(len(run1d)):
+        for j in range(len(run2d)):
+            if run1d[i] == run2d[j] and evt1d[i]==evt2d[j] and med1d[i]!=-1 and med2d[j]!=-1 :
+                med1d_common.append(med1d[i])
+                med2d_common.append(med2d[j])
+                #print(med1d[i], med2d[j])
+                if med1d[i]<3.2 and med2d[j]>3.5 :
+                    up_left_indeces_1d.append(i)
+                    up_left_indeces_2d.append(j)
+                if med1d[i]>3.2 and med2d[j]<3.5 :
+                    down_right_indeces_1d.append(i)
+                    down_right_indeces_2d.append(j)
+    
+    
+    print("run evt track_length endx endy endz median")
+    print("up left corner:")
+    print("1D:")
+    print(info_1d[up_left_indeces_1d,:])
+    print("2D:")
+    print(info_2d[up_left_indeces_2d,:])
+    print("down right corner")
+    print("1D:")
+    print(info_1d[down_right_indeces_1d,:])
+    print("2D:")
+    print(info_2d[down_right_indeces_2d,:])
+    
+
+    print(len(med1d_common))
+
+    xh,yh=[0,15],[3.5,3.5]
+    xv,yv=[3.2,3.2],[0,15]
+
+    if False:
+        plt.hist2d(np.array(med1d_common), np.array(med2d_common), bins=(30,30), range=[(0,15),(0,15)], cmap='viridis', norm=LogNorm())
+        plt.plot(xh,yh, color='green', lw=2, alpha=0.8)
+        plt.plot(xv,yv, color='orange', lw=2, alpha=0.8)
+        plt.xlabel('median dE/dx 1D deconv. [MeV/cm]', fontsize=18)
+        plt.ylabel('median dE/dx 2D deconv. [MeV/cm]', fontsize=18)
+        plt.xticks(fontsize=14)
+        plt.yticks(fontsize=14)
+        plt.title("MUONS DATA RUN 2 FULL STAT.")
+        cbar=plt.colorbar()
+        cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+        cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+        plt.savefig('median_1d_vs_2d_fullRun2.png', format='png',dpi=500, bbox_inches='tight')
+        plt.close()
+
+if True:
+    file = uproot.open("../datafiles/mc2d.root")
+    mutree = file['DATAtreeMU']
+    protree = file['DATAtreePRO']
+    branches_mu = mutree.arrays()
+    branches_pro = protree.arrays()
+
+    #print(mutree.keys())
+    chi2_coll=[branches_mu['chi2_mu_coll'], branches_pro['chi2_pro_coll']]
+    chi2_ind1=[branches_mu['chi2_mu_ind1'], branches_pro['chi2_pro_ind1']]
+    chi2_ind2=[branches_mu['chi2_mu_ind2'], branches_pro['chi2_pro_ind2']]
+    chi2=[chi2_coll, chi2_ind1, chi2_ind2]
+
+    hchi_coll=[ROOT.TH1D('hchi2_mu_as_mu_coll','',100,0,250), ROOT.TH1D('hchi2_mu_as_pro_coll','',100,0,250), ROOT.TH1D('hchi2_pro_as_mu_coll','',100,0,250), ROOT.TH1D('hchi2_pro_as_pro_coll','',100,0,250)]
+    hchi_ind1=[ROOT.TH1D('hchi2_mu_as_mu_ind1','',100,0,250), ROOT.TH1D('hchi2_mu_as_pro_ind1','',100,0,250), ROOT.TH1D('hchi2_pro_as_mu_ind1','',100,0,250), ROOT.TH1D('hchi2_pro_as_pro_ind1','',100,0,250)]
+    hchi_ind2=[ROOT.TH1D('hchi2_mu_as_mu_ind2','',100,0,250), ROOT.TH1D('hchi2_mu_as_pro_ind2','',100,0,250), ROOT.TH1D('hchi2_pro_as_mu_ind2','',100,0,250), ROOT.TH1D('hchi2_pro_as_pro_ind2','',100,0,250)]
+    hchi=[hchi_coll, hchi_ind1, hchi_ind2]
+
+    for i_method in range(3):                       # coll, ind1, ind2
+        for label in range(2):                     # 0 = mu-tree, 1 = pro-tree
+            arr = chi2[i_method][label]            # array (Nevents, 2)
+
+            # Trovo la lista corretta di istogrammi per questo metodo
+            hist_list = hchi[i_method]
+
+            # Loop sugli eventi
+            for event in arr:
+                chi2_as_mu  = event[0]
+                chi2_as_pro = event[1]
+
+                if label == 0:     # ramo mu-tree
+                    hist_list[0].Fill(chi2_as_mu)
+                    hist_list[1].Fill(chi2_as_pro)
+                else:              # ramo pro-tree
+                    hist_list[2].Fill(chi2_as_mu)
+                    hist_list[3].Fill(chi2_as_pro)
+    for i in range(3):
+        for j in range(4):
+            hchi[i][j].Scale(1./hchi[i][j].Integral())
+
+    #root_hist_to_pyhist_errors(hchi[0][0], 'royalblue', r'$\chi^2_{\mu}(\mu)$ Coll.')
+    #root_hist_to_pyhist_errors(hchi[0][1], 'cornflowerblue', r'$\chi^2_{p}(\mu)$ Coll.')
+    #root_hist_to_pyhist_errors(hchi[1][0], 'darkorange', r'$\chi^2_{\mu}(\mu)$ Ind1')
+    #root_hist_to_pyhist_errors(hchi[1][1], 'orange', r'$\chi^2_{p}(\mu)$ Ind1')
+    #root_hist_to_pyhist_errors(hchi[2][0], 'green', r'$\chi^2_{\mu}(\mu)$ Ind2')
+    #root_hist_to_pyhist_errors(hchi[2][1], 'limegreen', r'$\chi^2_{p}(\mu)$ Ind2')
+
+    if True:
+        plt.plot([], [], ' ', label="Stats errors only")
+        root_hist_to_pyhist_errors(hchi[0][2], 'darkblue', r'$\chi^2_{\mu}(p)$ Coll.')
+        root_hist_to_pyhist_errors(hchi[0][3], 'cornflowerblue', r'$\chi^2_{p}(p)$ Coll.')
+        root_hist_to_pyhist_errors(hchi[1][2], 'red', r'$\chi^2_{\mu}(p)$ Ind1')
+        root_hist_to_pyhist_errors(hchi[1][3], 'orange', r'$\chi^2_{p}(p)$ Ind1')
+        root_hist_to_pyhist_errors(hchi[2][2], 'darkgreen', r'$\chi^2_{\mu}(p)$ Ind2')
+        root_hist_to_pyhist_errors(hchi[2][3], 'limegreen', r'$\chi^2_{p}(p)$ Ind2')
+        #root_hist_to_pyhist_errors(hchi[0][0], 'darkblue', r'$\chi^2_{\mu}(\mu)$ Coll.')
+        #root_hist_to_pyhist_errors(hchi[0][1], 'cornflowerblue', r'$\chi^2_{p}(\mu)$ Coll.')
+        #root_hist_to_pyhist_errors(hchi[1][0], 'red', r'$\chi^2_{\mu}(\mu)$ Ind1')
+        #root_hist_to_pyhist_errors(hchi[1][1], 'orange', r'$\chi^2_{p}(\mu)$ Ind1')
+        #root_hist_to_pyhist_errors(hchi[2][0], 'darkgreen', r'$\chi^2_{\mu}(\mu)$ Ind2')
+        #root_hist_to_pyhist_errors(hchi[2][1], 'limegreen', r'$\chi^2_{p}(\mu)$ Ind2')
+        #plt.xlabel(r'$\chi^2(\mu)$', fontsize=18)
+        plt.xlabel(r'$\chi^2(p)$', fontsize=18)
+        plt.ylabel('entries (area normalized)', fontsize=18)
+        #plt.title(r"MUONS $\chi^2$ - MC 2D DECONV.", fontsize=18)
+        plt.title(r"PROTONS $\chi^2$ - MC 2D DECONV.", fontsize=18)
+        leg = plt.legend(loc='upper center', fontsize=11)
+        leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+        leg.get_frame().set_alpha(1.0)          # opaco
+        plt.setp(leg.get_title(), fontweight='bold')
+        plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+        plt.xticks(np.arange(0,100,10), fontsize=14)
+        #plt.xticks(np.arange(0,200,10), fontsize=14, rotation=60)
+        plt.yticks(fontsize=14)
+        #plt.xlim(0.,200)
+        plt.xlim(0.,100)
+        plt.ylim(0.,0.42)
+        plt.savefig('../PID/grafici/chi_pro.svg', format='svg', bbox_inches='tight')
+        plt.close()
+
+    if False:
+        plt.hist2d(np.asarray(chi2[0][0])[:,0], np.asarray(chi2[1][0])[:,0], bins=(50,50), range=[(0,50),(0,50)], cmap='viridis', norm=LogNorm())
+        plt.xlabel(r'$\chi^2_{\mu}(\mu)$ Collection plane', fontsize=18)
+        plt.ylabel(r'$\chi^2_{\mu}(\mu)$ Induction 1 plane', fontsize=18)
+        plt.xticks(fontsize=14)
+        plt.yticks(fontsize=14)
+        #plt.title("MUONS 10% DATA 2D DECONV. COLL PLANE")
+        cbar=plt.colorbar()
+        cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+        cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+        plt.savefig('chi_mu_as_mu_collIND1.png', format='png',dpi=500, bbox_inches='tight')
+        plt.close()
+
+
+
+

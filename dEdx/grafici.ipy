@@ -1,0 +1,1458 @@
+import ROOT
+import uproot
+import matplotlib.pyplot as plt
+import numpy as np
+import awkward as ak
+import pandas
+
+if False:
+    file = uproot.open("../datiDAT_1muNp_fullRR.root")
+    mutree = file['DATAtreeMU']
+    protree = file['DATAtreePRO']
+    branches_mu = mutree.arrays()
+    branches_pro = protree.arrays()
+
+    print(mutree.keys())
+    dEdx_mu = np.array(ak.flatten(branches_mu['dE_mu']))
+    dEdx_pro = np.array(ak.flatten(branches_pro['dE_pro']))
+    Eint_mu = np.array(ak.flatten(branches_mu['Eint_mu']))
+    Eint_pro = np.array(ak.flatten(branches_pro['Eint_pro']))
+    rr_mu = np.array(ak.flatten(branches_mu['rr_mu']))
+    rr_pro = np.array(ak.flatten(branches_pro['rr_pro']))
+    rr_mu_invertito = np.array(ak.flatten(branches_mu['rr_mu_invertito']))
+    rr_pro_invertito = np.array(ak.flatten(branches_pro['rr_pro_invertito']))
+    pitch_mu = np.array(ak.flatten(branches_mu['pitch_mu']))
+    pitch_pro = np.array(ak.flatten(branches_pro['pitch_pro']))
+    mult_mu = np.array(ak.flatten(branches_mu['mult_mu']))
+    mult_pro = np.array(ak.flatten(branches_pro['mult_pro']))
+
+    print(len(ak.to_list(branches_mu['dE_mu'])), "tracce di muone")
+    print(len(ak.to_list(branches_pro['dE_pro'])), "tracce di protone")
+
+
+from matplotlib.colors import LogNorm
+
+#endpoint_reco = ak.to_list(branches_mu['end_reco_mu'])
+#endpoint_true = ak.to_list(branches_mu['end_true_mu'])
+#
+#for track in range(len(endpoint_reco)):
+#    if 209 < endpoint_reco[track][0] < 211 or -211 < endpoint_reco[track][0] < -209 :
+#        if np.linalg.norm(np.array(endpoint_reco[track])-np.array(endpoint_true[track]))>3:
+#            print(branches_mu['run'][track], branches_mu['subrun'][track], branches_mu['evt'][track])
+
+if False:
+    def closer_hit(rr):
+        best_hit=-1
+        best_distance=10000
+        for irr in range(len(rr)):
+            if abs(rr[irr]-10)<best_distance:
+                best_hit=irr
+                best_distance=abs(rr[irr]-10)
+        return best_hit
+
+    pitch = ak.to_list(branches_pro['pitch_pro'])
+    dEdx = ak.to_list(branches_pro['dE_pro'])
+    rr = ak.to_list(branches_pro['rr_pro'])
+    length = ak.to_list(branches_pro['len_reco_pro'])
+    run = ak.to_list(branches_pro['run'])
+    subrun = ak.to_list(branches_pro['subrun'])
+    evt = ak.to_list(branches_pro['evt'])
+    good_run=[]
+    good_subrun=[]
+    good_evt=[]
+    good_Eint=[]
+
+    for track in range(len(rr)):
+        if(length[track]>10):
+            rr_temp = rr[track][::-1]
+            dEdx_temp = dEdx[track][::-1]
+            pitch_temp = pitch[track][::-1]
+            best_hit = closer_hit(rr_temp)
+            Eint_val=0
+            for hit in range(len(rr_temp)):
+                if hit<=best_hit:
+                    Eint_val = Eint_val + dEdx_temp[hit]*pitch_temp[hit]
+            if Eint_val < 40 and Eint_val > 20 :
+                good_run.append(run[track])
+                good_subrun.append(subrun[track])
+                good_evt.append(evt[track])
+                good_Eint.append(Eint_val)
+
+    for i in range(len(good_run)):
+        print(good_run[i], ',')
+        if i>20:break
+    print('\n')
+    for i in range(len(good_subrun)):
+        print(good_subrun[i], ',')
+        if i>20:break
+    print('\n')
+    for i in range(len(evt)):
+        print(good_evt[i], ',')
+        if i>20:break
+    print('\n')
+    for i in range(len(good_Eint)):
+        print(good_Eint[i], ',')
+        if i>20:break
+
+if False:
+    endpoint_reco=ak.to_list(branches_mu['end_reco_mu'])
+    endpoint_true=ak.to_list(branches_mu['end_true_mu'])
+
+    good_run=[]
+    good_subrun=[]
+    good_evt=[]
+
+    for track in range(len(endpoint_reco)):
+        end_reco = np.array(endpoint_reco[track])
+        end_true = np.array(endpoint_true[track])
+        if np.linalg.norm(end_reco - end_true)>3:
+            good_run.append(ak.to_list(branches_mu['run'][track]))
+            good_subrun.append(ak.to_list(branches_mu['subrun'][track]))
+            good_evt.append(ak.to_list(branches_mu['evt'][track]))
+    for i in range(len(good_run)):
+        print(good_run[i], ',')
+        if i>20:break
+    print('\n')
+    for i in range(len(good_subrun)):
+        print(good_subrun[i], ',')
+        if i>20:break
+    print('\n')
+    for i in range(len(good_evt)):
+        print(good_evt[i], ',')
+        if i>20:break
+
+if False:
+    good_run=[]
+    good_subrun=[]
+    good_evt=[]
+    dEdx = ak.to_list(branches_mu['dE_mu'])
+    for track in range(len(dEdx)):
+        rejected=True
+        for hit in range(len(dEdx[track])):
+            if dEdx[track][hit]>1.5 : rejected=False
+        if rejected==False:
+            good_run.append(ak.to_list(branches_mu['run'][track]))
+            good_subrun.append(ak.to_list(branches_mu['subrun'][track]))
+            good_evt.append(ak.to_list(branches_mu['evt'][track]))
+    for i in range(len(good_run)):
+        print(good_run[i], ',')
+        if i>20:break
+    print('\n')
+    for i in range(len(good_subrun)):
+        print(good_subrun[i], ',')
+        if i>20:break
+    print('\n')
+    for i in range(len(good_evt)):
+        print(good_evt[i], ',')
+        if i>20:break
+
+#dEdx con condizione sulla mediana
+if False:
+    dEdx_mediana_ok =[]
+    rr_mediana_ok=[]
+    dEdx = ak.to_list(branches_pro['dE_pro'])
+    rr = ak.to_list(branches_pro['rr_pro'])
+    for track in range(len(dEdx)):
+        dEdx_temp=[]
+        for hit in range(len(dEdx[track])):
+            if rr[track][hit]<5. :
+                dEdx_temp.append(dEdx[track][hit])
+        if len(dEdx_temp[:-2]) == 0 : continue
+        if np.median(dEdx_temp[:-2])>8:     
+            dEdx_mediana_ok.append(dEdx[track][:-2])
+            rr_mediana_ok.append(rr[track][:-2])
+
+    plt.hist2d(np.array(np.concatenate(rr_mediana_ok)),np.array(np.concatenate(dEdx_mediana_ok)), bins=(250, 300), range=[(0,25), (0,30)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('dEdx_filtro_mediana_pro.png', format='png',dpi=600, bbox_inches='tight')
+    plt.close()
+
+#plot Eint
+if False :
+    plt.hist2d(rr_mu_invertito, Eint_mu, bins=(250,1000), range=[(0,25),(0,200)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('Integrated Energy [MeV]', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.text(
+    12.5, 180, "MUONS MC",
+    fontsize=18,                   
+    color="black",                 
+    ha="center", va="center",      
+    bbox=dict(
+        facecolor="white",        
+        edgecolor="lightgray",         
+        boxstyle="round,pad=0.5",  
+        alpha=0.8                  
+    )
+    )
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('mu_Eint.png', format='png',dpi=500, bbox_inches='tight')
+    plt.close()
+    plt.hist2d(rr_pro_invertito, Eint_pro, bins=(250,1000), range=[(0,25),(0,200)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('Integrated Energy [MeV]',fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.text(
+    8, 180, "PROTONS MC",
+    fontsize=18,                   
+    color="black",                 
+    ha="center", va="center",      
+    bbox=dict(
+        facecolor="white",        
+        edgecolor="lightgray",         
+        boxstyle="round,pad=0.5",  
+        alpha=0.8                  
+    )
+    )
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('pro_Eint.png', format='png', dpi=500, bbox_inches='tight')
+    plt.close()
+
+#plot dEdx
+if False :
+    plt.hist2d(rr_mu, dEdx_mu, bins=(250,300), range=[(0,25),(0,30)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.text(
+    15, 27, "MUONS MC",
+    fontsize=18,                   
+    color="black",                 
+    ha="center", va="center",      
+    bbox=dict(
+        facecolor="white",        
+        edgecolor="lightgray",         
+        boxstyle="round,pad=0.5",  
+        alpha=0.8                  
+    )
+    )
+    cbar=plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('mu_dEdx.png', format='png',dpi=500, bbox_inches='tight')
+    plt.close()
+    plt.hist2d(rr_pro, dEdx_pro, bins=(250,300), range=[(0,25),(0,30)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('dE/dx [MeV/cm]',fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.text(
+    15, 27, "PROTONS MC",
+    fontsize=18,                   
+    color="black",                 
+    ha="center", va="center",      
+    bbox=dict(
+        facecolor="white",        
+        edgecolor="lightgray",         
+        boxstyle="round,pad=0.5",  
+        alpha=0.8                  
+    )
+    )
+    cbar=plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('pro_dEdx.png', format='png', dpi=500, bbox_inches='tight')
+    plt.close()
+
+
+#plot dEdx vs multiplicity
+if False :
+    plt.hist2d(dEdx_mu, mult_mu, bins=(300,6), range=[(0,30),(1,6)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('hit multiplicity', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    cbar=plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.title('DATA - MUONS', fontsize=18)
+    plt.savefig('mu_dEdx_vs_mult.png', format='png',dpi=600, bbox_inches='tight')
+    plt.close()
+
+
+    plt.hist2d(dEdx_pro, mult_pro, bins=(300,6), range=[(0,30),(1,6)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('hit multiplicity',fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    cbar=plt.colorbar()
+    plt.title('DATA - PROTONS', fontsize=18)
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('pro_dEdx_vs_mul.png', format='png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+#plot pitch
+if False:
+    plt.hist(pitch_pro*10, 60, range=(0,15), histtype='step', linewidth=2, density=True, label='protons MC')
+    plt.hist(pitch_mu*10, 60, range=(0,15), histtype='step', linewidth=2, density=True, label='muons MC')
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlabel('pitch [mm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(loc='upper right', fontsize=18)
+    plt.savefig('pitch.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+#plot dEdx and Eint with bad endpoint
+if False:
+    tracks_dEdx = ak.to_list(branches_mu['dE_mu'])
+    tracks_rr = ak.to_list(branches_mu['rr_mu'])
+    tracks_Eint = ak.to_list(branches_mu['Eint_mu'])
+    tracks_rr_invertito = ak.to_list(branches_mu['rr_mu_invertito'])
+    endpoint_reco = ak.to_list(branches_mu['end_reco_mu'])
+    endpoint_true = ak.to_list(branches_mu['end_true_mu'])
+
+    dEdx_end_mag3=[]
+    rr_end_mag3=[]
+    Eint_end_mag3=[]
+    rr_invertito_end_mag3=[]
+
+    for track in range(len(tracks_dEdx)):
+        end_reco = np.array(endpoint_reco[track])
+        end_true = np.array(endpoint_true[track])
+        if np.linalg.norm(end_reco - end_true)>3:
+            dEdx_end_mag3.append(tracks_dEdx[track])
+            rr_end_mag3.append(tracks_rr[track])
+            Eint_end_mag3.append(tracks_Eint[track])
+            rr_invertito_end_mag3.append(tracks_rr_invertito[track])
+
+    mask_rr = np.array(ak.flatten(dEdx_end_mag3)) < 25
+    print(np.mean(np.array(ak.flatten(dEdx_end_mag3))[mask_rr]), np.std(np.array(ak.flatten(dEdx_end_mag3))[mask_rr]))
+
+    plt.hist2d(np.array(ak.flatten(rr_end_mag3)), np.array(ak.flatten(dEdx_end_mag3)), bins=(250, 300), range=[(0,25), (0,30)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.text(
+    12.5, 27, "MUONS MC reco-true endpoint > 3 cm",
+    fontsize=12,                   
+    color="black",                 
+    ha="center", va="center",      
+    bbox=dict(
+        facecolor="white",        
+        edgecolor="lightgray",         
+        boxstyle="round,pad=0.5",  
+        alpha=0.8                  
+    )
+    )
+    cbar=plt.colorbar()
+    cbar.ax.tick_params(labelsize=14) 
+    cbar.set_label('Frequency', fontsize=16)  
+    plt.savefig('bad_endpoint.png', format='png', dpi=500, bbox_inches='tight')
+    plt.close()
+    plt.hist2d(np.array(ak.flatten(rr_invertito_end_mag3)), np.array(ak.flatten(Eint_end_mag3)), bins=(250, 1000), range=[(0,25), (0,100)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('Eint [MeV]', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.text(
+    12.5, 90, "MUONS MC reco-true endpoint > 3 cm",
+    fontsize=12,                   
+    color="black",                 
+    ha="center", va="center",      
+    bbox=dict(
+        facecolor="white",        
+        edgecolor="lightgray",         
+        boxstyle="round,pad=0.5",  
+        alpha=0.8                  
+    )
+    )
+    cbar=plt.colorbar()
+    cbar.ax.tick_params(labelsize=14) 
+    cbar.set_label('Frequency', fontsize=16)  
+    plt.savefig('bad_endpoint_Eint.png', format='png', dpi=500, bbox_inches='tight')
+    plt.close()
+
+
+if False:
+    endpoint_reco = ak.to_list(branches_mu['end_reco_mu'])
+    endpoint_true = ak.to_list(branches_mu['end_true_mu'])
+
+    end_distance=[]
+
+    for track in range(len(endpoint_reco)):
+        end_reco = np.array(endpoint_reco[track])
+        end_true = np.array(endpoint_true[track])
+        end_distance.append(np.linalg.norm(end_reco-end_true))
+
+    plt.hist(np.array(end_distance), 100, range=(0,10), histtype='step', linewidth=2, density=True)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.xlabel('reconstructed - true track endpoint 3D distance [cm]', fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title('MUONS MC', fontsize=18)
+    plt.savefig('endpoint_distance_distribution.pdf', bbox_inches='tight')
+    plt.close()
+
+
+#calcolo l'energia cinetica
+if False:
+    mom_pro_awk = branches_pro['gen_momentum_pro'] * 1000  # GeV -> MeV
+    mom_mu_awk = branches_mu['gen_momentum_mu'] * 1000  # GeV -> MeV
+    p_pro = np.sqrt(
+        mom_pro_awk[:, 0]**2 +
+        mom_pro_awk[:, 1]**2 +
+        mom_pro_awk[:, 2]**2
+    )
+    proKE = np.sqrt(938.27208816**2 + p_pro**2) - 938.27208816  # MeV
+    p_mu = np.sqrt(
+        mom_mu_awk[:, 0]**2 +
+        mom_mu_awk[:, 1]**2 +
+        mom_mu_awk[:, 2]**2
+    )
+    muKE = np.sqrt(105.7**2 + p_mu**2) - 105.7  # MeV
+
+    # Maschera booleana per KE < 300 MeV
+    mask = proKE < 200
+
+    # Applichiamo il filtro mantenendo la struttura e poi flatten se serve
+    dEdx_ip = ak.flatten(branches_pro['dE_pro'][mask])
+    rr_ip = ak.flatten(branches_pro['rr_pro'][mask])
+    Eint_ip = ak.flatten(branches_pro['Eint_pro'][mask])
+    rr_invertito_ip = ak.flatten(branches_pro['rr_pro_invertito'][mask])
+
+    plt.hist(np.array(proKE), bins=100, range=(0,2000), label='MC protons', histtype='step', density=True, linewidth=2)
+    plt.hist(np.array(muKE), bins=100, range=(0,2000), label='MC muons', histtype='step', density=True, linewidth=2)
+    plt.xlabel("Kinetic Energy [MeV]", fontsize=18)
+    plt.ylabel("Entries (area normalized)", fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(loc='upper right', fontsize=18)
+    plt.savefig('kineticE.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+    plt.hist2d(np.array(rr_invertito_ip), np.array(Eint_ip), bins=(250,1000), range=[(0,25),(0,200)], cmap='viridis', norm=LogNorm())
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('Integrated Energy [MeV]', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.text(
+    15, 20, r"MC PROTONS $E_K$<200 MeV",
+    fontsize=14,                   
+    color="black",                 
+    ha="center", va="center",      
+    bbox=dict(
+        facecolor="white",        
+        edgecolor="lightgray",         
+        boxstyle="round,pad=0.5",  
+        alpha=0.8                  
+    )
+    )
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=14)  # cambia la dimensione dei numeri
+    cbar.set_label('Frequency', fontsize=16)  # etichetta della barra
+    plt.savefig('Eint_interacting_proton.png', format='png',dpi=500, bbox_inches='tight')
+    plt.close()
+
+from matplotlib.ticker import MultipleLocator
+#lunghezza protoni con una determinata energia cinetica
+if False:
+    mom_pro_awk = branches_pro['gen_momentum_pro'] * 1000  # GeV -> MeV
+    p_pro = np.sqrt(
+        mom_pro_awk[:, 0]**2 +
+        mom_pro_awk[:, 1]**2 +
+        mom_pro_awk[:, 2]**2
+    )
+    proKE = np.sqrt(938.27208816**2 + p_pro**2) - 938.27208816  # MeV
+
+    # Maschera booleana per KE < 300 MeV
+    mask = proKE < 200
+
+    len_pro_min200 = np.array(branches_pro['len_reco_pro'][mask])
+    len_pro = np.array(branches_pro['len_reco_pro'])
+
+    plt.hist(len_pro_min200, bins=100, range=(0,100), label=r'MC protons $E_K<200$ MeV', histtype='step', density=False, linewidth=2)
+    plt.hist(len_pro, bins=100, range=(0,100), label='MC protons', histtype='step', density=False, linewidth=2)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(10))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(5))
+    plt.xlabel("proton length [cm]", fontsize=18)
+    plt.ylabel("Entries (area normalized)", fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(loc='upper right', fontsize=16)
+    plt.savefig('lunghezza_protoni.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+
+    
+
+#sum adc vs integral    
+if False:
+    muon_sumadc = ak.flatten(branches_mu['sumadc_mu'])
+    muon_integral = ak.flatten(branches_mu['integral_mu'])
+    muon_multiplicity = ak.flatten(branches_mu['mult_mu'])
+    proton_sumadc = ak.flatten(branches_pro['sumadc_pro'])
+    proton_integral = ak.flatten(branches_pro['integral_pro'])
+    proton_multiplicity = ak.flatten(branches_pro['mult_pro'])
+
+    mask_mu = muon_multiplicity==1
+    mask_pro = proton_multiplicity==1
+
+    plt.hist2d(np.array(proton_sumadc), np.array(proton_integral), bins=(700,600), range=[(0,7000),(0,6000)], cmap='viridis', norm=LogNorm() )
+    plt.xlabel('SumADC [ADC]', fontsize=18)
+    plt.ylabel(r'Integral [ADC$\cdot\mu$s]', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.text(
+    2500, 5500, "PROTONS DATA, all hits",
+    fontsize=14,                   
+    color="black",                 
+    ha="center", va="center",      
+    bbox=dict(
+        facecolor="white",        
+        edgecolor="lightgray",         
+        boxstyle="round,pad=0.5",  
+        alpha=0.8                  
+    )
+    )
+    cbar=plt.colorbar()
+    cbar.ax.tick_params(labelsize=14) 
+    cbar.set_label('Frequency', fontsize=16)  
+    plt.savefig('pro_integral_vs_sumadc.png', format='png', dpi=500, bbox_inches='tight')
+    plt.close()
+
+def root_hist_to_pyhist(th1d, colore, llabel):
+    th1d.Rebin(2)
+    n_bins = th1d.GetNbinsX()
+    x_edges = [th1d.GetBinLowEdge(i+1) for i in range(n_bins)]
+    x_edges.append(th1d.GetBinLowEdge(n_bins) + th1d.GetBinWidth(n_bins))
+    bin_contents = [th1d.GetBinContent(i+1) for i in range(n_bins)]
+    bin_errors = [th1d.GetBinError(i+1) for i in range(n_bins)]
+    bin_centers =[th1d.GetBinCenter(i+1) for i in range(n_bins)]
+    x_bin_errors=[th1d.GetBinWidth(i+1)/2 for i in range(n_bins)]
+
+    
+    # Creazione step per linee orizzontali
+    x_step = np.repeat(x_edges, 2)[1:-1]
+    y_step = np.repeat(bin_contents, 2)
+    
+    # Aggiunta linee verticali agli estremi
+    x_step = np.insert(x_step, 0, x_edges[0])
+    y_step = np.insert(y_step, 0, 0)  # parte dal basso
+    x_step = np.append(x_step, x_edges[-1])
+    y_step = np.append(y_step, 0)     # torna a 0 alla fine
+    
+    plt.step(x_step, y_step, where='mid', linewidth=2, color=colore, label=llabel)
+    
+    #plt.errorbar(bin_centers,bin_contents,xerr=x_bin_errors,yerr=bin_errors, fmt='o', color=colore, label=llabel, markersize=1)
+
+    plt.ylim(0, max(bin_contents)*1.1)
+    #plt.savefig('histo_prova_bar.pdf', format='pdf', bbox_inches='tight')
+
+#plot reference curves
+if False:
+    file = ROOT.TFile.Open('../THdedx.root')
+    hdEdxmu = file.Get('dedx_range_mu')
+    hdEdxpro = file.Get('dedx_range_pro')
+    hdEdxpi = file.Get('dedx_range_pi')
+    hdEdxka = file.Get('dedx_range_ka')
+    root_hist_to_pyhist(hdEdxmu, 'blue', 'muons')
+    root_hist_to_pyhist(hdEdxpro, 'orange', 'protons')
+    root_hist_to_pyhist(hdEdxpi, 'red', 'pions')
+    root_hist_to_pyhist(hdEdxka, 'green', 'kaons')
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.legend(loc='upper right', fontsize=18)
+    plt.xticks(np.arange(-1,11,1), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.05,10)
+    plt.ylim(0,50)
+    plt.savefig('dEdx_range_reference.pdf', format='pdf', bbox_inches='tight')
+
+if False:
+    file = ROOT.TFile.Open('../outTPC.root')
+    dEdxEE = file.Get('MC/dEdx_EE')
+    dEdxEW = file.Get('MC/dEdx_EW')
+    dEdxWE = file.Get('MC/dEdx_WE')
+    dEdxWW = file.Get('MC/dEdx_WW')
+    root_hist_to_pyhist(dEdxEE, 'blue', r'EE mpv=1.646, width=0.225')
+    root_hist_to_pyhist(dEdxEW, 'orange', r'EW mpv=1.640, width=0.228')
+    root_hist_to_pyhist(dEdxWE, 'red', r'WE mpv=1.644, width=0.225')
+    root_hist_to_pyhist(dEdxWW, 'green', r'WW mpv=1.641, width=0.225')
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(title ='MC: MUONS 100 < RR < 150 cm', loc='upper right', fontsize=11)
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,5.,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,6.5)
+    plt.savefig('dEdx_differentTPC_MC.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('../outTPC.root')
+    dEdxEE = file.Get('DATI/dEdx_EE')
+    dEdxEW = file.Get('DATI/dEdx_EW')
+    dEdxWE = file.Get('DATI/dEdx_WE')
+    dEdxWW = file.Get('DATI/dEdx_WW')
+    root_hist_to_pyhist(dEdxEE, 'blue', r'EE MPV=1.700, width=0.220')
+    root_hist_to_pyhist(dEdxEW, 'orange', r'EW MPV=1.698, width=0.216')
+    root_hist_to_pyhist(dEdxWE, 'red', r'WE MPV=1.691, width=0.205')
+    root_hist_to_pyhist(dEdxWW, 'green', r'WW MPV=1.695, width=0.206')
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(title ='DATA: MUONS 100 < RR < 150 cm', loc='upper right', fontsize=11)
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,5.,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,5)
+    plt.savefig('dEdx_differentTPC_DATI.pdf', format='pdf', bbox_inches='tight')
+    plt.close()    
+
+if False:
+    file = ROOT.TFile.Open('../outTPC.root')
+    dEdxMC = file.Get('MC/dedx_rr_100_150')
+    dEdxDAT = file.Get('DATI/dedx_rr_100_150')
+    root_hist_to_pyhist(dEdxMC, 'blue', 'MC')
+    root_hist_to_pyhist(dEdxDAT, 'red', 'DATA')
+
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(title = 'MUONS 100 < RR < 150 cm', title_fontsize=14, loc='upper right', fontsize=14)
+    plt.xticks(np.arange(0.2,5.,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,5)
+    plt.savefig('dEdx_dati_mc.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if True:
+    import matplotlib.patches as patches
+    import matplotlib.colors as mcolors
+
+    mc = [1.6455, 1.6398, 1.6436, 1.6412]
+    print('mc', np.mean(mc), np.std(mc,ddof=1), np.std(mc,ddof=1)/np.mean(mc)*100)
+    mc_err = [0.0005, 0.0005, 0.0005, 0.0005]
+    dat = [1.7004, 1.6983, 1.6911, 1.6951]
+    print('dat', np.mean(dat), np.std(dat,ddof=1), np.std(dat,ddof=1)/np.mean(dat)*100)
+    dat_err = [0.0008, 0.0008, 0.0007, 0.0008]
+    tpc = [1, 2, 3, 4]
+    xerr = [0, 0, 0, 0]
+
+    fig, ax = plt.subplots()
+
+    # Plot dei punti con barre di errore
+    ax.errorbar(tpc, mc, xerr=xerr, yerr=mc_err, fmt='o', label='MC', color='blue', markersize=3)
+    ax.errorbar(tpc, dat, xerr=xerr, yerr=dat_err, fmt='o', label='DATA', color='red', markersize=3)  
+
+    # Aggiunta rettangolo semitrasparente
+    blue_alpha = mcolors.to_rgba('blue', alpha=0.3)
+    rectmc = patches.Rectangle(
+        (0, 1.6398), 5, 0.0057,
+        facecolor=blue_alpha,
+        edgecolor='blue'
+    )
+    ax.add_patch(rectmc)
+
+    red_alpha = mcolors.to_rgba('red', alpha=0.3)
+    rectdat = patches.Rectangle(
+        (0, 1.6911), 5, 0.0093,
+        facecolor=red_alpha,
+        edgecolor='red'
+    )
+    ax.add_patch(rectdat)
+
+    ax.text(0.1, 1.648, 'av.=1.643, dev. std.=0.003',fontsize=11, color='blue')
+    ax.axhline(y=1.643, xmin=0.05, xmax=0.95, color='blue', linestyle='--', linewidth=1)
+    ax.text(0.1, 1.688, 'av.=1.696, std. dev.=0.004',fontsize=11, color='red')
+    ax.axhline(y=1.696, xmin=0.05, xmax=0.95, color='red', linestyle='--', linewidth=1)
+    ax.text(2.6, 1.67, '3.2%',fontsize=14, color='black')
+    ax.annotate(
+        '',                      # testo vuoto
+        xy=(2.5,1.696 ),           # punta superiore
+        xytext=(2.5, 1.643),     # punta inferiore
+        arrowprops=dict(
+            arrowstyle='<->',    # freccia a due punte
+            color='black',
+            linewidth=1.5
+        )
+    )
+
+    print(2*(1.696225-1.642525)/(1.696225+1.642525)*100)
+
+    ax.set_xticks([1, 2, 3, 4])
+    ax.set_xticklabels(['EE', 'EW', 'WE', 'WW'], fontsize=14)
+    ax.tick_params(axis='y', labelsize=14)
+    ax.set_xlabel('TPC', fontsize=18)
+    ax.set_ylabel('mpv [MeV/cm]', fontsize=18)
+    leg = ax.legend(loc='best', fontsize=18)
+    leg.get_frame().set_facecolor('white')  # sfondo bianco
+    leg.get_frame().set_alpha(1.0)          # opaco
+    fig.savefig("difference_mpv_tpc.svg", format='svg', bbox_inches='tight')
+
+#2d
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdx_1d = file.Get("muon/dati/hdEdx")
+    dEdx_2d = file.Get("muon/dati2d/hdEdx")
+    root_hist_to_pyhist(dEdx_1d, 'cornflowerblue', "1D DECONV")
+    root_hist_to_pyhist(dEdx_2d, 'orange', "2D DECONV")
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    #plt.title("DATI 2D DECONV.", fontsize=18)
+    plt.legend(title ='DATA MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,5.5,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,5.5)
+    plt.savefig('dEdx_dati_1d2d.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    median_1d = file.Get("muon/dati/h_median")
+    median_2d = file.Get("muon/dati2d/h_median")
+    root_hist_to_pyhist(median_1d, 'cornflowerblue', "1D DECONV")
+    root_hist_to_pyhist(median_2d, 'orange', "2D DECONV")
+    plt.xlabel('median dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.title("MEDIAN dE/dx last 5 cm (no last 2 hits)", fontsize=18)
+    plt.legend(title ='DATA MU 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0,10,1), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0,10)
+    plt.savefig('median_dati_1d2d.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdxEE = file.Get('DATI_2D/dEdx_EE')
+    dEdxEW = file.Get('DATI_2D/dEdx_EW')
+    dEdxWE = file.Get('DATI_2D/dEdx_WE')
+    dEdxWW = file.Get('DATI_2D/dEdx_WW')
+    root_hist_to_pyhist(dEdxEE, 'blue', r'EE mpv=2.012, width=0.280')
+    root_hist_to_pyhist(dEdxEW, 'orange', r'EW mpv=2.014, width=0.291')
+    root_hist_to_pyhist(dEdxWE, 'red', r'WE mpv=1.995, width=0.258')
+    root_hist_to_pyhist(dEdxWW, 'green', r'WW mpv=2.026, width=0.280')
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.title("DATI 2D DECONV.", fontsize=18)
+    plt.legend(title ='MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,6.5,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,6.5)
+    plt.savefig('dEdx_differentTPC_dati_2d.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+
+if False:
+    file = ROOT.TFile.Open('outTPC_dati_1d_vs_2d.root')
+    dEdxEE = file.Get('DATI/dEdx_EE')
+    dEdxEW = file.Get('DATI/dEdx_EW')
+    dEdxWE = file.Get('DATI/dEdx_WE')
+    dEdxWW = file.Get('DATI/dEdx_WW')
+    root_hist_to_pyhist(dEdxEE, 'blue', r'EE mpv=1.974, width=0.266')
+    root_hist_to_pyhist(dEdxEW, 'orange', r'EW mpv=1.967, width=0.265')
+    root_hist_to_pyhist(dEdxWE, 'red', r'WE mpv=1.970, width=0.254')
+    root_hist_to_pyhist(dEdxWW, 'green', r'WW mpv=1.980, width=0.258')
+    plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.title("DATI 1D DECONV.", fontsize=18)
+    plt.legend(title ='MUONS 25 < RR < 30 cm', loc='upper right', fontsize=11)
+    plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+    plt.xticks(np.arange(0.2,6.5,0.5), fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.2,6.5)
+    plt.savefig('dEdx_differentTPC_dati_1d.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    import matplotlib.patches as patches
+
+    dat_2d = [2.01163, 2.01403, 1.99483, 2.02611]
+    print('dat_2d', np.mean(dat_2d), np.std(dat_2d,ddof=1), np.std(dat_2d,ddof=1)/np.mean(dat_2d)*100)
+    dat_2d_err = [0.00268223, 0.00266895, 0.00242079, 0.00264015]
+    dat = [1.9738, 1.96683, 1.96956, 1.97983]
+    print('dat', np.mean(dat), np.std(dat,ddof=1), np.std(dat,ddof=1)/np.mean(dat)*100)
+    dat_err = [0.00243129, 0.00235635, 0.00229888, 0.00233032]
+    tpc = [1, 2, 3, 4]
+    xerr = [0, 0, 0, 0]
+
+    fig, ax = plt.subplots()
+
+    # Plot dei punti con barre di errore
+    ax.errorbar(tpc, dat_2d, xerr=xerr, yerr=dat_2d_err, fmt='o', label='2D DECONV.', color='orange', markersize=3)
+    ax.errorbar(tpc, dat, xerr=xerr, yerr=dat_err, fmt='o', label='1D DECONV.', color='green', markersize=3)  
+
+    # Aggiunta rettangolo semitrasparente
+    rectmc = patches.Rectangle(
+        (0, 2.02611), 5, -0.03128,
+        facecolor='orange',
+        edgecolor='orange',
+        alpha=0.3
+    )
+    ax.add_patch(rectmc)
+
+    rectdat = patches.Rectangle(
+        (0, 1.97983), 5, -0.013,
+        facecolor='green',
+        edgecolor='green',
+        alpha=0.3
+    )
+    ax.add_patch(rectdat)
+
+    ax.text(0.1, 1.992 , 'av.=2.012, std dev.=0.64%',fontsize=11, color='orange')
+    ax.axhline(y=2.012, xmin=0.05, xmax=0.95, color='orange', linestyle='--', linewidth=1)
+    ax.text(0.1, 1.981, 'av.=1.973, std dev.=0.29%',fontsize=11, color='green')
+    ax.axhline(y=1.973, xmin=0.05, xmax=0.95, color='green', linestyle='--', linewidth=1)
+    ax.text(2.6, 1.985, '2%',fontsize=14, color='black')
+    ax.annotate(
+        '',                      # testo vuoto
+        xy=(2.5,2.012 ),           # punta superiore
+        xytext=(2.5, 1.973),     # punta inferiore
+        arrowprops=dict(
+            arrowstyle='<->',    # freccia a due punte
+            color='black',
+            linewidth=1.5
+        )
+    )
+
+    print(2*(2.0116500000000004-1.972505)/(2.0116500000000004+1.972505)*100)
+
+    ax.set_xticks([1, 2, 3, 4])
+    ax.set_xticklabels(['EE', 'EW', 'WE', 'WW'], fontsize=14)
+    ax.tick_params(axis='y', labelsize=14)
+    ax.set_xlabel('TPC', fontsize=18)
+    ax.set_ylabel('mpv [MeV/cm]', fontsize=18)
+    ax.legend(loc='upper center', fontsize=14)
+    fig.savefig("difference_mpv_tpc_dati_1d2d.pdf", format='pdf', bbox_inches='tight')
+
+
+
+
+def tgrapherrors_to_matplotlib(graph, llabel):
+    # Estrazione punti e errori
+    n_points = graph.GetN()
+    x = np.array([graph.GetPointX(i) for i in range(n_points)], dtype=float)
+    y = np.array([graph.GetPointY(i) for i in range(n_points)], dtype=float)
+    ex = np.array([graph.GetErrorX(i) for i in range(n_points)], dtype=float)
+    ey = np.array([graph.GetErrorY(i) for i in range(n_points)], dtype=float)
+
+    # Disegno errorbar
+    plt.errorbar(x, y, xerr=ex, yerr=ey, fmt='o', label=llabel, markersize=1.5)
+
+if False:
+    f = ROOT.TFile.Open("../new_plotMPV.root")
+    #mc_mpvs_muon = f.Get("muon/mc_mpvs_muon")
+    #dati_mpvs_muon = f.Get("muon/dati_mpvs_muon")
+    mc_mpvs_proton = f.Get("proton/mc_mpvs_proton")
+    dati_mpvs_proton = f.Get("proton/dati_mpvs_proton")
+
+    #fit_total_rr = f.Get('muon/fitfull')
+    #fit_25only_rr = f.Get('muon/fit25only')
+#
+    #muon_diff_dEdx = f.Get('muon/gdiff_dEdx')
+    #muon_diff_rr = f.Get('muon/differenza_su_media_graph')
+    #proton_diff_dEdx = f.Get('proton/gdiff_dEdx')
+    proton_diff_rr = f.Get('proton/differenza_su_media_graph')
+#
+    #f2 = ROOT.TFile.Open('../new_plotMPV_25only.root')
+    #muon_diff_dEdx_25only = f2.Get('muon/gdiff_dEdx')
+    #proton_diff_dEdx_25only = f2.Get('proton/gdiff_dEdx')
+#
+    #fit_total_dEdx = f.Get('totale')
+    #fit_25only_dEdx = f.Get('25only')
+    #fit_muon_specific = f.Get('muoni_specific')
+    #fit_proton_specific = f.Get('protoni_specific')
+#
+    ##TH1D
+    #Eint_dati = f.Get('Eint_dati_nomediana')
+    #Eint_mc = f.Get('Eint_mc_nomediana')
+    #Eint_mc_corretto_mu_specific = f.Get('Eint_mc_corretto_nomediana')
+    #Eint_dati_mediana = f.Get('Eint_dati_mediana')
+    #Eint_mc_mediana = f.Get('Eint_mc_mediana')
+    #Eint_mc_corretto_mu_specific_mediana = f.Get('Eint_mc_corretto_mediana')
+#
+    #f1 = ROOT.TFile.Open('../mpvPlot_corrected_new.root')
+    #muon_diff_dEdx_correzione_globale = f1.Get('muon/hdiff_dEdx')
+    #muon_diff_rr_correzione_globale = f1.Get('muon/hdifferenza_media')
+    #muon_diff_dEdx_correzione_25only = f1.Get('muon/h25only_diff_dEdx')
+    #muon_diff_rr_correzione_25only = f1.Get('muon/h25only_differenza_media')
+    #muon_diff_dEdx_correzione_specific = f1.Get('muon/hspecific_diff_dEdx')
+    #muon_diff_rr_correzione_specific = f1.Get('muon/hspecific_differenza_media')
+    #proton_diff_dEdx_correzione_globale = f1.Get('proton/hdiff_dEdx')
+    #proton_diff_rr_correzione_globale = f1.Get('proton/hdifferenza_media')
+    #proton_diff_dEdx_correzione_25only = f1.Get('proton/h25only_diff_dEdx')
+    #proton_diff_rr_correzione_25only = f1.Get('proton/h25only_differenza_media')
+    #proton_diff_dEdx_correzione_specific = f1.Get('proton/hspecific_diff_dEdx')
+    #proton_diff_rr_correzione_specific = f1.Get('proton/hspecific_differenza_media')
+
+def tgrapherrors_to_matplotlib_ax(ax,graph, llabel, mmarkersize,ccolor, zzorder=5):
+    # Estrazione punti e errori
+    n_points = graph.GetN()
+    x = np.array([graph.GetPointX(i) for i in range(n_points)], dtype=float)
+    y = np.array([graph.GetPointY(i) for i in range(n_points)], dtype=float)
+    ex = np.array([graph.GetErrorX(i) for i in range(n_points)], dtype=float)
+    ey = np.array([graph.GetErrorY(i) for i in range(n_points)], dtype=float)
+
+    # Disegno errorbar
+    ax.errorbar(x, y, xerr=ex, yerr=ey, fmt='o', label=llabel, markersize=mmarkersize, color=ccolor, elinewidth=1, zorder=zzorder)
+
+def tgraph_to_matplotlib_ax(ax,graph, llabel, ss,ccolor):
+    # Estrazione punti e errori
+    n_points = graph.GetN()
+    x = np.array([graph.GetPointX(i) for i in range(n_points)], dtype=float)
+    y = np.array([graph.GetPointY(i) for i in range(n_points)], dtype=float)
+
+    # Disegno errorbar
+    ax.scatter(x, y, label=llabel, s=ss, color=ccolor, zorder=10)
+
+from matplotlib.ticker import MultipleLocator
+
+#mpv difference data mc muoni
+if False:
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    #tgrapherrors_to_matplotlib(dati_mpvs_muon,'DATA muon mpvs')
+    #tgrapherrors_to_matplotlib(mc_mpvs_muon,'MC muon mpvs')
+    #tgrapherrors_to_matplotlib(dati_mpvs_proton,'DATA proton mpvs')
+    #tgrapherrors_to_matplotlib(mc_mpvs_proton,'MC proton mpvs')
+    tgrapherrors_to_matplotlib_ax(ax1,dati_mpvs_muon,'DATA muon mpvs',1, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax1,mc_mpvs_muon,'MC muon mpvs',1, 'orange')
+    tgrapherrors_to_matplotlib_ax(ax2,muon_diff_rr,'(DATA-MC)/average mpv',1.5, 'dimgray')
+    tgraph_to_matplotlib_ax(ax2,fit_total_rr,'fit',0.5, 'springgreen')
+    ax1.set_ylabel('mpv [MeV/cm]', fontsize=14)
+    ax1.legend(loc='upper right', fontsize=10)
+    ax1.yaxis.set_major_locator(MultipleLocator(1))
+    ax1.yaxis.set_minor_locator(MultipleLocator(0.5))
+    ax1.tick_params(axis='y', labelsize=12)
+    ax2.set_ylabel('(DATA-MC)/average mpv', fontsize=14)
+    ax2.legend(loc='lower right', fontsize=10)
+    ax2.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax2.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax2.tick_params(axis='y', labelsize=12)
+    ax2.tick_params(axis='x', labelsize=12)     
+    ax2.set_xlabel('Residual Range [cm]', fontsize=14)
+    plt.savefig('mu_mpv_dati_mc.png', format='png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+
+
+if False:
+    fig, ax1 = plt.subplots()
+    myFunc = ROOT.TF1("myFunc",
+                 "[0]*exp(-(x - [1])/[2]) / (1 + exp(-(x - [3])/[4])) + [5]",
+                 1.1, 60)    
+    #myFunc.SetParameters(0.01, -4.1, -2.8, 2, -2.6, -0.04)
+    myFunc.SetParameters(0.002,-3.5,-2.1,4.3,-1.8,-0.01)
+    proton_diff_rr.Fit(myFunc, "RE")
+    tgrapherrors_to_matplotlib_ax(ax1,proton_diff_rr,'(DATA-MC)/average mpv',1.5, 'dimgray')
+    f1_vec = np.vectorize(lambda x: myFunc.Eval(x))
+
+    x_vals = np.linspace(0, 60, 60000)  
+    y_vals = f1_vec(x_vals)
+
+    plt.scatter(x_vals,y_vals,  label='fit', s=1, color='cornflowerblue')
+    plt.savefig('prova_fit_protoni.png')
+
+#n_points = proton_diff_rr.GetN()
+#x = np.array([proton_diff_rr.GetPointX(i) for i in range(n_points)], dtype=float)
+#y = np.array([proton_diff_rr.GetPointY(i) for i in range(n_points)], dtype=float)
+#ex = np.array([proton_diff_rr.GetErrorX(i) for i in range(n_points)], dtype=float)
+#ey = np.array([proton_diff_rr.GetErrorY(i) for i in range(n_points)], dtype=float)
+#
+#print('{')
+#for i in range(len(x)):
+#    print('(', x[i], ',', y[i], ')' )
+#print('}')
+
+#proton
+if False:
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    #tgrapherrors_to_matplotlib(dati_mpvs_muon,'DATA muon mpvs')
+    #tgrapherrors_to_matplotlib(mc_mpvs_muon,'MC muon mpvs')
+    #tgrapherrors_to_matplotlib(dati_mpvs_proton,'DATA proton mpvs')
+    #tgrapherrors_to_matplotlib(mc_mpvs_proton,'MC proton mpvs')
+    tgrapherrors_to_matplotlib_ax(ax1,dati_mpvs_proton,'DATA proton mpvs',1, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax1,mc_mpvs_proton,'MC proton mpvs',1, 'orange')
+    tgrapherrors_to_matplotlib_ax(ax2,proton_diff_rr,'(DATA-MC)/average mpv',1.5, 'dimgray')
+    plt.scatter(x_vals,y_vals,  label='fit', s=1, color='springgreen')
+    ax1.set_ylabel('mpv [MeV/cm]', fontsize=14)
+    ax1.legend(loc='upper right', fontsize=10)
+    ax1.yaxis.set_major_locator(MultipleLocator(2))
+    ax1.yaxis.set_minor_locator(MultipleLocator(1))
+    ax1.tick_params(axis='y', labelsize=12)
+    ax2.set_ylabel('(DATA-MC)/average mpv', fontsize=14)
+    ax2.legend(loc='lower center', bbox_to_anchor=(0.33,0.01) ,fontsize=10)
+    ax2.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax2.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax2.tick_params(axis='y', labelsize=12)
+    ax2.tick_params(axis='x', labelsize=12)     
+    ax2.set_xlabel('Residual Range [cm]', fontsize=14)
+    plt.savefig('pro_mpv_dati_mc.png', format='png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+#diff dEdx
+if False:
+    fig,ax =plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,proton_diff_dEdx,'protons',1.5, 'orange', 5)
+    tgrapherrors_to_matplotlib_ax(ax,muon_diff_dEdx,'muons',1.5, 'blue', 8)
+    tgraph_to_matplotlib_ax(ax,fit_total_dEdx,'fit',0.5, 'red')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(loc='best', fontsize=16)
+    ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax.xaxis.set_major_locator(MultipleLocator(2))
+    ax.xaxis.set_minor_locator(MultipleLocator(1))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('dE/dx [MeV/cm]', fontsize=18)
+    ax.set_xlim(1,16)
+    plt.savefig('diff_dEdx.png', format='png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+#diff dEdx
+if False:
+    fig,ax =plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,proton_diff_dEdx_25only,'protons',1.5, 'orange', 5)
+    tgrapherrors_to_matplotlib_ax(ax,muon_diff_dEdx_25only,'muons',1.5, 'blue', 8)
+    tgraph_to_matplotlib_ax(ax,fit_25only_dEdx,'fit',0.5, 'green')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(loc='best', fontsize=16)
+    ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax.xaxis.set_major_locator(MultipleLocator(1))
+    ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('dE/dx [MeV/cm]', fontsize=18)
+    ax.set_xlim(1.5,16)
+    plt.savefig('diff_dEdx_25only.png', format='png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+#diff muon_specific (è stato fatto solo sulle hit con rr < 25 cm)
+if False:
+    fig,ax =plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,muon_diff_dEdx_25only,'muons',1.5, 'blue', 8)
+    tgraph_to_matplotlib_ax(ax,fit_muon_specific,'fit muon specific',0.5, 'springgreen')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(loc='best', fontsize=16)
+    ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax.xaxis.set_major_locator(MultipleLocator(0.5))
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('dE/dx [MeV/cm]', fontsize=18)
+    ax.set_xlim(1.5,6)
+    plt.savefig('diff_mu_specific_dEdx.png', format='png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+#diff proton_specific (è stato fatto solo sulle hit con rr < 25 cm)
+if False:
+    fig,ax =plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,proton_diff_dEdx_25only,'protons',1.5, 'orange', 8)
+    tgraph_to_matplotlib_ax(ax,fit_proton_specific,'fit proton specific',0.5, 'springgreen')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(loc='best', fontsize=16)
+    ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax.xaxis.set_major_locator(MultipleLocator(1))
+    ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('dE/dx [MeV/cm]', fontsize=18)
+    ax.set_xlim(3,16)
+    plt.savefig('diff_pro_specific_dEdx.png', format='png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+
+#after correction
+if False:
+    fig,ax =plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,muon_diff_dEdx_correzione_globale,'muon after global correction',2, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax,muon_diff_dEdx_correzione_25only,'muon after RR < 25cm correction',2, 'orange' )
+    tgrapherrors_to_matplotlib_ax(ax,muon_diff_dEdx_correzione_specific,'muon after specific correction',2, 'green')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(loc='best', fontsize=10)
+    ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax.xaxis.set_major_locator(MultipleLocator(0.5))
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('dE/dx [MeV/cm]', fontsize=18)
+    ax.set_ylim(-0.02,0.025)
+    ax.axhline(y=0, color='gray', linestyle='--', linewidth=1)
+    plt.savefig('muon_after_correction.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    fig,ax =plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,proton_diff_dEdx_correzione_globale,'proton after global correction',2, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax,proton_diff_dEdx_correzione_25only,'proton after RR < 25cm correction',2, 'orange' )
+    tgrapherrors_to_matplotlib_ax(ax,proton_diff_dEdx_correzione_specific,'proton after specific correction',2, 'green')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(loc='best', fontsize=10)
+    ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax.xaxis.set_major_locator(MultipleLocator(1))
+    ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('dE/dx [MeV/cm]', fontsize=18)
+    ax.set_ylim(-0.02,0.025)
+    ax.axhline(y=0, color='gray', linestyle='--', linewidth=1)
+    plt.savefig('proton_after_correction.pdf', format='pdf', bbox_inches='tight')
+    plt.close()    
+
+
+if False:
+    fig,ax =plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,muon_diff_rr_correzione_globale,'muon after global correction',2, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax,muon_diff_rr_correzione_25only,'muon after RR < 25cm correction',2, 'orange' )
+    tgrapherrors_to_matplotlib_ax(ax,muon_diff_rr_correzione_specific,'muon after specific correction',2, 'green')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(loc='best', fontsize=10)
+    ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax.xaxis.set_major_locator(MultipleLocator(15))
+    ax.xaxis.set_minor_locator(MultipleLocator(2.5))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('Residual Range [cm]', fontsize=18)
+    ax.set_ylim(-0.02,0.03)
+    ax.axhline(y=0, color='gray', linestyle='--', linewidth=1)
+    plt.savefig('muon_after_correction_rr.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    fig,ax =plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,proton_diff_rr_correzione_globale,'proton after global correction',2, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax,proton_diff_rr_correzione_25only,'proton after RR < 25cm correction',2, 'orange' )
+    tgrapherrors_to_matplotlib_ax(ax,proton_diff_rr_correzione_specific,'proton after specific correction',2, 'green')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(loc='best', fontsize=10)
+    ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    ax.xaxis.set_major_locator(MultipleLocator(10))
+    ax.xaxis.set_minor_locator(MultipleLocator(2.5))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('Residual Range [cm]', fontsize=18)
+    ax.set_ylim(-0.02,0.03)
+    ax.axhline(y=0, color='gray', linestyle='--', linewidth=1)
+    plt.savefig('proton_after_correction_rr.pdf', format='pdf', bbox_inches='tight')
+    plt.close() 
+
+#integrated energy after correction and with median condition
+
+
+if False:
+    root_hist_to_pyhist(Eint_dati, 'blue', 'muon DATA')
+    root_hist_to_pyhist(Eint_mc, 'red', 'muon MC')
+    root_hist_to_pyhist(Eint_mc_corretto_mu_specific, 'orange', 'MC after muon specific corr.')
+    plt.xlabel('Integrated Energy up to 12.5 cm [MeV]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(loc='upper right', fontsize=10)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(10))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(2.5))
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(10,100)
+    plt.savefig('Eint_corrected_nomedian.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+if False:
+    root_hist_to_pyhist(Eint_dati_mediana, 'blue', 'muon DATA')
+    root_hist_to_pyhist(Eint_mc_mediana, 'red', 'muon MC')
+    root_hist_to_pyhist(Eint_mc_corretto_mu_specific_mediana, 'orange', 'MC after muon specific corr.')
+    plt.xlabel('Integrated Energy up to 12.5 cm [MeV]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(title='tracks with median dEdx < 3.2 MeV/cm',loc='upper right', fontsize=10)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(10))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(2.5))
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(20,100)
+    plt.savefig('Eint_corrected_median.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+
+
+
+def root_hist_to_pyerrorbar(th1d, colore, llabel):
+    n_bins = th1d.GetNbinsX()
+    x_edges = [th1d.GetBinLowEdge(i+1) for i in range(n_bins)]
+    x_edges.append(th1d.GetBinLowEdge(n_bins) + th1d.GetBinWidth(n_bins))
+    bin_contents = np.array([th1d.GetBinContent(i+1) for i in range(n_bins)])
+    bin_errors = np.array([th1d.GetBinError(i+1) for i in range(n_bins)])
+    bin_centers =np.array([th1d.GetBinCenter(i+1) for i in range(n_bins)])
+    x_bin_errors=np.array([th1d.GetBinWidth(i+1)/2 for i in range(n_bins)])
+
+    mask = bin_contents != 0.0
+    bin_contents = bin_contents[mask]
+    bin_errors = bin_errors[mask]
+    bin_centers = bin_centers[mask]
+    x_bin_errors = x_bin_errors[mask]
+
+    # Creazione step per linee orizzontali
+    x_step = np.repeat(x_edges, 2)[1:-1]
+    y_step = np.repeat(bin_contents, 2)
+    
+    # Aggiunta linee verticali agli estremi
+    x_step = np.insert(x_step, 0, x_edges[0])
+    y_step = np.insert(y_step, 0, 0)  # parte dal basso
+    x_step = np.append(x_step, x_edges[-1])
+    y_step = np.append(y_step, 0)     # torna a 0 alla fine
+    
+    #plt.step(x_step, y_step, where='mid', linewidth=1.5, color=colore, label=llabel)
+    
+    plt.errorbar(bin_centers,bin_contents,xerr=x_bin_errors,yerr=bin_errors, fmt='o', color=colore, label=llabel, markersize=2, elinewidth=1)
+
+    #plt.ylim(0, max(bin_contents)*1.1)
+    #plt.savefig('histo_prova_bar.pdf', format='pdf', bbox_inches='tight')
+
+# broken tracks simulation
+if False:
+    ff = ROOT.TFile.Open('../MPV/ConfrontoDatiMC.root')
+    file_mediana_cosmics = ROOT.TFile.Open('../BrokenTracksSimulMC_withCOS.root')
+    file_mediana_yzvar = ROOT.TFile.Open('../BrokenTracksSimulMC_YZvariations.root')
+
+    mediana_mu_dati = ff.Get('muon/dati/h_median')
+    mediana_pro_dati = ff.Get('proton/dati/h_median')
+    mediana_mu_mc = ff.Get('muon/mc/h_median')
+    mediana_pro_mc = ff.Get('proton/mc/h_median')
+    mediana_mu_yz_variation = file_mediana_yzvar.Get('h_median')
+    mediana_mu_mc_pluscos = file_mediana_cosmics.Get('h_median')
+    mediana_mu_mc_to_compare = file_mediana_yzvar.Get('median mc')
+    endx = file_mediana_yzvar.Get('end x')
+    endz = file_mediana_yzvar.Get('end z')
+    endx_dati = file_mediana_yzvar.Get('end_x_dati')
+    endz_dati = file_mediana_yzvar.Get('end_z_dati')
+
+if False:
+    root_hist_to_pyhist(mediana_mu_dati,'cornflowerblue','muon DATA')
+    root_hist_to_pyhist(mediana_mu_mc,'orange','muon MC')
+    plt.xlabel('Median dE/dx in the last 5 cm [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(loc='upper right', fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.,10.)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(1))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(0.5))
+    plt.savefig('mediana_mu.pdf', format='pdf', bbox_inches='tight')
+    plt.close() 
+if False:
+    root_hist_to_pyhist(mediana_pro_dati,'cornflowerblue','proton DATA')
+    root_hist_to_pyhist(mediana_pro_mc,'orange','proton MC')
+    plt.xlabel('Median dE/dx in the last 5 cm [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(loc='upper left', fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(2))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(0.5))
+    plt.xlim(0.,20.)
+    plt.savefig('mediana_pro.pdf', format='pdf', bbox_inches='tight')
+    plt.close() 
+
+if False:
+    root_hist_to_pyhist(mediana_mu_dati,'cornflowerblue','DATA')
+    root_hist_to_pyhist(mediana_mu_yz_variation,'springgreen','MC + cosmics + YZ var. after splitting')
+    root_hist_to_pyhist(mediana_mu_mc_pluscos,'orange','MC + cosmics after splitting')
+    root_hist_to_pyhist(mediana_mu_mc_to_compare, 'violet', 'MC neutrino only')
+    plt.xlabel('Median dE/dx in the last 5 cm [MeV/cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(title='muon tracks', loc='upper right', fontsize=9)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.xlim(0.,12.)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(1))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(0.5))
+    plt.savefig('mediana_mu_variations.pdf', format='pdf', bbox_inches='tight')
+    plt.close() 
+
+if False:
+    root_hist_to_pyerrorbar(endx_dati,'cornflowerblue','muons endx DATA')
+    root_hist_to_pyerrorbar(endx,'orange','muons endx MC YZ var.')
+    plt.xlabel('muon endx [cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(loc='upper right', fontsize=12)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(100))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(25))
+    plt.savefig('endx.pdf', format='pdf', bbox_inches='tight')
+    plt.close() 
+
+if False:
+    root_hist_to_pyerrorbar(endz_dati,'cornflowerblue','muons endz DATA')
+    root_hist_to_pyerrorbar(endz,'orange','muons endz MC YZ var.')
+    plt.xlabel('muon endz [cm]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(loc='center right', fontsize=12)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(200))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(50))
+    plt.savefig('endz.pdf', format='pdf', bbox_inches='tight')
+    plt.close() 
+
+if False:
+    fileAngle = ROOT.TFile.Open('../dEdxAngle.root')
+    g0 = fileAngle.Get('g0')
+    g50 = fileAngle.Get('g50')
+    g70 = fileAngle.Get('g70')
+    g90 = fileAngle.Get('g90')
+    g0_pro = fileAngle.Get('g0_pro')
+    g50_pro = fileAngle.Get('g50_pro')
+    g70_pro = fileAngle.Get('g70_pro')
+    g90_pro = fileAngle.Get('g90_pro')
+    h0 = fileAngle.Get('h0')
+    h50 = fileAngle.Get('h50')
+    h70 = fileAngle.Get('h70')
+    h90 = fileAngle.Get('h90')
+    h0_pro = fileAngle.Get('h0_pro')
+    h50_pro = fileAngle.Get('h50_pro')
+    h70_pro = fileAngle.Get('h70_pro')
+    h90_pro = fileAngle.Get('h90_pro')
+
+if False:
+    root_hist_to_pyerrorbar(h0,'cornflowerblue','all angles')
+    root_hist_to_pyerrorbar(h50,'green', r'$\phi \leq 50^\circ$')
+    root_hist_to_pyerrorbar(h70,'orange', r'$50^\circ    < \phi \leq 70^\circ$')
+    root_hist_to_pyerrorbar(h90,'red', r'$\phi > 70^\circ$')
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('(DATA-MC)/average mpv', fontsize=18)
+    plt.legend(title='MUONS' ,loc='upper center', fontsize=10)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(5))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(1))
+    plt.savefig('diff_rr_angles_mu.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+    root_hist_to_pyerrorbar(h0_pro,'cornflowerblue','all angles')
+    root_hist_to_pyerrorbar(h50_pro,'green', r'$\phi \leq 50^\circ$')
+    root_hist_to_pyerrorbar(h70_pro,'orange', r'$50^\circ < \phi \leq 70^\circ$')
+    root_hist_to_pyerrorbar(h90_pro,'red', r'$\phi > 70^\circ$')
+    plt.xlabel('Residual Range [cm]', fontsize=18)
+    plt.ylabel('(DATA-MC)/average mpv', fontsize=18)
+    plt.legend(title='PROTONS',loc='lower center', fontsize=10)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(5))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(1))
+    plt.savefig('diff_rr_angles_pro.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+
+    fig,ax=plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,g0,'all angles', 2, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax,g50, r'$\phi \leq 50^\circ$' , 3 ,'green')
+    tgrapherrors_to_matplotlib_ax(ax,g70, r'$50^\circ < \phi \leq 70^\circ$', 3, 'orange')
+    tgrapherrors_to_matplotlib_ax(ax,g90, r'$\phi > 70^\circ$', 3, 'red')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(title='MUONS', loc='upper right', fontsize=10)
+    #ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    #ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    #ax.xaxis.set_major_locator(MultipleLocator(10))
+    #ax.xaxis.set_minor_locator(MultipleLocator(2.5))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('dE/dx [Mev/cm]', fontsize=18)
+    ax.set_ylim(-0.005,0.04)
+    ax.set_xlim(1.5,5)
+    plt.savefig('diff_dEdx_angles_mu.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+
+    fig,ax=plt.subplots()
+    tgrapherrors_to_matplotlib_ax(ax,g0_pro,'all angles', 2, 'cornflowerblue')
+    tgrapherrors_to_matplotlib_ax(ax,g50_pro, r'$\phi \leq 50^\circ$' , 3 ,'green')
+    tgrapherrors_to_matplotlib_ax(ax,g70_pro, r'$50^\circ < \phi \leq 70^\circ$', 3, 'orange')
+    tgrapherrors_to_matplotlib_ax(ax,g90_pro, r'$\phi > 70^\circ$', 3, 'red')
+    ax.set_ylabel('(DATA-MC)/average mpv', fontsize=18)
+    ax.legend(title='PROTONS', loc='lower left', bbox_to_anchor=(0.24, -0.015), fontsize=10)
+    #ax.yaxis.set_major_locator(MultipleLocator(0.01))
+    #ax.yaxis.set_minor_locator(MultipleLocator(0.005))
+    #ax.xaxis.set_major_locator(MultipleLocator(10))
+    #ax.xaxis.set_minor_locator(MultipleLocator(2.5))
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)     
+    ax.set_xlabel('dE/dx [Mev/cm]', fontsize=18)
+    ax.set_xlim(3,12)
+    plt.savefig('diff_dEdx_angles_pro.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+import math
+if False:
+    file_dati = uproot.open("../datiDAT_1muNp_fullRR.root")
+    mutree_dati = file_dati['DATAtreeMU']
+    protree_dati = file_dati['DATAtreePRO']
+    branches_mu_dati = mutree_dati.arrays()
+    branches_pro_dati = protree_dati.arrays()
+    file_mc = uproot.open("../datiMC_1muNp_fullRR.root")
+    mutree_mc = file_mc['DATAtreeMU']
+    protree_mc = file_mc['DATAtreePRO']
+    branches_mu_mc = mutree_mc.arrays()
+    branches_pro_mc = protree_mc.arrays()
+
+    dirx_mu_dati = ak.to_numpy(branches_mu_dati['dirx'])
+    angles_mu_dati = np.degrees(np.arccos(np.abs(dirx_mu_dati)))
+    dirx_mu_mc = ak.to_numpy(branches_mu_mc['dirx'])
+    angles_mu_mc = np.degrees(np.arccos(np.abs(dirx_mu_mc)))
+
+    dirx_pro_dati = ak.to_numpy(branches_pro_dati['dirx'])
+    angles_pro_dati = np.degrees(np.arccos(np.abs(dirx_pro_dati)))
+    dirx_pro_mc = ak.to_numpy(branches_pro_mc['dirx'])
+    angles_pro_mc = np.degrees(np.arccos(np.abs(dirx_pro_mc)))
+
+    mu_less_50=0
+    mu_50_70=0
+    mu_above_70=0
+    for i in angles_pro_mc:
+        if i<=50 :  
+            mu_less_50 = mu_less_50+1
+        if 50<i<=70:
+            mu_50_70 = mu_50_70+1
+        if i>70 :
+            mu_above_70 = mu_above_70 +1
+    
+    print(mu_less_50, mu_50_70, mu_above_70 )
+
+if False:
+    plt.hist(angles_mu_dati, bins=45, color='cornflowerblue', label='muons DATA', linewidth=2, histtype='step', density=True)
+    plt.hist(angles_mu_mc, bins=45, color='orange', label='muons MC', linewidth=2, histtype='step', density=True)
+    plt.xlabel('angle to drift [degrees]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(loc='upper left', fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(10))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(2.5))
+    plt.savefig('angle_to_drift_mu.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+    plt.hist(angles_pro_dati, bins=45, color='cornflowerblue', label='protons DATA', linewidth=2, histtype='step', density=True)
+    plt.hist(angles_pro_mc, bins=45, color='orange', label='protons MC', linewidth=2, histtype='step', density=True)
+    plt.xlabel('angle to drift [degrees]', fontsize=18)
+    plt.ylabel('entries (area normalized)', fontsize=18)
+    plt.legend(loc='upper left', fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(10))
+    plt.gca().xaxis.set_minor_locator(MultipleLocator(2.5))
+    plt.savefig('angle_to_drift_pro.pdf', format='pdf', bbox_inches='tight')
+    plt.close()
+
+
+

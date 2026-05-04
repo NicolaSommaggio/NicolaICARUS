@@ -1,0 +1,219 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import argparse
+from matplotlib.colors import LogNorm
+import math
+
+data = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_new_PID/daughter_info_full_stat.txt',
+    dtype=[('class', 'U20'),
+           ('median', float),
+           ('depE',float),
+           ('angle',float),
+           ('angle_end',float)],
+    encoding="utf-8",
+    delimiter=" "
+)
+
+class0 = data[data['class']=='class0']
+class1 = data[data['class']=='class1']
+class2 = data[data['class']=='class2']
+class3 = data[data['class']=='class3']
+class4 = data[data['class']=='class4']
+class5 = data[data['class']=='class5']
+
+plt.hist(class0['median'], range=(0,20), bins=80, histtype='step', color='cornflowerblue', label='muon rising', linewidth=2, density=True)
+plt.hist(class1['median'], range=(0,20), bins=80, histtype='step', color='cyan', label='muon mip', linewidth=2, density=True)
+plt.hist(class2['median'], range=(0,20), bins=80, histtype='step', color='green', label='proton rising', linewidth=2, density=True)
+plt.hist(class3['median'], range=(0,20), bins=80, histtype='step', color='black', label='proton interacting', linewidth=2, density=True)
+plt.hist(class5['median'], range=(0,20), bins=80, histtype='step', color='red', label='pion interacting', linewidth=2, density=True)
+plt.hist(class4['median'], range=(0,20), bins=80, histtype='step', color='orange', label='pion rising', linewidth=2, density=True)
+
+plt.hist(class0['median'], range=(0,20), bins=80, histtype='stepfilled', color='cornflowerblue', alpha=0.8, density=True)
+plt.hist(class1['median'], range=(0,20), bins=80, histtype='stepfilled', color='cyan', alpha=0.8, density=True)
+plt.hist(class2['median'], range=(0,20), bins=80, histtype='stepfilled', color='green', alpha=0.8, density=True)
+plt.hist(class3['median'], range=(0,20), bins=80, histtype='stepfilled', color='black', alpha=0.8, density=True)
+plt.hist(class5['median'], range=(0,20), bins=80, histtype='stepfilled', color='red', alpha=0.8, density=True)
+plt.hist(class4['median'], range=(0,20), bins=80, histtype='stepfilled', color='orange', alpha=0.8, density=True)
+
+plt.xlabel('dE/dx median [MeV]', fontsize=18)
+plt.ylabel('counts (area normalized)', fontsize=18)
+plt.title("leading DAUGHTER dE/dx median (last 5 cm)", fontsize=18)
+leg = plt.legend(loc='upper right', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,20,2), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+#plt.yscale('log')
+plt.savefig('daughters_median.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+plt.hist(class0['depE'], range=(0,100), bins=50, histtype='step', color='cornflowerblue', label='muon rising', linewidth=2, density=True)
+plt.hist(class1['depE'], range=(0,100), bins=50, histtype='step', color='cyan', label='muon mip', linewidth=2, density=True)
+plt.hist(class2['depE'], range=(0,100), bins=50, histtype='step', color='green', label='proton rising', linewidth=2, density=True)
+plt.hist(class3['depE'], range=(0,100), bins=50, histtype='step', color='black', label='proton interacting', linewidth=2, density=True)
+plt.hist(class4['depE'], range=(0,100), bins=50, histtype='step', color='orange', label='pion rising', linewidth=2, density=True)
+plt.hist(class5['depE'], range=(0,100), bins=50, histtype='step', color='red', label='pion interacting', linewidth=2, density=True)
+
+plt.hist(class0['depE'], range=(0,100), bins=50, histtype='stepfilled', color='cornflowerblue', alpha=0.8, density=True)
+plt.hist(class1['depE'], range=(0,100), bins=50, histtype='stepfilled', color='cyan', alpha=0.8, density=True)
+plt.hist(class2['depE'], range=(0,100), bins=50, histtype='stepfilled', color='green', alpha=0.8, density=True)
+plt.hist(class3['depE'], range=(0,100), bins=50, histtype='stepfilled', color='black', alpha=0.8, density=True)
+plt.hist(class5['depE'], range=(0,100), bins=50, histtype='stepfilled', color='red', alpha=0.8, density=True)
+plt.hist(class4['depE'], range=(0,100), bins=50, histtype='stepfilled', color='orange', alpha=0.8, density=True)
+
+plt.xlabel('deposited Energy [MeV]', fontsize=18)
+plt.ylabel('counts (area normalized)', fontsize=18)
+plt.title("leading DAUGHTER deposited Energy (last 5 cm)", fontsize=18)
+leg = plt.legend(loc='upper right', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,100,5), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+#plt.yscale('log')
+plt.savefig('daughters_depE.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+plt.hist(np.abs(class0['angle']*180/math.pi), range=(0,180), bins=30, histtype='step', color='cornflowerblue', label='muon rising', linewidth=2, density=True)
+plt.hist(np.abs(class1['angle']*180/math.pi), range=(0,180), bins=30, histtype='step', color='cyan', label='muon mip', linewidth=2, density=True)
+plt.hist(np.abs(class2['angle']*180/math.pi), range=(0,180), bins=30, histtype='step', color='green', label='proton rising', linewidth=2, density=True)
+plt.hist(np.abs(class3['angle']*180/math.pi), range=(0,180), bins=30, histtype='step', color='black', label='proton interacting', linewidth=2, density=True)
+plt.hist(np.abs(class4['angle']*180/math.pi), range=(0,180), bins=30, histtype='step', color='orange', label='pion rising', linewidth=2, density=True)
+plt.hist(np.abs(class5['angle']*180/math.pi), range=(0,180), bins=30, histtype='step', color='red', label='pion interacting', linewidth=2, density=True)
+
+plt.hist(np.abs(class0['angle']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='cornflowerblue', alpha=0.8, density=True)
+plt.hist(np.abs(class1['angle']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='cyan', alpha=0.8, density=True)
+plt.hist(np.abs(class2['angle']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='green', alpha=0.8, density=True)
+plt.hist(np.abs(class3['angle']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='black', alpha=0.8, density=True)
+plt.hist(np.abs(class5['angle']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='red', alpha=0.8, density=True)
+plt.hist(np.abs(class4['angle']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='orange', alpha=0.8, density=True)
+
+plt.xlabel('angle', fontsize=18)
+plt.ylabel('counts (area normalized)', fontsize=18)
+plt.title("angle between mother start and daughter start directions", fontsize=18)
+leg = plt.legend(loc='upper right', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,180,30), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+#plt.yscale('log')
+plt.savefig('daughters_angle.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+plt.hist(np.abs(class0['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='step', color='cornflowerblue', label='muon rising', linewidth=2, density=True)
+plt.hist(np.abs(class1['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='step', color='cyan', label='muon mip', linewidth=2, density=True)
+plt.hist(np.abs(class2['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='step', color='green', label='proton rising', linewidth=2, density=True)
+plt.hist(np.abs(class3['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='step', color='black', label='proton interacting', linewidth=2, density=True)
+plt.hist(np.abs(class4['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='step', color='orange', label='pion rising', linewidth=2, density=True)
+plt.hist(np.abs(class5['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='step', color='red', label='pion interacting', linewidth=2, density=True)
+
+plt.hist(np.abs(class0['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='cornflowerblue', alpha=0.8, density=True)
+plt.hist(np.abs(class1['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='cyan', alpha=0.8, density=True)
+plt.hist(np.abs(class2['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='green', alpha=0.8, density=True)
+plt.hist(np.abs(class3['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='black', alpha=0.8, density=True)
+plt.hist(np.abs(class5['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='red', alpha=0.8, density=True)
+plt.hist(np.abs(class4['angle_end']*180/math.pi), range=(0,180), bins=30, histtype='stepfilled', color='orange', alpha=0.8, density=True)
+
+plt.xlabel('angle', fontsize=18)
+plt.ylabel('counts (area normalized)', fontsize=18)
+plt.title("angle between mother end and daughter start directions", fontsize=18)
+leg = plt.legend(loc='upper right', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,180,30), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+#plt.yscale('log')
+plt.savefig('daughters_angle_end.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+plt.hist2d(np.abs(data['angle_end'])*180/math.pi, data['depE'], bins=(60,50), range=[(0,180),(0,100)], cmap='viridis', norm=LogNorm())
+plt.xlabel('angle (end - start)', fontsize=18)
+plt.ylabel('deposited energy [MeV]', fontsize=18)
+plt.title("MUON RISING - leading DAUGHTER depE vs angle", fontsize=18)
+plt.xticks(np.arange(0.,180.,30), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0.,180.)
+plt.ylim(0.,100.)
+cbar=plt.colorbar()
+plt.savefig('daughter_depE_vs_angle_end.png', format='png', dpi=300, bbox_inches='tight')
+plt.close()
+
+plt.hist2d(np.abs(class0['angle_end'])*180/math.pi, class0['depE'], bins=(60,50), range=[(0,180),(0,100)], cmap='viridis', norm=LogNorm())
+plt.xlabel('angle (end - start)', fontsize=18)
+plt.ylabel('deposited energy [MeV]', fontsize=18)
+plt.title("MUON RISING - leading DAUGHTER depE vs angle", fontsize=18)
+plt.xticks(np.arange(0.,180.,30), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0.,180.)
+plt.ylim(0.,100.)
+cbar=plt.colorbar()
+plt.savefig('daughter_depE_vs_angle_end_MUON_RISING.png', format='png', dpi=300, bbox_inches='tight')
+plt.close()
+
+plt.hist2d(np.abs(class1['angle_end'])*180/math.pi, class1['depE'], bins=(60,50), range=[(0,180),(0,100)], cmap='viridis', norm=LogNorm())
+plt.xlabel('angle (end - start)', fontsize=18)
+plt.ylabel('deposited energy [MeV]', fontsize=18)
+plt.title("MUON MIP - leading DAUGHTER depE vs angle", fontsize=18)
+plt.xticks(np.arange(0.,180.,30), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0.,180.)
+plt.ylim(0.,100.)
+cbar=plt.colorbar()
+plt.savefig('daughter_depE_vs_angle_end_MUON_MIP.png', format='png', dpi=300, bbox_inches='tight')
+plt.close()
+
+plt.hist2d(np.abs(class2['angle_end'])*180/math.pi, class2['depE'], bins=(60,50), range=[(0,180),(0,100)], cmap='viridis', norm=LogNorm())
+plt.xlabel('angle (end - start)', fontsize=18)
+plt.ylabel('deposited energy [MeV]', fontsize=18)
+plt.title("PROTON RISING - leading DAUGHTER depE vs angle", fontsize=18)
+plt.xticks(np.arange(0.,180.,30), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0.,180.)
+plt.ylim(0.,100.)
+cbar=plt.colorbar()
+plt.savefig('daughter_depE_vs_angle_end_PROTON_RISING.png', format='png', dpi=300, bbox_inches='tight')
+plt.close()
+
+plt.hist2d(np.abs(class3['angle_end'])*180/math.pi, class3['depE'], bins=(60,50), range=[(0,180),(0,100)], cmap='viridis', norm=LogNorm())
+plt.xlabel('angle (end - start)', fontsize=18)
+plt.ylabel('deposited energy [MeV]', fontsize=18)
+plt.title("PROTON INTERACTING - leading DAUGHTER depE vs angle", fontsize=18)
+plt.xticks(np.arange(0.,180.,30), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0.,180.)
+plt.ylim(0.,100.)
+cbar=plt.colorbar()
+plt.savefig('daughter_depE_vs_angle_end_PROTON_INTERACTING.png', format='png', dpi=300, bbox_inches='tight')
+plt.close()
+
+plt.hist2d(np.abs(class4['angle_end'])*180/math.pi, class4['depE'], bins=(60,50), range=[(0,180),(0,100)], cmap='viridis', norm=LogNorm())
+plt.xlabel('angle (end - start)', fontsize=18)
+plt.ylabel('deposited energy [MeV]', fontsize=18)
+plt.title("PION RISING - leading DAUGHTER depE vs angle", fontsize=18)
+plt.xticks(np.arange(0.,180.,30), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0.,180.)
+plt.ylim(0.,100.)
+cbar=plt.colorbar()
+plt.savefig('daughter_depE_vs_angle_end_PION_RISING.png', format='png', dpi=300, bbox_inches='tight')
+plt.close()
+
+plt.hist2d(np.abs(class5['angle_end'])*180/math.pi, class5['depE'], bins=(60,50), range=[(0,180),(0,100)], cmap='viridis', norm=LogNorm())
+plt.xlabel('angle (end - start)', fontsize=18)
+plt.ylabel('deposited energy [MeV]', fontsize=18)
+plt.title("PION INTERACTING - leading DAUGHTER depE vs angle", fontsize=18)
+plt.xticks(np.arange(0.,180.,30), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0.,180.)
+plt.ylim(0.,100.)
+cbar=plt.colorbar()
+plt.savefig('daughter_depE_vs_angle_end_PION_INTERACTING.png', format='png', dpi=300, bbox_inches='tight')
+plt.close()

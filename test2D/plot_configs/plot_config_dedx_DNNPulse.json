@@ -1,0 +1,52 @@
+{
+  "istogrammi": [
+    {
+      "path": "/exp/icarus/app/users/nsommagg/test.root:muon/2d_DNN_PulseTrains/hdEdx",
+      "local_draw_type" : "draw_graph",
+      "label": "2D + DNN w/ PT",
+      "colore": "darkviolet",
+      "alpha": 1,
+      "ls":"solid",
+      "lw":2,
+      "mstyle":"o",
+      "msize":4,
+      "s":25,
+      "drawErrors": true
+    },
+    {
+      "path": "/exp/icarus/app/users/nsommagg/test.root:muon/2d_DNN_PulseTrains_YZ/hdEdx",
+      "local_draw_type" : "draw_hist",
+      "label": "2D + DNN w/ PS YZ",
+      "colore": "pink",
+      "alpha": 0.7,
+      "ls":"solid",
+      "lw":2,
+      "mstyle":"P",
+      "msize":4,
+      "s":25,
+      "drawErrors": true
+    }
+
+  ],
+
+
+  "object": "hist",
+  "naxes": 1,
+  "logy": false,
+  "xlabel": "dE/dx [MeV/cm]",
+  "ylabel": "counts (area normalized)",
+  "title": "MUONS dE/dx, 25 $\\leq$ RR $\\leq$ 30 cm",
+  "location": "best",
+  "xlow": 0,
+  "xhigh": 5,
+  "ylow": 0,
+  "yhigh": 0,
+  "xticks_interval": 0.5,
+  "minor_tick_x":5,
+  "rotation": 60,
+  "savepath": "/exp/icarus/app/users/nsommagg/plot_configs/testdEdx.pdf",
+  "format": "pdf",
+  "rebin": true,
+  "rebfactor": 2,
+  "leg_fontsize" : 11
+}

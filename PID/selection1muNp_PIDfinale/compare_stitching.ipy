@@ -1,0 +1,76 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+NS = np.genfromtxt(
+   '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/StitchAlg/dump_stitching_AMR_newPID.txt',
+   dtype=[
+	('run',int),
+	('evt',int),
+	('sliceID',int),
+	('G4ID1',int),
+	('pdg1',int),
+	('G4ID2',int),
+	('pdg2',int),
+	('len_i',float),
+	('len_f',float),
+	('len_true',float)],
+  encoding = 'utf-8',
+  delimiter = None
+)
+
+
+AMR = np.genfromtxt(
+   '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/StitchAlg/dump_stitching_AMR_chi2.txt',
+   dtype=[
+	('run',int),
+	('evt',int),
+	('sliceID',int),
+	('G4ID1',int),
+	('pdg1',int),
+	('G4ID2',int),
+	('pdg2',int),
+	('len_i',float),
+	('len_f',float),
+	('len_true',float)],
+  encoding = 'utf-8',
+  delimiter = None
+)
+
+mask_correctly_classified_AMR = ( (AMR['G4ID1'] == AMR['G4ID2']) & (np.abs(AMR['pdg1'])==13) & (np.abs(AMR['pdg2'])==13) )
+
+mask_correctly_classified_NS = ( (NS['G4ID1'] == NS['G4ID2']) & (np.abs(NS['pdg1'])==13) & (np.abs(NS['pdg2'])==13) )
+
+print(len(AMR), 'total stitched tracks AMR', len(AMR[mask_correctly_classified_AMR]), 'correctly')
+print(len(NS), 'total stitched tracks NS', len(NS[mask_correctly_classified_NS]), 'correctly')
+
+common_events_AMR = 0 #how many of the stitched events by AMR are stitched also by NS
+common_events_NS = 0
+common_events_correct_AMR = 0
+common_events_correct_NS = 0
+
+for i in range(len(AMR)):
+    #found = False
+    for j in range(len(NS)):
+        if AMR['run'][i] == NS['run'][j] and AMR['evt'][i] == NS['evt'][j] and AMR['sliceID'][i] == NS['sliceID'][j] :
+            common_events_AMR = common_events_AMR + 1
+            found = True
+            if AMR['G4ID1'][i] == AMR['G4ID2'][i] and np.abs(AMR['pdg1'][i])==13 and np.abs(AMR['pdg2'][i])==13 :
+                common_events_correct_AMR = common_events_correct_AMR + 1
+    #if found == False : 
+    #    if AMR['G4ID1'][i] == AMR['G4ID2'][i] and np.abs(AMR['pdg1'][i])==13 and np.abs(AMR['pdg2'][i])==13 :
+    #        print(AMR['run'][i],AMR['evt'][i],AMR['sliceID'][i])
+                
+for i in range(len(NS)):
+    found = False
+    for j in range(len(AMR)):
+        if AMR['run'][j] == NS['run'][i] and AMR['evt'][j] == NS['evt'][i] and AMR['sliceID'][j] == NS['sliceID'][i] :
+            found = True
+            common_events_NS = common_events_NS + 1
+            if NS['G4ID1'][i] == NS['G4ID2'][i] and np.abs(NS['pdg1'][i])==13 and np.abs(NS['pdg2'][i])==13 :
+                common_events_correct_NS = common_events_correct_NS + 1
+    #if found == False:
+    #    if NS['G4ID1'][i] == NS['G4ID2'][i] and np.abs(NS['pdg1'][i])==13 and np.abs(NS['pdg2'][i])==13 :
+    #        print(NS['run'][i],NS['evt'][i],NS['sliceID'][i])
+
+print(common_events_AMR, 'common events AMR', common_events_correct_AMR, 'correctly')
+print(common_events_NS, 'common events NS', common_events_correct_NS, 'correctly')

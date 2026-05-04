@@ -1,0 +1,113 @@
+import ROOT
+import matplotlib.pyplot as plt
+import numpy as np
+
+def root_hist_to_pyhist(th1d, colore, llabel, rebin=False, rebfactor=1):
+    if rebin : th1d.Rebin(rebfactor)
+    n_bins = th1d.GetNbinsX()
+    x_edges = [th1d.GetBinLowEdge(i+1) for i in range(n_bins)]
+    x_edges.append(th1d.GetBinLowEdge(n_bins) + th1d.GetBinWidth(n_bins))
+    bin_contents = [th1d.GetBinContent(i+1) for i in range(n_bins)]
+    bin_errors = [th1d.GetBinError(i+1) for i in range(n_bins)]
+    bin_centers =[th1d.GetBinCenter(i+1) for i in range(n_bins)]
+    x_bin_errors=[th1d.GetBinWidth(i+1)/2 for i in range(n_bins)]
+
+    # Creazione step per linee orizzontali
+    x_step = np.repeat(x_edges, 2)[1:-1]
+    y_step = np.repeat(bin_contents, 2)
+    
+    # Aggiunta linee verticali agli estremi
+    x_step = np.insert(x_step, 0, x_edges[0])
+    y_step = np.insert(y_step, 0, 0)  # parte dal basso
+    x_step = np.append(x_step, x_edges[-1])
+    y_step = np.append(y_step, 0)     # torna a 0 alla fine
+    
+    plt.step(x_step, y_step, where='mid', linewidth=2, color=colore, label=llabel)
+    plt.fill_between(x_step, y_step, step="mid", color=colore, alpha=0.5)
+    
+    #plt.errorbar(bin_centers,bin_contents,xerr=x_bin_errors,yerr=bin_errors, fmt='o', color=colore, label=llabel, markersize=1)
+
+    return max(bin_contents)
+    #plt.savefig('histo_prova_bar.pdf', format='pdf', bbox_inches='tight')
+
+##################################
+#the only parameters to change   #
+rr=2.0                          #
+xmax = 15                        #
+classe = 'pion_rising'
+rebin = True                      #
+##################################
+
+#file = ROOT.TFile.Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_stat.root","READ")
+file = ROOT.TFile.Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_full_stat_higherbinning.root","READ")
+filename_class0 = "muon_class0/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_muon_class0 = file.Get(filename_class0)
+
+filename_class1 = "muon_class1/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_muon_class1 = file.Get(filename_class1)
+
+filename_class2 = "proton_class2/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_proton_class2 = file.Get(filename_class2)
+
+filename_class3 = "proton_class3/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_proton_class3 = file.Get(filename_class3)
+
+filename_class4 = "pion_class4/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_pion_class4 = file.Get(filename_class4)
+
+filename_class5 = "pion_class5/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_pion_class5 = file.Get(filename_class5)
+
+
+if classe == 'muon_rising' : max_class =  root_hist_to_pyhist(h_muon_class0, 'cornflowerblue', "muon rising",rebin,2)
+if classe == 'muon_mip' : max_class =  root_hist_to_pyhist(h_muon_class1, 'cornflowerblue', "muon mip",rebin,2)
+if classe == 'proton_rising' : max_class =  root_hist_to_pyhist(h_proton_class2, 'cornflowerblue', "proton rising",rebin,2)
+if classe == 'proton_interacting' : max_class =  root_hist_to_pyhist(h_proton_class3, 'cornflowerblue', "proton interacting",rebin,2)
+if classe == 'pion_rising' : max_class =  root_hist_to_pyhist(h_pion_class4, 'cornflowerblue', "pion rising",rebin,2)
+if classe == 'pion_interacting' : max_class =  root_hist_to_pyhist(h_pion_class5, 'cornflowerblue', "pion interacting",rebin,2)
+
+
+#file_mpv = ROOT.TFile.Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_MPVfromNU.root","READ")
+file_mpv = ROOT.TFile.Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_MPVfromNU_higherbinning.root","READ")
+filename_class0_mpv = "muon_class0/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_muon_class0_mpv = file_mpv.Get(filename_class0_mpv)
+
+filename_class1_mpv = "muon_class1/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_muon_class1_mpv = file_mpv.Get(filename_class1_mpv)
+
+filename_class2_mpv = "proton_class2/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_proton_class2_mpv = file_mpv.Get(filename_class2_mpv)
+
+filename_class3_mpv = "proton_class3/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_proton_class3_mpv = file_mpv.Get(filename_class3_mpv)
+
+filename_class4_mpv = "pion_class4/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_pion_class4_mpv = file_mpv.Get(filename_class4_mpv)
+
+filename_class5_mpv = "pion_class5/{}/dEdx_coll_rr_{}".format(rr,rr)
+h_pion_class5_mpv = file_mpv.Get(filename_class5_mpv)
+
+
+if classe == 'muon_rising' : max_class_mpv =  root_hist_to_pyhist(h_muon_class0_mpv, 'orange', "muon rising MPV",rebin,2)
+if classe == 'muon_mip' : max_class_mpv =  root_hist_to_pyhist(h_muon_class1_mpv, 'orange', "muon mip MPV",rebin,2)
+if classe == 'proton_rising' : max_class_mpv =  root_hist_to_pyhist(h_proton_class2_mpv, 'orange', "proton rising MPV",rebin,2)
+if classe == 'proton_interacting' : max_class_mpv =  root_hist_to_pyhist(h_proton_class3_mpv, 'orange', "proton interacting MPV",rebin,2)
+if classe == 'pion_rising' : max_class_mpv =  root_hist_to_pyhist(h_pion_class4_mpv, 'orange', "pion rising MPV",rebin,2)
+if classe == 'pion_interacting' : max_class_mpv =  root_hist_to_pyhist(h_pion_class5_mpv, 'orange', "pion interacting MPV",rebin,2)
+    
+plt.xlabel('dE/dx [MeV/cm]', fontsize=18)
+plt.ylabel('entries (area normalized)', fontsize=18)
+plt.title(r"dE/dx distributions - {} < RR $\leq$ {} cm".format(rr,rr+0.5), fontsize=18)
+
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,xmax,1), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.xlim(0,xmax)
+plt.ylim(0,max(max_class, max_class_mpv)*1.1)
+plt.savefig('MPV_rr_{}_{}.pdf'.format(rr,classe), format='pdf', bbox_inches='tight')
+plt.close()

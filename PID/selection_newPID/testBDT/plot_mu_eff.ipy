@@ -1,0 +1,135 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+mu = np.genfromtxt(
+    'dump_mu_length.txt',
+    dtype=[('len',float)],
+    encoding="utf-8",
+    delimiter=' '
+)
+
+selected_mu = np.genfromtxt(
+    'dump_selected_mu_length.txt',
+    dtype=[('len',float)],
+    encoding="utf-8",
+    delimiter=' '
+)
+
+pro = np.genfromtxt(
+    'dump_pro_length.txt',
+    dtype=[
+        ('len',float),
+        ('Ek',float)],
+        encoding='utf-8',
+        delimiter=' '
+)
+
+selected_pro = np.genfromtxt(
+    'dump_selected_pro_length.txt',
+    dtype=[
+        ('len',float),
+        ('Ek',float)],
+        encoding='utf-8',
+        delimiter=' '
+)
+
+pi = np.genfromtxt(
+    'dump_pi_length.txt',
+    dtype=[
+        ('len',float),
+        ('Ek',float)],
+        encoding='utf-8',
+        delimiter=' '
+)
+
+selected_pi = np.genfromtxt(
+    'dump_selected_pi_length.txt',
+    dtype=[
+        ('len',float),
+        ('Ek',float)],
+        encoding='utf-8',
+        delimiter=' '
+)
+
+all_selected = np.genfromtxt(
+    'dump_purity.txt',
+    dtype=[
+        ('pdg',int),
+        ('len',float),
+        ('Ek',float),
+        ('prediction',int)],
+        encoding = 'utf-8',
+        delimiter = ' '
+)
+
+bin_edges = np.arange(0,101,2)
+bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+fig, ax1 = plt.subplots()
+
+######################
+#     efficiency     #
+######################
+
+counts_all,_ = np.histogram(pi['len'],bins=bin_edges)
+counts_sel,_ = np.histogram(selected_pi['len'],bins=bin_edges)
+
+ratio = np.zeros_like(counts_all, dtype=float)
+mask = counts_all > 0
+ratio[mask] = counts_sel[mask] / counts_all[mask]
+
+errors = np.zeros_like(ratio)
+errors[mask] = np.sqrt(ratio[mask] * (1 - ratio[mask]) / counts_all[mask])
+
+ax1.stairs(ratio, bin_edges, color='red', linewidth=1,label=r'$\pi$ selection eff.')
+
+ax1.errorbar(bin_centers, ratio, yerr=errors, fmt='o', markersize=2, color='red', alpha=0.8, elinewidth=1)
+
+##################
+#     purity     #
+##################
+
+all_selected_noc = all_selected[np.abs(all_selected['pdg'])!=2147483648]
+
+all_selected_mu = all_selected_noc[(all_selected_noc['prediction'] == 0) | (all_selected_noc['prediction'] == 1)]
+all_selected_pro = all_selected_noc[(all_selected_noc['prediction'] == 2) | (all_selected_noc['prediction'] == 3)]
+all_selected_pi = all_selected_noc[(all_selected_noc['prediction'] == 4) | (all_selected_noc['prediction'] == 5)]
+
+selected_corr_mu = all_selected_mu[np.abs(all_selected_mu['pdg'])==13]
+selected_corr_pro = all_selected_pro[np.abs(all_selected_pro['pdg'])==2212]
+selected_corr_pi = all_selected_pi[np.abs(all_selected_pi['pdg'])==211]
+
+all_selected_pur = all_selected_pi
+selected_corr = selected_corr_pi
+
+counts_all_pur,_ = np.histogram(all_selected_pur['len'],bins=bin_edges)
+counts_sel_corr_pur,_ = np.histogram(selected_corr['len'],bins=bin_edges)
+
+ratio_pur = np.zeros_like(counts_all_pur, dtype=float)
+mask_pur = counts_all_pur > 0
+ratio_pur[mask_pur] = counts_sel_corr_pur[mask_pur] / counts_all_pur[mask_pur]
+
+errors_pur = np.zeros_like(ratio_pur)
+errors_pur[mask_pur] = np.sqrt(ratio_pur[mask_pur] * (1 - ratio_pur[mask_pur]) / counts_all_pur[mask_pur])
+
+ax2 = ax1.twinx()
+
+ax2.stairs(ratio_pur, bin_edges, color='orange', linewidth=1,label=r'$\pi$ selection pur.')
+
+ax2.errorbar(bin_centers, ratio_pur, yerr=errors_pur, fmt='o', markersize=2, color='orange', alpha=0.8, elinewidth=1)
+
+lines1, labels1 = ax1.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax1.legend(lines1 + lines2, labels1 + labels2, loc='lower center', fontsize=14)
+
+ax1.set_xlabel(r'reco $\pi$ length [cm]', fontsize=18)
+
+ax1.set_ylabel('efficiency', fontsize='18')
+ax2.set_ylabel('purity', fontsize='18')
+ax1.tick_params(axis='x',labelsize=18)
+ax1.tick_params(axis='y',labelsize=18)
+ax2.tick_params(axis='x',labelsize=18)
+ax2.tick_params(axis='y',labelsize=18)
+plt.savefig('pion_selection.pdf',format='pdf',bbox_inches='tight')
+plt.close()
+

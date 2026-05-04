@@ -1,0 +1,169 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+respun = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/depEdump_respun.txt',
+    dtype = [
+        ('depE_5',float),
+        ('depE_10',float),
+        ('depE_25',float),
+        ('true1muNp',int)
+    ],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+highLT = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/depEdump_highLT.txt',
+    dtype = [
+        ('depE_5',float),
+        ('depE_10',float),
+        ('depE_25',float),
+        ('true1muNp',int)
+    ],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+null = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/depEdump_null.txt',
+    dtype = [
+        ('depE_5',float),
+        ('depE_10',float),
+        ('depE_25',float),
+        ('true1muNp',int)
+    ],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+"""
+proton_respun = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/proton_depEdump_respun.txt',
+    dtype = [
+        ('depE_5',float),
+        ('depE_10',float),
+        ('depE_25',float)
+    ],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+proton_highLT = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/proton_depEdump_highLT.txt',
+    dtype = [
+        ('depE_5',float),
+        ('depE_10',float),
+        ('depE_25',float)
+    ],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+proton_cv_nue_cnaf = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/proton_depEdump_cv_nue_cnaf.txt',
+    dtype = [
+        ('depE_5',float),
+        ('depE_10',float),
+        ('depE_25',float)
+    ],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+proton_highLT_nue_cnaf = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/proton_depEdump_highLT_nue_cnaf.txt',
+    dtype = [
+        ('depE_5',float),
+        ('depE_10',float),
+        ('depE_25',float)
+    ],
+    encoding = 'utf-8',
+    delimiter = None
+)
+"""
+
+"""
+plt.hist(respun['depE_5'], bins=100, range=(0,50), histtype='step', color='cornflowerblue', lw=3, label='respun', density=True)
+
+plt.hist(highLT['depE_5'], bins=100, range=(0,50), histtype='step', color='green', lw=3, label='highLT', density=True)
+
+plt.hist(null['depE_5'], bins=100, range=(0,50), histtype='step', color='orange', lw=3, label='null', density=True)
+
+plt.xlabel('depE last 5 cm [MeV]', fontsize=18)
+plt.ylabel('entries / 0.5 MeV\n(area normalized)', fontsize=18)
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,50,2.5), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.savefig('depE_5.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+plt.hist(respun['depE_10'], bins=100, range=(0,100), histtype='step', color='cornflowerblue', lw=3, label='respun', density=True)
+
+plt.hist(highLT['depE_10'], bins=100, range=(0,100), histtype='step', color='green', lw=3, label='highLT', density=True)
+
+plt.hist(null['depE_10'], bins=100, range=(0,100), histtype='step', color='orange', lw=3, label='null', density=True)
+
+plt.xlabel('depE last 10 cm [MeV]', fontsize=18)
+plt.ylabel('entries / 1 MeV\n(area normalized)', fontsize=18)
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,100,5), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.savefig('depE_10.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+"""
+
+respun_nu = respun[respun['true1muNp'] == 1]
+highLT_mu = highLT[highLT['true1muNp'] == 1]
+null_nu = null[null['true1muNp'] == 1]
+
+plt.hist(respun_nu['depE_25'], bins=150, range=(0,150), histtype='step', color='cornflowerblue', lw=3, label='respun', density=True)
+
+plt.hist(highLT_mu['depE_25'], bins=150, range=(0,150), histtype='step', color='green', lw=3, label='highLT', density=True)
+
+plt.hist(null_nu['depE_25'], bins=150, range=(0,150), histtype='step', color='orange', lw=3, label='null', density=True)
+
+plt.xlabel('depE last 25 cm [MeV]', fontsize=18)
+plt.ylabel('entries / 1 MeV\n(area normalized)', fontsize=18)
+plt.title('true 1muNp slices',fontsize=18)
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,150,10), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.savefig('depE_25_true1muNp.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+
+"""
+plt.hist(proton_respun['depE_25'], bins=100, range=(0,300), histtype='step', color='cornflowerblue', lw=3, label='respun', density=True)
+
+plt.hist(proton_cv_nue_cnaf['depE_25'], bins=100, range=(0,300), histtype='step', color='purple', lw=3, label='CV nue CNAF', density=True)
+
+plt.hist(proton_highLT['depE_25'], bins=100, range=(0,300), histtype='step', color='green', lw=3, label='highLT', density=True)
+
+plt.hist(proton_highLT_nue_cnaf['depE_25'], bins=100, range=(0,300), histtype='step', color='orange', lw=3, label='highLT nue CNAF', density=True)
+
+plt.xlabel('depE last 25 cm [MeV]', fontsize=18)
+plt.ylabel('entries / 3 MeV\n(area normalized)', fontsize=18)
+leg = plt.legend(loc='best', fontsize=14)
+leg.get_frame().set_facecolor('white')  # sfondo bianco della legenda
+leg.get_frame().set_alpha(1.0)          # opaco
+plt.setp(leg.get_title(), fontweight='bold')
+plt.setp(plt.gca().get_legend().get_title(), fontweight='bold')
+plt.xticks(np.arange(0,300,15), fontsize=14, rotation=60)
+plt.yticks(fontsize=14)
+plt.savefig('depE_25_protons.pdf', format='pdf', bbox_inches='tight')
+plt.close()
+"""

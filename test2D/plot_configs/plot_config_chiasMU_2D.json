@@ -1,0 +1,51 @@
+{
+  "istogrammi": [
+    {
+      "path": "/exp/icarus/app/users/nsommagg/test.root:muon/2d/chi2asMUcoll",
+      "local_draw_type" : "draw_graph",
+      "label": "2D",
+      "colore": "blue",
+      "alpha": 1,
+      "ls": "solid",
+      "lw": 2,
+      "mstyle":"o",
+      "msize":4,
+      "s":20,
+      "drawErrors": true
+    },
+    {
+      "path": "/exp/icarus/app/users/nsommagg/test.root:muon/2d_YZ/chi2asMUcoll",
+      "local_draw_type" : "draw_hist",
+      "label": "2D w/ YZ",
+      "colore": "cornflowerblue",
+      "alpha": 0.7,
+      "ls":"solid",
+      "lw":2,
+      "mstyle":"o",
+      "msize":4,
+      "s":20,
+      "drawErrors": true
+    }
+  ],
+
+
+  "object": "hist",
+  "naxes": 1,
+  "logy": false,
+  "xlabel": "$\\chi^2$ as $\\mu$",
+  "ylabel": "counts (area normalized)",
+  "title": "MUONS $\\chi^2$ as $\\mu$",
+  "location": "best",
+  "xlow": 0,
+  "xhigh": 50,
+  "ylow": 0,
+  "yhigh": 0,
+  "xticks_interval": 5,
+  "rotation": 60,
+  "minor_tick_x":5,
+  "savepath": "/exp/icarus/app/users/nsommagg/plot_configs/testdEdx_chi2asMU_2D.pdf",
+  "format": "pdf",
+  "rebin": false,
+  "rebfactor": 2,
+  "leg_fontsize" : 11
+}
