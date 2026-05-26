@@ -1,3 +1,76 @@
+
+struct Node { int left, right, feature; double threshold, value; };
+
+struct singleTree {
+    std::vector<Node> nodes;
+    double predict(const std::vector<double>& x) const {
+        int cur = 0;
+        while (nodes[cur].feature != -2)
+            cur = x[nodes[cur].feature] <= nodes[cur].threshold
+                  ? nodes[cur].left : nodes[cur].right;
+        return nodes[cur].value;
+    }
+};
+
+struct GBDTModel {
+    double learning_rate;
+    int n_classes;
+    std::vector<double> init_scores;  // uno per classe
+    std::vector<singleTree> trees;          // n_stages * n_classes alberi
+
+    // Ritorna il vettore di probabilità per ogni classe (softmax)
+    std::vector<double> predict_proba(const std::vector<double>& x) const {
+        int n_stages = trees.size() / n_classes;
+
+        // Accumula score per ogni classe
+        std::vector<double> scores = init_scores;
+        for (int s = 0; s < n_stages; s++)
+            for (int k = 0; k < n_classes; k++)
+                scores[k] += learning_rate * trees[s * n_classes + k].predict(x);
+
+        // Softmax
+        double max_s = *std::max_element(scores.begin(), scores.end());
+        std::vector<double> proba(n_classes);
+        double sum = 0.0;
+        for (int k = 0; k < n_classes; k++) {
+            proba[k] = std::exp(scores[k] - max_s);
+            sum += proba[k];
+        }
+        for (auto& p : proba) p /= sum;
+        return proba;
+    }
+
+    int predict_class(const std::vector<double>& x) const {
+        auto proba = predict_proba(x);
+        return std::max_element(proba.begin(), proba.end()) - proba.begin();
+    }
+};
+
+GBDTModel load_model(const char* filename) {
+    std::ifstream f(filename);
+    GBDTModel model;
+
+    int n_stages;
+    f >> model.learning_rate >> n_stages >> model.n_classes;
+
+    model.init_scores.resize(model.n_classes);
+    for (int k = 0; k < model.n_classes; k++)
+        f >> model.init_scores[k];
+
+    for (int s = 0; s < n_stages * model.n_classes; s++) {
+        int n_nodes; f >> n_nodes;
+        singleTree tree;
+        for (int i = 0; i < n_nodes; i++) {
+            Node n;
+            f >> n.left >> n.right >> n.feature >> n.threshold >> n.value;
+            tree.nodes.push_back(n);
+        }
+        model.trees.push_back(tree);
+    }
+    return model;
+}
+
+
 int find_idx(double rr)
 {
     if(rr==25.)return 47;
@@ -20,7 +93,7 @@ int find_idx(double rr)
     return n;
 }
 
-int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp)
+int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp, int plane = 999)
 {
     //-1 : unclassified
     //0 : muon rising
@@ -31,6 +104,11 @@ int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& 
     //5 : pion interacting 
 
     int bestplane = 2;
+    if(plane == 0 || plane == 1 || plane == 2)
+    {
+      bestplane = plane; //--> IF YOU DON'T WANT A SPECIFIC PLANE DO NOT SPECIFY PLANE OR SET PLANE TO 999
+    }
+    
     bool hasValidHits=false;
 
     if((int)islc.reco.pfp[ipfp].trk.calo[bestplane].points.size()>0)
@@ -38,22 +116,27 @@ int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& 
       //check if it has valid hits for for computing the likelihood
       for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
       {
-        if(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<30.)
+        if(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<30.)
         {
           hasValidHits=true;
         }
       }
     }
-    
+
     if((int)islc.reco.pfp[ipfp].trk.calo[bestplane].points.size()==0 || hasValidHits==false)
     {
+      if(plane == 0 || plane == 1 || plane == 2)
+      {
+        return -1; //--> IF YOU DON'T WANT A SPECIFIC PLANE DO NOT SPECIFY PLANE OR SET PLANE TO 999
+      }
+
       bestplane = islc.reco.pfp[ipfp].trk.bestplane;
       if(bestplane==-1)return -1;
 
       //check if it has valid hits for for computing the likelihood
       for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
       {
-        if(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<30.)
+        if(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<30.)
         {
           hasValidHits=true;
         }
@@ -61,7 +144,6 @@ int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& 
 
       if(hasValidHits==false)return -1;
     }
-    
 
     //controllo che vertice reco e true siano abbastanza vicini per eliminare la componente di cosmici
     TVector3 vertex_reco;
@@ -263,10 +345,9 @@ std::vector<double> likelihood(const caf::Proxy<caf::SRSlice>& islc, std::size_t
     if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
     else{use_plane=2;}
 
-    //--> trying using prob densities only from coll
-    //if(use_plane == 0){probDensities = ind1_pd;}
-    //else if(use_plane == 1){probDensities = ind2_pd;}
-    //else if(use_plane == 2){probDensities = coll_pd;}
+    if(use_plane == 0){probDensities = ind1_pd;}
+    else if(use_plane == 1){probDensities = ind2_pd;}
+    else if(use_plane == 2){probDensities = coll_pd;}
 
     for(int j=0; j<6; j++)
     { 
@@ -313,6 +394,29 @@ double compute_depE(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp, int 
         }
     }
     return dep_E;
+}
+
+std::vector<double> compute_ke(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp, int plane)
+{
+  double ke_calo = islc.reco.pfp[ipfp].trk.calo[plane].ke;
+
+  TVector3 p_from_range_mu;
+  p_from_range_mu.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_muon)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_muon)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_muon)*islc.reco.pfp[ipfp].trk.dir.z);
+  double ke_range_mu = sqrt(pow(105.658,2)+pow(p_from_range_mu.Mag()*1000,2))-105.658;
+
+  TVector3 p_from_range_pi;
+  p_from_range_pi.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.x, (islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.y, (islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.z);
+  double ke_range_pi = sqrt(pow(139.570,2)+pow(p_from_range_pi.Mag()*1000,2))-139.570;
+
+  TVector3 p_from_range_pro;
+  p_from_range_pro.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);
+  double ke_range_pro = sqrt(pow(938.3,2)+pow(p_from_range_pro.Mag()*1000,2))-938.3;
+
+  double ke_difference_mu_hyp = (ke_range_mu - ke_calo)/ke_calo;
+  double ke_difference_pi_hyp = (ke_range_pi - ke_calo)/ke_calo;
+  double ke_difference_pro_hyp = (ke_range_pro - ke_calo)/ke_calo;
+
+  return {ke_difference_mu_hyp,ke_difference_pi_hyp,ke_difference_pro_hyp};
 }
 
 std::vector<double> compute_daughter_vars(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp)
@@ -375,23 +479,18 @@ std::vector<double> compute_daughter_vars(const caf::Proxy<caf::SRSlice>& islc, 
     return {daughter_depE,angle_end};
 }
 
-//TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/PID_include_files/HISTO_prob_densities_6_classes_30percent_COLL.root", "READ");
-//TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/PID_include_files/HISTO_prob_densities_6_classes_30percent_IND1.root", "READ");
-//TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/PID_include_files/HISTO_prob_densities_6_classes_30percent_IND2.root", "READ");
-
-TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/collection.root", "READ");
-TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/induction1.root", "READ");
-TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/induction2.root", "READ");
+TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_COLL_NEW_MC.root", "READ");
+TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_IND1_NEW_MC.root", "READ");
+TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_IND2_NEW_MC.root", "READ");
 
 std::array<std::vector<TH1D*>,6> prob_d_coll = load_prob_densities("coll",f_prob_densities_coll);
 std::array<std::vector<TH1D*>,6> prob_d_ind1 = load_prob_densities("ind1",f_prob_densities_ind1);
 std::array<std::vector<TH1D*>,6> prob_d_ind2 = load_prob_densities("ind2",f_prob_densities_ind2);
 
 
+
 //PID model ------------------------------------------------------------------
-//std::string path_BDT_model = "/exp/icarus/data/users/nsommagg/PID_include_files/GBDT.txt";
-std::string path_BDT_model = "/exp/icarus/data/users/nsommagg/PID_include_files/GBDT_dedx_mag1.txt";
-#include "/exp/icarus/data/users/nsommagg/PID_include_files/GBDT_model_inport.h"
+std::string path_BDT_model =  "/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/TEST_BDT_NEW_MC/GBDT_MODEL_NEW_MC_EXPORT.txt";
 GBDTModel model = load_model(path_BDT_model.c_str());
 //----------------------------------------------------------------------------
 
@@ -412,12 +511,14 @@ int PIDclass(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp)
   std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
   double depE = compute_depE(islc,ipfp,bestplane);
   std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+  //std::vector<double> ke_vars = compute_ke(islc,ipfp,bestplane);
 
   std::vector<double> track_features;
 
   track_features.insert(track_features.end(), lr.begin(), lr.end());
   track_features.push_back(depE);
   track_features.insert(track_features.end(), dvars.begin(), dvars.end());
+  //track_features.insert(track_features.end(), ke_vars.begin(), ke_vars.end());
 
   int prediction = model.predict_class(track_features); 
   
@@ -435,12 +536,14 @@ std::vector<double> PIDproba(const caf::Proxy<caf::SRSlice>& islc, std::size_t i
   std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
   double depE = compute_depE(islc,ipfp,bestplane);
   std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+  //std::vector<double> ke_vars = compute_ke(islc,ipfp,bestplane);
 
   std::vector<double> track_features;
 
   track_features.insert(track_features.end(), lr.begin(), lr.end());
   track_features.push_back(depE);
   track_features.insert(track_features.end(), dvars.begin(), dvars.end());
+  //track_features.insert(track_features.end(), ke_vars.begin(), ke_vars.end());
 
   std::vector<double> prediction_proba = model.predict_proba(track_features); 
   

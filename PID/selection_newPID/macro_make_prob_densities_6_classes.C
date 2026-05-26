@@ -24,8 +24,7 @@ using namespace ana;
 
 void make_file(std::string filename)
 {
-    //TFile * f = new TFile("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root","RECREATE");
-    TFile * f = new TFile(filename.c_str(),"RECREATE");
+    TFile * f = new TFile(Form("/exp/icarus/data/users/nsommagg/%s.root",filename.c_str()),"RECREATE");
     TDirectory * d_mu_class0 = (TDirectory*)f->mkdir("muon_class0");
     TDirectory * d_mu_class1 = (TDirectory*)f->mkdir("muon_class1");
     TDirectory * d_pro_class2 = (TDirectory*)f->mkdir("proton_class2");
@@ -95,7 +94,7 @@ void macro_make_prob_densities_6_classes(std::string filename, int USE_PLANE){
 //MC 2D large stat
 //const std::string fdata = "production_mc_2025A_ICARUS_Overlays_BNB_MC_RUN2_summer_2025_v10_06_00_06p01_flatcaf";
 //const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026/*flat.caf.root";
-const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_1/*flat.caf.root";
+//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_1/*flat.caf.root";
 // 1 file
 //const std::string fdata = "/pnfs/sbn/data/sbn_fd/poms_production/mc/2025A_ICARUS_Overlays_BNB_MC_RUN2/summer_2025/v10_06_00_06p01/flatcaf/39/51/overlay_neutrino_stage1_66812186_2689.flat.caf-009e8064-a5da-49d8-8634-3acebbf4b82f.root";
 //mc small stat
@@ -117,9 +116,12 @@ const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_20
 //const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026/group_667X.flat.caf.root";
 //const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026/group_668X.flat.caf.root";
 
-
 //MPVMPR from NU
 //const std::string fdata = "/exp/icarus/data/users/nsommagg/MPVMPR/nu_1_tot/*.root";
+
+// 1/4 MC OVERLAYS FROM GRAY
+const std::string fdata = "/exp/icarus/data/users/nsommagg/PDF_FOLDER/*.root";
+
 
 SpectrumLoader loader(fdata);         
 
@@ -149,8 +151,7 @@ std::vector<std::vector<std::vector<double>>> dedx_classes ={dedx_mu_class0, ded
 
 for(int i=0; i<6; i++){cout << rr_classes[i].size() << endl;}
 
-//TFile *f = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root", "UPDATE");
-TFile *f = TFile::Open(filename.c_str(), "UPDATE");
+TFile *f = TFile::Open(Form("/exp/icarus/data/users/nsommagg/%s.root",filename.c_str()), "UPDATE");
 
 for(const auto &clas : classes)
 {

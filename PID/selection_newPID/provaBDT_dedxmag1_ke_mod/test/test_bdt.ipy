@@ -1,0 +1,288 @@
+import joblib
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+
+
+bdt = "/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/provaBDT_dedxmag1_ke/gbdt_model_dedxmag1.pkl"
+
+gbdt_model = joblib.load(bdt)
+
+
+data = np.genfromtxt(
+    '/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/provaBDT_dedxmag1_ke/likelihoods_with_ke_test_70percent.txt',
+    dtype=[('classe',int),
+    ('lr1',float),
+    ('lr2',float),
+    ('lr3',float),
+    ('lr4',float),
+    ('lr5',float),
+    ('lr6',float),
+    ('lr7',float),
+    ('lr8',float),
+    ('lr9',float),
+    ('lr10',float),
+    ('lr11',float),
+    ('lr12',float),
+    ('lr13',float),
+    ('lr14',float),
+    ('lr15',float),
+    ('depE',float),
+    ('depE_daughter',float),
+    ('angle_daughter',float),
+    ('plane',int),
+    ('ke_mu_hyp',float),
+    ('ke_pi_hyp',float),
+    ('ke_pro_hyp',float)],
+    encoding="utf-8",
+    delimiter=" "
+)
+
+print('n muon rising',len(data[data['classe']==0]))
+print('n muon mip',len(data[data['classe']==1]))
+print('n proton rising',len(data[data['classe']==2]))
+print('n proton interacting',len(data[data['classe']==3]))
+print('n pion rising',len(data[data['classe']==4]))
+print('n pion mip',len(data[data['classe']==5]))
+
+classes_labels = ['muon_rising', 'muon mip', 'proton_rising', 'proton_interacting', 'pion_rising', 'pion_interacting']
+feature_names = [f'lr{i}' for i in range(1,16)] + ['depE', 'depE_daughter', 'angle_daughter', 'ke_mu_hyp', 'ke_pi_hyp', 'ke_pro_hyp']
+
+data_test_coll = data[data['plane']==2]
+
+X_test_coll = np.column_stack([data_test_coll[name] for name in feature_names])
+y_test_coll = data_test_coll['classe']
+
+X_test_all_planes = np.column_stack([data[name] for name in feature_names])
+y_test_all_planes = data['classe']
+
+#X_test = X_test_coll
+#y_test = y_test_coll
+
+X_test = X_test_all_planes
+y_test = y_test_all_planes
+
+y_pred = gbdt_model.predict(X_test)
+
+model_title = 'train ONLY COLL'
+#model_title = 'train ALL PLANES'
+#selection_title = 'test ONLY COLL'
+selection_title = 'test ALL PLANES'
+
+#####################
+# efficiency matrix #
+#####################
+disp_confusion_matrix_efficiency = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize='true', cmap=plt.cm.Blues)
+plt.xticks(rotation=60)
+plt.title("EFFICIENCY confusion matrix - 70% stat\n {} - {}".format(model_title,selection_title), fontsize=18)
+plt.savefig("dedxmag1_ke_efficiency_confusion_matrix_{}_{}.pdf".format(model_title,selection_title).replace(' ','_'), format='pdf', bbox_inches='tight')
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.xlabel('predicted label', fontsize=18)
+plt.ylabel('true label', fontsize=18)
+plt.close()
+
+#################
+# purity matrix #
+#################
+disp_confusion_matrix_purity = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize='pred', cmap=plt.cm.Blues)
+plt.xticks(rotation=60)
+plt.title("PURITY confusion matrix - 70% stat\n {} - {}".format(model_title,selection_title), fontsize=18)
+plt.savefig("dedxmag1_ke_purity_confusion_matrix_{}_{}.pdf".format(model_title,selection_title).replace(' ','_'), format='pdf', bbox_inches='tight')
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.xlabel('predicted label', fontsize=18)
+plt.ylabel('true label', fontsize=18)
+plt.close()
+
+##############
+# row matrix #
+##############
+disp_confusion_matrix_row = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=classes_labels, normalize=None, cmap=plt.cm.Blues, values_format='d')
+plt.xticks(rotation=60)
+plt.title("confusion matrix - 70% stat\n {} - {}".format(model_title,selection_title), fontsize=18)
+plt.savefig("dedxmag1_ke_confusion_matrix_{}_{}.pdf".format(model_title,selection_title).replace(' ','_'), format='pdf', bbox_inches='tight')
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.xlabel('predicted label', fontsize=18)
+plt.ylabel('true label', fontsize=18)
+plt.close()
+
+
+cm = confusion_matrix(y_test, y_pred)
+
+
+matrix3x3 = np.array([
+        [cm[0,0] + cm[0,1] + cm[1,0] + cm[1,1] , cm[0,2] + cm[0,3] + cm[1,2] + cm[1,3] , cm[0,4] + cm[0,5] + cm[1,4] + cm[1,5]],
+        [cm[2,0] + cm[2,1] + cm[3,0] + cm[3,1] , cm[2,2] + cm[2,3] + cm[3,2] + cm[3,3] , cm[2,4] + cm[2,5] + cm[3,4] + cm[3,5]],
+        [cm[4,0] + cm[4,1] + cm[5,0] + cm[5,1] , cm[4,2] + cm[4,3] + cm[5,2] + cm[5,3] , cm[4,4] + cm[4,5] + cm[5,4] + cm[5,5]]
+    ])
+
+print(matrix3x3)
+
+mu_eff = matrix3x3[0,0]/(matrix3x3[0,0] + matrix3x3[0,1] + matrix3x3[0,2])
+mu_pur = matrix3x3[0,0]/(matrix3x3[0,0] + matrix3x3[1,0] + matrix3x3[2,0])
+
+pro_eff = matrix3x3[1,1]/(matrix3x3[1,0] + matrix3x3[1,1] + matrix3x3[1,2])
+pro_pur = matrix3x3[1,1]/(matrix3x3[0,1] + matrix3x3[1,1] + matrix3x3[2,1])
+
+pi_eff = matrix3x3[2,2]/(matrix3x3[2,0] + matrix3x3[2,1] + matrix3x3[2,2])
+pi_pur = matrix3x3[2,2]/(matrix3x3[0,2] + matrix3x3[1,2] + matrix3x3[2,2])
+
+
+print('mu_eff: ', mu_eff, 'mu_pur: ', mu_pur)
+print('pro_eff: ', pro_eff, 'pro_pur: ', pro_pur)
+print('pi_eff: ', pi_eff, 'pi_pur: ', pi_pur)
+
+# -------------------------------------------------------
+# muon, proton, pion confusion matrix
+# -------------------------------------------------------
+
+"""
+
+labels = [r"$\mu$", r"$p$", r"$\pi$"]
+ 
+data_newTS = np.array([
+    [21642, 642, 3525],
+    [1339, 66152, 3383 ],
+    [3465, 941, 6362 ],
+])
+
+data_newTS_multiplane = np.array([
+    [21668, 644, 3529],
+    [1392, 72041, 3693],
+    [3562, 1057, 6550],
+])
+
+data_newvars = np.array([
+    [22108, 650, 3083],
+    [1260, 72447, 3419],
+    [3062, 1113, 6994],
+])
+
+data = data_newvars
+ 
+plt.imshow(data, cmap="Blues")
+plt.colorbar()
+ 
+plt.xticks(range(len(labels)), labels, ha="right", fontsize=14)
+plt.yticks(range(len(labels)), labels, fontsize=14)
+ 
+plt.xlabel("Predicted label", fontsize=18)
+plt.ylabel("True label", fontsize=18)
+plt.title("confusion matrix - 70% stat\ntrain ONLY COLL - test ALL PLANES", fontsize=18)
+ 
+# Valori nelle celle
+thresh = data.max() / 2.0
+for i in range(len(labels)):
+    for j in range(len(labels)):
+        color = "white" if data[i, j] > thresh else "black"
+        plt.text(j, i, f"{data[i, j]}", ha="center", va="center",
+                 fontsize=13, color=color)
+ 
+plt.tight_layout()
+plt.savefig("3x3_confusion_matrix_newvars.pdf", format='pdf', bbox_inches="tight")
+
+"""
+
+"""
+########################
+# predict proba distro #
+########################
+
+pred_proba_mu_rising = gbdt_model.predict_proba(X_test[data['classe']==0])
+pred_proba_mu_mip = gbdt_model.predict_proba(X_test[data['classe']==1])
+pred_proba_pro_rising = gbdt_model.predict_proba(X_test[data['classe']==2])
+pred_proba_pro_interacting = gbdt_model.predict_proba(X_test[data['classe']==3])
+pred_proba_pi_rising = gbdt_model.predict_proba(X_test[data['classe']==4])
+pred_proba_pi_interacting = gbdt_model.predict_proba(X_test[data['classe']==5])
+
+pred_proba_mu = gbdt_model.predict_proba(X_test[(data['classe']==0) | (data['classe']==1)])
+pred_proba_pro = gbdt_model.predict_proba(X_test[(data['classe']==2) | (data['classe']==3)])
+pred_proba_pi = gbdt_model.predict_proba(X_test[(data['classe']==4) | (data['classe']==5)])
+
+
+pred_proba = pred_proba_pi_interacting #<--
+
+plt.hist(pred_proba[:,0],bins=100,range=(0,1),histtype='step',label=r'P($\mu$ rising)', lw=2, color='blue')
+plt.hist(pred_proba[:,0],bins=100,range=(0,1),histtype='stepfilled', alpha=0.7, color='blue')
+
+plt.hist(pred_proba[:,1],bins=100,range=(0,1),histtype='step',label=r'P($\mu$ mip)', lw=2, color='deepskyblue')
+plt.hist(pred_proba[:,1],bins=100,range=(0,1),histtype='stepfilled', alpha=0.7, color='deepskyblue')
+
+plt.hist(pred_proba[:,2],bins=100,range=(0,1),histtype='step',label=r'P(p rising)', lw=2, color='darkgreen')
+plt.hist(pred_proba[:,2],bins=100,range=(0,1),histtype='stepfilled', alpha=0.7, color='darkgreen')
+
+plt.hist(pred_proba[:,3],bins=100,range=(0,1),histtype='step',label=r'P(p int.)', lw=2, color='limegreen')
+plt.hist(pred_proba[:,3],bins=100,range=(0,1),histtype='stepfilled', alpha=0.7, color='limegreen')
+
+plt.hist(pred_proba[:,4],bins=100,range=(0,1),histtype='step',label=r'P($\pi$ rising)', lw=2, color='red')
+plt.hist(pred_proba[:,4],bins=100,range=(0,1),histtype='stepfilled', alpha=0.7, color='red')
+
+plt.hist(pred_proba[:,5],bins=100,range=(0,1),histtype='step',label=r'P($\pi$ int.)', lw=2, color='orange')
+plt.hist(pred_proba[:,5],bins=100,range=(0,1),histtype='stepfilled', alpha=0.7, color='orange')
+
+plt.title("pred. proba. PI INTERACTING - 70% stat\n {} - {}".format(model_title,selection_title), fontsize=18) #<--
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.xlabel('predicted probability', fontsize=18)
+plt.ylabel('counts', fontsize=18)
+plt.legend(loc = 'best', fontsize=14)
+plt.savefig("pred_proba_pi_interacting_{}_{}.pdf".format(model_title,selection_title).replace(' ','_'), format='pdf', bbox_inches='tight') #<--
+plt.close()
+
+pred_proba_class = pred_proba_pi #<--
+
+plt.hist(pred_proba_class[:,0]+pred_proba_class[:,1], bins=100, range=(0,1), histtype='step', label=r'P($\mu$)', lw=2, color='blue')
+plt.hist(pred_proba_class[:,0]+pred_proba_class[:,1], bins=100, range=(0,1), histtype='stepfilled', alpha=0.8, color='blue')
+
+plt.hist(pred_proba_class[:,2]+pred_proba_class[:,3], bins=100, range=(0,1), histtype='step', label=r'P(p)', lw=2, color='green')
+plt.hist(pred_proba_class[:,2]+pred_proba_class[:,3], bins=100, range=(0,1), histtype='stepfilled', alpha=0.8, color='green')
+
+plt.hist(pred_proba_class[:,4]+pred_proba_class[:,5], bins=100, range=(0,1), histtype='step', label=r'P($\pi$)', lw=2, color='red')
+plt.hist(pred_proba_class[:,4]+pred_proba_class[:,5], bins=100, range=(0,1), histtype='stepfilled', alpha=0.8, color='red')
+
+plt.title("pred. proba. PION - 70% stat\n {} - {}".format(model_title,selection_title), fontsize=18) #<--
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.xlabel('predicted probability', fontsize=18)
+plt.ylabel('counts', fontsize=18)
+plt.legend(loc = 'best', fontsize=14)
+plt.savefig("pred_proba_PI_{}_{}.pdf".format(model_title,selection_title).replace(' ','_'), format='pdf', bbox_inches='tight') #<--
+plt.close()
+
+if False:
+    matrix = np.array([
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1]
+    ])
+
+    with open('y_pred.txt','w') as out:
+        for i,y in enumerate(y_pred) :
+            out.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} \n'.format(
+                data['lr1'][i],
+                data['lr2'][i],
+                data['lr3'][i],
+                data['lr4'][i],
+                data['lr5'][i],
+                data['lr6'][i],
+                data['lr7'][i],
+                data['lr8'][i],
+                data['lr9'][i],
+                data['lr10'][i],
+                data['lr11'][i],
+                data['lr12'][i],
+                data['lr13'][i],
+                data['lr14'][i],
+                data['lr15'][i],
+                data['depE'][i],
+                data['depE_daughter'][i],
+                data['angle_daughter'][i],
+                y
+            ))
+
+"""

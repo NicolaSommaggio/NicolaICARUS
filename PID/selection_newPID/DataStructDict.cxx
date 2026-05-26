@@ -87,7 +87,7 @@ namespace ROOT {
       ::true_track *ptr = nullptr;
       static ::TVirtualIsAProxy* isa_proxy = new ::TInstrumentedIsAProxy< ::true_track >(nullptr);
       static ::ROOT::TGenericClassInfo 
-         instance("true_track", ::true_track::Class_Version(), "data_struct.h", 59,
+         instance("true_track", ::true_track::Class_Version(), "data_struct.h", 84,
                   typeid(::true_track), ::ROOT::Internal::DefineBehavior(ptr, ptr),
                   &::true_track::Dictionary, isa_proxy, 4,
                   sizeof(::true_track) );
@@ -119,7 +119,7 @@ namespace ROOT {
       ::track *ptr = nullptr;
       static ::TVirtualIsAProxy* isa_proxy = new ::TInstrumentedIsAProxy< ::track >(nullptr);
       static ::ROOT::TGenericClassInfo 
-         instance("track", ::track::Class_Version(), "data_struct.h", 74,
+         instance("track", ::track::Class_Version(), "data_struct.h", 99,
                   typeid(::track), ::ROOT::Internal::DefineBehavior(ptr, ptr),
                   &::track::Dictionary, isa_proxy, 4,
                   sizeof(::track) );
@@ -151,7 +151,7 @@ namespace ROOT {
       ::RecoSlice *ptr = nullptr;
       static ::TVirtualIsAProxy* isa_proxy = new ::TInstrumentedIsAProxy< ::RecoSlice >(nullptr);
       static ::ROOT::TGenericClassInfo 
-         instance("RecoSlice", ::RecoSlice::Class_Version(), "data_struct.h", 88,
+         instance("RecoSlice", ::RecoSlice::Class_Version(), "data_struct.h", 113,
                   typeid(::RecoSlice), ::ROOT::Internal::DefineBehavior(ptr, ptr),
                   &::RecoSlice::Dictionary, isa_proxy, 4,
                   sizeof(::RecoSlice) );

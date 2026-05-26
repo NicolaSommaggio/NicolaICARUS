@@ -43,6 +43,9 @@
 #include "TrackMomentumCalculator.h"
 #include "helper_newPID.h"
 
+double PROTON_KINETIC_E = 50.;
+double CONTAINMENT_CUT = 10.;
+
 using namespace ana;
 
 //CNAF
@@ -127,7 +130,7 @@ bool all_contained ( const caf::Proxy<caf::SRSlice>& islc ) {
     //if(islc.reco.pfp[ipfp].trackScore<0.4)continue; //Want to check only tracks??
     if((islc.reco.pfp[ipfp].trk.start.x*islc.vertex.x)<0){return false;} //not contained if they cross cryostats
     //if not contained return false
-    if(!isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0)){return false;}
+    if(!isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,CONTAINMENT_CUT)){return false;}
       
     }   
     
@@ -144,7 +147,7 @@ bool all_contained_truth ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SR
                     double dep_E=0;   
                     //check if charged primaries are contained: 
                     if(abs(ipart.pdg)==13 || abs(ipart.pdg)==2212 || abs(ipart.pdg)==211 || abs(ipart.pdg)==11){
-                        if(isInContained(ipart.end.x,ipart.end.y,ipart.end.z,5.)==false){return false;}
+                        if(isInContained(ipart.end.x,ipart.end.y,ipart.end.z,CONTAINMENT_CUT)==false){return false;}
                     }                   
                     if(ipart.daughters.size()>0){
                         for ( auto const& itrue : sr->true_particles ){
@@ -153,7 +156,7 @@ bool all_contained_truth ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SR
                         //sum depE daughters 
                         if(iG4ID_parent==ipart.G4ID ){
                         if(abs(itrue.pdg)==13 || abs(itrue.pdg)==2212 || abs(itrue.pdg)==211 || abs(itrue.pdg)==11){
-			  if(itrue.end.x!=-9999 && itrue.end.y!=-9999 && itrue.end.z!=-9999){if(isInContained(itrue.end.x,itrue.end.y,itrue.end.z,5.)==false){return false;}}
+			  if(itrue.end.x!=-9999 && itrue.end.y!=-9999 && itrue.end.z!=-9999){if(isInContained(itrue.end.x,itrue.end.y,itrue.end.z,CONTAINMENT_CUT)==false){return false;}}
                     }                             
                         }
                         }
@@ -267,54 +270,6 @@ std::vector<double> chi2_ALG(std::vector<double> &dEdx,std::vector<double> &RR, 
     return chi2s;
 }
 
-
-int find_muon ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int plane) { 
-
-    //Select muon as longest track
-    double max_length=-1.0;
-    int ipfp_mu = -1;
-    TVector3 RecoVtx;
-    RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
-    TVector3 RecoStart;
-        for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp ){
-        if(std::isnan(islc.reco.pfp[ipfp].trk.start.x) || std::isnan(islc.reco.pfp[ipfp].trk.len)) continue;
-        RecoStart.SetXYZ(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z);
-        if(islc.reco.pfp[ipfp].trackScore<0.5)continue;
-   
-  //int use_plane = islc.reco.pfp[ipfp].trk.calo[2].nhit>islc.reco.pfp[ipfp].trk.calo[1].nhit ? 2:1;
-    //int use_plane = plane;
-    int use_plane = -1;
-    if(plane==-1)
-    {
-      if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
-      else{use_plane=2;}
-    }
-    else{use_plane=plane;}
-    //compute new chi2
-    std::vector<double> output;
-    std::vector<double> dedx;
-    std::vector<double> rr;
-    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[use_plane].points.size(); ++ihit ){
-                        dedx.push_back(islc.reco.pfp[ipfp].trk.calo[use_plane].points[ihit].dedx);
-                        rr.push_back(islc.reco.pfp[ipfp].trk.calo[use_plane].points[ihit].rr);
-                            } // calo points
-                  //input to chi2_ALG vector dedx, vector rr, rr_min, rr_max
-    //output chi2s {chi2mu/npt,chi2pro/npt,chi2ka/npt,chi2pi/npt} 
-    output = chi2_ALG(dedx,rr,0.0,25.0);
-
-
-        if(islc.reco.pfp[ipfp].trk.len>max_length && ((RecoVtx-RecoStart).Mag()<dist_mucut) && islc.reco.pfp[ipfp].trk.len>50 && 
-        output[0]<30 && output[1]>60 && 
-        isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0) && 
-        (islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x)>0 && islc.reco.pfp[ipfp].parent_is_primary){
-        max_length=islc.reco.pfp[ipfp].trk.len;
-        ipfp_mu=ipfp;
-            }
-        }//loop of pfp to find muon
-  return ipfp_mu;
-}
-
-
 int find_truth_muon ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int plane) { 
 
     //Select muon as longest track
@@ -336,8 +291,8 @@ int find_truth_muon ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int 
 
         if(islc.reco.pfp[ipfp].trk.len>max_length && ((RecoVtx-RecoStart).Mag()<dist_mucut) && islc.reco.pfp[ipfp].trk.len>50 && 
         std::abs(islc.reco.pfp[ipfp].trk.truth.p.pdg)==13 && 
-        isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0) && 
-        isInContained(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z,5.0) &&
+        isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,CONTAINMENT_CUT) && 
+        isInContained(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z,CONTAINMENT_CUT) &&
         (islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x)>0 && islc.reco.pfp[ipfp].parent_is_primary){
         max_length=islc.reco.pfp[ipfp].trk.len;
         ipfp_mu=ipfp;
@@ -346,77 +301,6 @@ int find_truth_muon ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int 
     return ipfp_mu;
 }
 
-int id_pfp ( const caf::Proxy<caf::SRSlice>& islc, int ipfp, int dist_cut, int plane ) { 
-    //return 1 PROTONS
-    //return 2 PIONS
-    //return 3 SHOWER
-    //return 9 other -> nan, not primary, too far, below energy threshold... 
-
-
-    TVector3 RecoVtx;
-    RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
-    //    for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp ){
-    //skip secondaries
-    if (!(islc.reco.pfp[ipfp].parent_is_primary ))return 9;
-    if(std::isnan(islc.reco.pfp[ipfp].trk.start.x) || std::isnan(islc.reco.pfp[ipfp].trk.end.x) || std::isnan(islc.reco.pfp[ipfp].trk.len)) return 9;
-    //if(int(ipfp)==ipfp_mu)continue;     //There is always a muon, for a 1mu1p we need 2 tracks - 1 muon = 1 only proton with threshold
-    //consider only primary tracks which are 20cm close to the vertex, either vtx-start or vtx-end
-    TVector3 start(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z);
-    TVector3 end(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z);
-    //condition ? result_if_true : result_if_false
-    double min_dist = ((start-RecoVtx).Mag()< (end-RecoVtx).Mag() ? (start-RecoVtx).Mag() : (end-RecoVtx).Mag());
-    //if(min_dist>50.0)continue;
-    //if(min_dist>10.0) return 9;
-    if(min_dist>50.0) return 9;
-     
-
-    //int use_plane = islc.reco.pfp[ipfp].trk.calo[2].nhit>islc.reco.pfp[ipfp].trk.calo[1].nhit ? 2:1;
-    int use_plane = plane;
-    
-    //compute new chi2
-    std::vector<double> output;
-    std::vector<double> dedx;
-    std::vector<double> rr;
-    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[use_plane].points.size(); ++ihit ){
-                        dedx.push_back(islc.reco.pfp[ipfp].trk.calo[use_plane].points[ihit].dedx);
-                        rr.push_back(islc.reco.pfp[ipfp].trk.calo[use_plane].points[ihit].rr);
-                            } // calo points
-                  //input to chi2_ALG vector dedx, vector rr, rr_min, rr_max
-    //output chi2s {chi2mu/npt,chi2pro/npt,chi2ka/npt,chi2pi/npt} 
-    output = chi2_ALG(dedx,rr,0.0,25.0);
-    if(islc.reco.pfp[ipfp].trackScore>=0.5){
-    if (std::isnan(islc.reco.pfp[ipfp].trk.start.x) || std::isnan(islc.reco.pfp[ipfp].trk.end.x) || std::isnan(islc.reco.pfp[ipfp].trk.len)) return 9;
-    if (std::isnan(islc.reco.pfp[ipfp].trk.start.y) || std::isnan(islc.reco.pfp[ipfp].trk.start.z)|| std::isnan(islc.reco.pfp[ipfp].trk.end.y) || std::isnan(islc.reco.pfp[ipfp].trk.end.z) )return 9;
-    
-
-    //skip low energy tagged pions
-    TVector3 Start_mom_v;
-    if(output[1]>=100 ){ Start_mom_v.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_pion)*islc.reco.pfp[ipfp].trk.dir.z);}
-    if(output[1]>=100 && ((RecoVtx-start).Mag()<dist_cut) && (sqrt(pow(139.570,2)+pow(Start_mom_v.Mag()*1000,2))-139.570)>=25.0){if (islc.reco.pfp[ipfp].parent_is_primary ) {return 2;}}
-    //skip low energy protons
-    if(output[1]<100 ){ Start_mom_v.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);}
-    if(output[1]<100 && ((RecoVtx-start).Mag()<dist_cut) && (sqrt(pow(938.3,2)+pow(Start_mom_v.Mag()*1000,2))-938.3)>=50.0){if (islc.reco.pfp[ipfp].parent_is_primary ) {return 1;}}
-            
-    }
-    if(islc.reco.pfp[ipfp].trackScore<0.5){
-        if(islc.reco.pfp[ipfp].trackScore>=0.3 && islc.reco.pfp[ipfp].trackScore<0.5 && output[1]<100 ){
-            TVector3 Start_mom_v2;
-            Start_mom_v2.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);
-            if((sqrt(pow(938.3,2)+pow(Start_mom_v2.Mag()*1000,2))-938.3)>=50.0 && ((RecoVtx-start).Mag()<dist_cut) && islc.reco.pfp[ipfp].parent_is_primary){return 1;}
-        }
-    if(!(islc.reco.pfp[ipfp].trackScore>=0.3 && islc.reco.pfp[ipfp].trackScore<0.5 && output[1]<100 )){
-    //int use_plane2 = islc.reco.pfp[ipfp].trk.calo[2].nhit>islc.reco.pfp[ipfp].trk.calo[1].nhit ? 2:1;  
-    //int use_plane2 = 2;
-    int use_plane2=use_plane;
-    if(std::isnan(islc.reco.pfp[ipfp].shw.plane[use_plane2].energy))return 9;
-    if(islc.reco.pfp[ipfp].shw.plane[use_plane2].energy*1000<25.0)return 9;
-    if(islc.reco.pfp[ipfp].shw.plane[use_plane2].energy*1000>25.0){if (islc.reco.pfp[ipfp].parent_is_primary ) {return 3;}}}
-        }
-    
-    return 9;
-}
-
-
 int id_pfp_truth ( const caf::Proxy<caf::SRSlice>& islc, int ipfp, int dist_cut, int plane ) { 
     //return 1 PROTONS
     //return 2 PIONS
@@ -424,8 +308,8 @@ int id_pfp_truth ( const caf::Proxy<caf::SRSlice>& islc, int ipfp, int dist_cut,
     //return 9 other -> nan, not primary, too far, below energy threshold... 
 
     if(
-        !isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0) //||
-        //!isInContained(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z,5.0)
+        !isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,CONTAINMENT_CUT) //||
+        //!isInContained(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z,CONTAINMENT_CUT)
       )return 9;
 
     TVector3 RecoVtx;
@@ -508,7 +392,7 @@ bool all_contained_mc(const caf::SRSpillProxy* sr,
         // Only visible charged primaries
         if (is_charged_lepton_or_hadron(pid)) {
 
-            if (!isInContained(ipart.end.x, ipart.end.y, ipart.end.z, 5))
+            if (!isInContained(ipart.end.x, ipart.end.y, ipart.end.z, CONTAINMENT_CUT))
             {
                 //MyFile_truth << "this is not contained " << endl;
                 return false;}
@@ -525,7 +409,7 @@ bool all_contained_mc(const caf::SRSpillProxy* sr,
 
                 if (d.end.x == -9999 || d.end.y == -9999 || d.end.z == -9999) continue;
 
-                if (!isInContained(d.end.x, d.end.y, d.end.z, 5))
+                if (!isInContained(d.end.x, d.end.y, d.end.z, CONTAINMENT_CUT))
                     {
                         //MyFile_truth << "Daughter is not contained " <<  TruthPIDToString(dpid) << endl; 
                     return false;}
@@ -623,7 +507,7 @@ bool classification_type_MC(const caf::SRSpillProxy* sr,
                 if (same_g4id(d.parent, ipart.G4ID))
                     depE += d.plane[ipart.cryostat][use_plane].visE * 1000.0;
             }
-                if (depE > 50) {
+                if (depE > PROTON_KINETIC_E) {
                     ++n_protons_above;
                 }
             
@@ -767,7 +651,7 @@ std::string classification_type_generic ( const caf::SRSpillProxy* sr, const caf
                     }
                     dep_E += ipart.plane[ipart.cryostat][use_plane].visE*1000;
                   }
-                  if(abs(ipart.pdg)== 2212 && dep_E>50.0){num_protons_above50+=1;} //protons
+                  if(abs(ipart.pdg)== 2212 && dep_E>PROTON_KINETIC_E){num_protons_above50+=1;} //protons
                   dep_E=0;  
 
                   //PRIMARY CHARGED PIONS
@@ -808,151 +692,6 @@ std::string classification_type_generic ( const caf::SRSpillProxy* sr, const caf
          
     return return_string; 
 }
-
-
-bool automatic_selection_1muNp ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, int dist_cut, int cut_baryc, int plane ){
-
-        if(!(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)/* || std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)*/)){
-        {            
-
-        {
-        int ipfp_mu = -1;
-        int ipfp_pro = -1;
-    if( !(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z) || std::isnan(islc.charge_center.z)) && isInFV(islc.vertex.x,islc.vertex.y,islc.vertex.z)){
-
-        if(islc.barycenterFM.deltaZ_Trigger < cut_baryc && islc.barycenterFM.deltaZ_Trigger>0)   
-    {
-            if(all_contained(islc)){
-                ipfp_mu=find_muon(islc,dist_cut,plane);
-                if(ipfp_mu!=-1){
-                    int num_protons =0;
-                    int num_pions =0;
-                    int num_showers =0; 
-
-                    for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp ){
-
-                        int use_plane = -1;
-                        if(plane==-1)
-                        {
-                          if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
-                          else{use_plane=2;}
-                        }
-                        else{use_plane=plane;}
-
-                        if(int(ipfp)==ipfp_mu)continue;
-                        if(id_pfp(islc, ipfp,dist_cut, use_plane)==1){num_protons+=1;}
-                        if(id_pfp(islc, ipfp,dist_cut, use_plane)==2){num_pions+=1;}
-                        if(id_pfp(islc, ipfp,dist_cut, use_plane)==3){num_showers+=1;}
-                    }
-                    if(num_protons>0 && num_pions==0 && num_showers==0){
-                        return true;
-                            }//1mu1p 
-                        }//muon with conditions found
-                    
-                    }//all tracks of slice contained  
-        }//new Barycenter match
-    }//fiducial condition
- 
-    }//signal
-    }//only neutrinos in active!
-    }//check no nan in true info
-
-   
-  return false;
-}
-
-bool automatic_selection_1muNp_truth ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, int dist_cut, int cut_baryc, int plane ){
-
-        if(!(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)/* || std::isnan(islc.truth.position.x) || std::isnan(islc.truth.position.y) || std::isnan(islc.truth.position.z)*/))
-        {
-          int ipfp_mu = -1;
-          int ipfp_pro = -1;
-          if(!(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z) || std::isnan(islc.charge_center.z)) && isInFV(islc.vertex.x,islc.vertex.y,islc.vertex.z))
-          {
-            if(islc.barycenterFM.deltaZ_Trigger < cut_baryc && islc.barycenterFM.deltaZ_Trigger>0)   
-            {
-              if(all_contained(islc))
-              {
-
-                ipfp_mu=find_truth_muon(islc,dist_cut,plane);
-                if(ipfp_mu!=-1)
-                {
-                    int num_protons =0;
-                    int num_pions =0;
-                    int num_showers =0; 
-
-                    for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
-                    {
-                        if(int(ipfp)==ipfp_mu)continue;
-                        int use_plane = -1;
-                        if(plane==-1)
-                        {
-                          if(islc.reco.pfp[ipfp].trk.bestplane==0 || islc.reco.pfp[ipfp].trk.bestplane==1 || islc.reco.pfp[ipfp].trk.bestplane==2){use_plane=islc.reco.pfp[ipfp].trk.bestplane;}
-                          else{use_plane=2;}
-                        }
-                        else{use_plane=plane;}
-
-                        if(id_pfp_truth(islc, ipfp,dist_cut, use_plane)==1){num_protons+=1;}
-                        if(id_pfp_truth(islc, ipfp,dist_cut, use_plane)==2){num_pions+=1;}
-                        if(id_pfp_truth(islc, ipfp,dist_cut, use_plane)==3){num_showers+=1;}
-                    }
-                    if(num_protons>0 && num_pions==0 && num_showers==0)
-                    {
-                        return true;
-                    }//1mu1p 
-                }//muon with conditions found
-              }//all tracks of slice contained  
-            }//new Barycenter match
-          }//fiducial condition
-        }//check no nan in true info
-return false;
-}
-
-double mediana(std::vector<double> dummy)
-{
-    std::sort(dummy.begin(), dummy.end());
-    double mediana=0;
-    int idx=0;
-    if(int(dummy.size())%2==1)
-    {
-        idx=(dummy.size()-1)/2;
-        mediana=dummy.at(idx);
-    }
-    if(dummy.size()%2==0)
-    {
-        idx =dummy.size()/2-1;
-        mediana=( dummy.at(dummy.size()/2) + dummy.at(idx) )/2.;
-    }
-    return mediana;
-}
-
-std::array<std::vector<double>,2> rollingMedian(const caf::Proxy<caf::SRSlice>& islc, int ipfp, int plane)
-{
-    std::vector<double> dedx_temp;
-    std::vector<double> rr_temp;
-    std::vector<double> temp_rr_rm={-1.};
-    std::vector<double> temp_rm={-1.};
-    std::array<std::vector<double>,2> rm;
-    for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit)
-    {
-        if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<30)
-        {
-            dedx_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);
-            rr_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr);
-        }
-    }
-    if(dedx_temp.size()<9)return {temp_rr_rm,temp_rm};
-    
-    for(int i=4; i+4<int(dedx_temp.size()); i++)
-    {
-        std::vector<double> dummy = {dedx_temp[i-4], dedx_temp[i-3], dedx_temp[i-2], dedx_temp[i-1], dedx_temp[i] ,dedx_temp[i+1],dedx_temp[i+2], dedx_temp[i+3], dedx_temp[i+4]};
-        double media_rr = (rr_temp[i-4] + rr_temp[i-3] + rr_temp[i-2] + rr_temp[i-1] + rr_temp[i] + rr_temp[i+1] + rr_temp[i+2] + rr_temp[i+3] + rr_temp[i+4])/9.;
-        rm[0].push_back(media_rr);
-        rm[1].push_back(mediana(dummy));
-    }
-    return rm;
-}
-
 
 
 double bar_flash (const caf::SRSpillProxy* spill,const caf::Proxy<caf::SRSlice>& islc){
@@ -1062,8 +801,8 @@ bool is_muon (const caf::Proxy<caf::SRSlice>& islc, int ipfp)
         islc.reco.pfp[ipfp].trk.len>20 && 
         (islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x)>0 && 
         //islc.reco.pfp[ipfp].parent_is_primary
-        isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0) && 
-        isInContained(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z,5.0)
+        isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,CONTAINMENT_CUT) && 
+        isInContained(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z,CONTAINMENT_CUT)
       )
     {return true;}
 
@@ -1478,7 +1217,7 @@ int find_muon_newPID ( const caf::Proxy<caf::SRSlice>& islc, int dist_mucut, int
       if(imu_prob>max_p_as_mu && 
         ((RecoVtx-RecoStart).Mag()<dist_mucut) && 
         track_length > 50. && 
-        isInContained(islc.reco.pfp[current_pfp].trk.end.x,islc.reco.pfp[current_pfp].trk.end.y,islc.reco.pfp[current_pfp].trk.end.z,5.0) && 
+        isInContained(islc.reco.pfp[current_pfp].trk.end.x,islc.reco.pfp[current_pfp].trk.end.y,islc.reco.pfp[current_pfp].trk.end.z,CONTAINMENT_CUT) && 
         (islc.reco.pfp[current_pfp].trk.end.x*islc.vertex.x)>0 &&
         is_primary)
         {
@@ -1539,7 +1278,7 @@ int id_pfp_newPID ( const caf::Proxy<caf::SRSlice>& islc, int ipfp, int dist_cut
       { 
         Start_mom_v.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);
 
-        if( ((RecoVtx-start).Mag()<dist_cut) && (sqrt(pow(938.3,2)+pow(Start_mom_v.Mag()*1000,2))-938.3)>=50.0 )return 1;
+        if( ((RecoVtx-start).Mag()<dist_cut) && (sqrt(pow(938.3,2)+pow(Start_mom_v.Mag()*1000,2))-938.3)>=PROTON_KINETIC_E )return 1;
       }       
     }
 
@@ -1564,18 +1303,18 @@ std::string selection_1muNp_newPID ( const caf::SRSpillProxy* sr, const caf::Pro
 
   if(!(all_contained(islc)))return "bad_slice";
 
+  // test without light -->
   double bar_flash_z = bar_flash(sr,islc); 
 	double bar_falsh_x = bar_flash_x(sr,islc);
   double delta=fabs(bar_flash(sr,islc)-islc.charge_center.z);
 
   if(bar_falsh_x*islc.vertex.x <= 0)return "bad_slice";
-  if(bar_flash_z <= -10000)return "bad_slice";
-  if(delta <= 0 || delta >= cut_baryc) return "bad_slice";
+  //if(bar_flash_z <= -10000)return "bad_slice";
+  //if(delta <= 0 || delta >= cut_baryc) return "bad_slice";
+  // <--
 
   int ipfp_mu = -1;
   ipfp_mu = find_muon_newPID(islc,dist_cut,mu1_pfp,mu2_pfp,stitched_len);
-
-  //if(ipfp_mu!=-1)cout << "muon found" << endl;
 
   if(ipfp_mu!=-1)returned_string = "1";
   else{returned_string = "0";}
@@ -1586,18 +1325,34 @@ std::string selection_1muNp_newPID ( const caf::SRSpillProxy* sr, const caf::Pro
 
   for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
   {
-    if(int(ipfp)==ipfp_mu || int(ipfp)==mu1_pfp || int(ipfp)==mu2_pfp)continue;
-    if(id_pfp_newPID(islc, ipfp,dist_cut)==1){num_protons+=1;}
-    if(id_pfp_newPID(islc, ipfp,dist_cut)==2){num_pions+=1;}
-    if(id_pfp_newPID(islc, ipfp,dist_cut)==3){num_showers+=1;}
-  }
 
-  //cout << num_protons << " protons found " << num_pions << " pions found " << num_showers << " showers found " << endl; 
+    if(int(ipfp)==ipfp_mu || int(ipfp)==mu1_pfp || int(ipfp)==mu2_pfp){; continue; }
+
+    int pfp_id = id_pfp_newPID(islc, ipfp,dist_cut);
+
+    if(pfp_id==1)
+    {
+      //modification to suppress cosmic background -->
+      int bestplane_temp = find_best_plane(islc,ipfp);
+      double depE_temp = compute_depE(islc,ipfp,bestplane_temp);
+      int class_temp = PIDclass(islc,ipfp);  
+      if(class_temp == 2)
+      { 
+        if(depE_temp > 25.){num_protons+=1;}
+      }
+      else{num_protons+=1;}
+      //<--
+    }
+    if(pfp_id==2){num_pions+=1; }
+    if(pfp_id==3){num_showers+=1; }
+
+  }
 
   returned_string = returned_string + Form("%d%d%d",num_protons,num_pions,num_showers);
 
   return returned_string;
 }
+
 
 //////////////////////////////////////////////////////////////////////////////////
 ///////////                   DEBUG 1mu0p0pi                          ////////////
@@ -1643,12 +1398,22 @@ int get_n_valid_hit(const caf::Proxy<caf::SRSlice>& islc, int ipfp)
 }
 
 
+
 //ofstream debug1mu0p0pi("debug1mu0p0pi_dedxmag1_newtrain_onlycoll.txt"); 
 //ofstream debug1muNp("debug1muNp_dedxmag1_newtrain_onlycoll.txt");
 
-ofstream debug1mu0p0pi("debug1mu0p0pi_features.txt");
-ofstream debug1muNp("debug1muNp_feature.txt");
+//ofstream debug1mu0p0pi("debug1mu0p0pi_features.txt");
+//ofstream debug1muNp("debug1muNp_feature.txt");
 
+//ofstream debug1mu0p0pi("dubug_new_muon_offbeam.txt");
+
+//ofstream dump_offbeam("dump_true_p_rich.txt");
+
+//ofstream dump_offbeam("dump_cosmics_rich.txt");
+
+//ofstream dump_offbeam("dump_offbeam_rich.txt");
+
+/*
 const SpillMultiVar fdebug1mu0p0pi([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
   std::vector<double> vector_active;
@@ -1661,114 +1426,262 @@ const SpillMultiVar fdebug1mu0p0pi([](const caf::SRSpillProxy* sr)-> std::vector
 
     std::string slice_class_true = classification_type_generic(sr,islc);
 
-    if(is1muNp(slice_class_reco)==true && is1mu_true(slice_class_true)==true)
+    //if(is1muNp(slice_class_reco)==true && is1mu_true(slice_class_true)==true)
+    if(is1muNp(slice_class_reco)==true && is1muNp_true(slice_class_true)==true)
+    //if(is1muNp(slice_class_reco)==true && slice_class_true=="cosmic")
+    //if(is1muNp(slice_class_reco))
     {
+      
+      //muon
+      //int ipfp_mu = find_muon_newPID(islc,10);
+      //int bestplane_mu = find_best_plane(islc,ipfp_mu);
+
+      //protons
       std::vector<int> v_ipfp_pro = get_protons_pfp(sr,islc);
+      //bool no_true_protons = true;
+      //std::vector<double> pitch;
+      //std::vector<int> pdg;
+      for(const auto &ipfp : v_ipfp_pro)
+      {
 
-        for(const auto &ipfp : v_ipfp_pro)
+        if(islc.reco.pfp[ipfp].trk.truth.p.pdg != 2212)continue;
+
+        int bp = find_best_plane(islc,ipfp);
+        std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+        double depE = compute_depE(islc,ipfp,bp);
+        std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+        std::vector<double> ke_vars = compute_ke(islc,ipfp,bp);
+
+        std::vector<double> probas = PIDproba(islc,ipfp);
+
+        //std::vector<double> output;
+        //std::vector<double> dedx;
+        //std::vector<double> rr;
+
+        int nhits = 0;
+        int n_valid_hits = 0;
+
+        //double depE_valid_hits = 0;
+        std::vector<double> dedx;
+        std::vector<double> dedx_valid_hits;
+        std::vector<double> rr;
+        std::vector<double> rr_valid_hits;
+        std::vector<double> pitch;
+        std::vector<double> pitch_valid_hits;
+
+
+        for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bp].points.size(); ++ihit )
         {
-            if(islc.reco.pfp[ipfp].trk.truth.p.pdg == 2212)continue;
+          nhits++;
 
-            int bestplane = find_best_plane(islc,ipfp);
+          dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].dedx);
+          rr.push_back(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].rr);
+          pitch.push_back(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].pitch);
+
+
+          if(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].rr < 25. && islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].rr > 1. && islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].dedx < 30. && islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].dedx > 1. )
+          {
+            n_valid_hits++;
+
+            dedx_valid_hits.push_back(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].dedx);
+            rr_valid_hits.push_back(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].rr);
+            pitch_valid_hits.push_back(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].pitch);
+
+            //depE_valid_hits = depE_valid_hits + islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].dedx * islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].pitch;
+
+          }
+
+          //if(islc.reco.pfp[ipfp].trk.calo[2].points[ihit].rr>30)continue;
+          //dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].dedx);
+          //rr.push_back(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].rr);
+
+        } // calo points
+        //output = chi2_ALG(dedx,rr,0.0,25.0);
+
+        dump_offbeam << sr->hdr.run << " ";
+        dump_offbeam << sr->hdr.evt << " ";
+        dump_offbeam << slice_counter << " ";
+        dump_offbeam << bp << " ";
+        for(const auto &l : lr){dump_offbeam << l << " ";}
+        dump_offbeam << depE << " ";
+        dump_offbeam << dvars[0] << " " << dvars[1] << " ";
+        dump_offbeam << ke_vars[0] << " " << ke_vars[1] << " " << ke_vars[2] << " ";
+        dump_offbeam << nhits << " " << n_valid_hits << " ";
+        dump_offbeam << islc.reco.pfp[ipfp].trk.len << " ";
+        for(const auto &r : rr){dump_offbeam << r << "_";}
+        dump_offbeam << " ";
+        for(const auto &de : dedx){dump_offbeam << de << "_";}
+        dump_offbeam << " ";
+        for(const auto &p : pitch){dump_offbeam << p << "_";}
+        dump_offbeam << " ";
+        for(const auto &r : rr_valid_hits){dump_offbeam << r << "_";}
+        dump_offbeam << " ";
+        for(const auto &de : dedx_valid_hits){dump_offbeam << de << "_";}
+        dump_offbeam << " ";
+        for(const auto &p : pitch_valid_hits){dump_offbeam << p << "_";}
+        dump_offbeam << " ";
+        for(const auto &p : probas){dump_offbeam << p << " ";}
+        dump_offbeam << endl;
+
+        //cout << endl;
+        //std::vector<double> probas = PIDproba(islc,ipfp);
+        //for(const auto &l : lr){cout << l << " ";}
+        //cout << depE << " ";
+        //cout << dvars[0] << " " << dvars[1] << " ";
+        //cout << " || ";
+        //for(const auto &p : probas){cout << p << " ";}
+        //cout << endl;
+        
+
+        //cout << output[0] << " " << output[1] << " " << islc.reco.pfp[ipfp].trk.len << " " << nhits << " " << n_valid_hits << " " << bp << endl;
+
+        //if(islc.reco.pfp[ipfp].trk.truth.p.pdg == 2212)
+        //{
+
+          //pdg.push_back(islc.reco.pfp[ipfp].trk.truth.p.pdg);
+          //int bp = find_best_plane(islc,ipfp);
+          //no_true_protons = false;
+          //for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bp].points.size(); ++ihit)
+          //{
+            //pitch.push_back(islc.reco.pfp[ipfp].trk.calo[bp].points[ihit].pitch);
+          //}
+        //}
+      }
+
+      //double E_first_5=0;;
+      //double E_last_5=0;
+
+      //for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[bestplane_mu].points.size(); ++ihit)
+      //{
+        //if(islc.reco.pfp[ipfp_mu].trk.calo[bestplane_mu].points[ihit].rr <=5 ){E_last_5 = E_last_5 + islc.reco.pfp[ipfp_mu].trk.calo[bestplane_mu].points[ihit].pitch * islc.reco.pfp[ipfp_mu].trk.calo[bestplane_mu].points[ihit].dedx;}
+        //if(islc.reco.pfp[ipfp_mu].trk.calo[bestplane_mu].points[ihit].rr >= islc.reco.pfp[ipfp_mu].trk.len - 5.){E_first_5 = E_first_5 + islc.reco.pfp[ipfp_mu].trk.calo[bestplane_mu].points[ihit].pitch * islc.reco.pfp[ipfp_mu].trk.calo[bestplane_mu].points[ihit].dedx;}
+      //}  
+
+      //if(has_fake_protos)
+      //{
+        //debug1mu0p0pi << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << slice_class_true << " " << is1mu_true(slice_class_true) << " " << no_true_protons <<  " " << E_first_5 << " " << E_last_5 << endl;
+        //for(int i=0; i<(int)pdg.size(); i++)
+        //{
+        //  debug1mu0p0pi << pdg[i] << " ";
+        //  for(const auto &p : pitch){debug1mu0p0pi << p << "_";}
+        //}
+        //debug1mu0p0pi << endl;
+      //}
+
+        //for(const auto &ipfp : v_ipfp_pro)
+        //{
+            //if(islc.reco.pfp[ipfp].trk.truth.p.pdg == 2212)continue;
+
+            //int bestplane = find_best_plane(islc,ipfp);
 
             //std::vector<double> prediction_proba;
             //prediction_proba = PIDproba(islc,ipfp);
 
-            std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
-            double depE = compute_depE(islc,ipfp,bestplane);
-            std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+            //std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+            //double depE = compute_depE(islc,ipfp,bestplane);
+            //std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
 
-            std::vector<double> track_features;
+            //std::vector<double> track_features;
 
-            track_features.insert(track_features.end(), lr.begin(), lr.end());
-            track_features.push_back(depE);
-            track_features.insert(track_features.end(), dvars.begin(), dvars.end());
+            //track_features.insert(track_features.end(), lr.begin(), lr.end());
+            //track_features.push_back(depE);
+            //track_features.insert(track_features.end(), dvars.begin(), dvars.end());
 
-            debug1mu0p0pi << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
-            for(const auto &feature : track_features){debug1mu0p0pi << feature << " ";}
-            debug1mu0p0pi << endl;
+            //TVector3 Start_mom_v;
+            //Start_mom_v.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);
 
-            /*
-            debug1mu0p0pi << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
-            debug1mu0p0pi << bestplane << " " << get_n_valid_hit(islc,ipfp) << " " << islc.reco.pfp[ipfp].trk.len << " " << compute_depE(islc,ipfp,bestplane) << " " << islc.reco.pfp[ipfp].trk.truth.p.pdg << " ";
+            //double ek = sqrt(pow(938.3,2)+pow(Start_mom_v.Mag()*1000,2))-938.3;
+      
+            //debug1mu0p0pi << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+            //for(const auto &feature : track_features){debug1mu0p0pi << feature << " ";}
+            //debug1mu0p0pi << ek << " " << islc.reco.pfp[ipfp].trk.calo[bestplane].ke << endl;
 
-            for(const auto &prob : prediction_proba)
-            {
-              debug1mu0p0pi << prob << "_";
-            }
-
-            debug1mu0p0pi << " ";
             
-            for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
-            {
-              debug1mu0p0pi << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr << "_";
-            } 
+            //debug1mu0p0pi << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+            //debug1mu0p0pi << bestplane << " " << get_n_valid_hit(islc,ipfp) << " " << islc.reco.pfp[ipfp].trk.len << " " << compute_depE(islc,ipfp,bestplane) << " " << islc.reco.pfp[ipfp].trk.truth.p.pdg << " ";
 
-            debug1mu0p0pi << " ";
+            //for(const auto &prob : prediction_proba)
+            //{
+              //debug1mu0p0pi << prob << "_";
+            //}
 
-            for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
-            {
-              debug1mu0p0pi << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx << "_";
-            } 
+            //debug1mu0p0pi << " ";
             
-            debug1mu0p0pi << endl;
-            */
-        }
+            //for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
+            //{
+              //debug1mu0p0pi << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr << "_";
+            //} 
+
+            //debug1mu0p0pi << " ";
+
+            //for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
+            //{
+              //debug1mu0p0pi << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx << "_";
+            //} 
+            
+            //debug1mu0p0pi << endl;
+            
+        //}
     }
 
     
-    if(is1muNp(slice_class_reco)==true && is1muNp_true(slice_class_true)==true)
-    {
-      std::vector<int> v_ipfp_pro = get_protons_pfp(sr,islc);
+    //if(is1muNp(slice_class_reco)==true && is1muNp_true(slice_class_true)==true)
+    //{
+      //std::vector<int> v_ipfp_pro = get_protons_pfp(sr,islc);
 
-        for(const auto &ipfp : v_ipfp_pro)
-        {
-            int bestplane = find_best_plane(islc,ipfp);
+        //for(const auto &ipfp : v_ipfp_pro)
+        //{
+            //int bestplane = find_best_plane(islc,ipfp);
 
             //std::vector<double> prediction_proba;
             //prediction_proba = PIDproba(islc,ipfp);
 
-            std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
-            double depE = compute_depE(islc,ipfp,bestplane);
-            std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+            //std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+            //double depE = compute_depE(islc,ipfp,bestplane);
+            //std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
 
-            std::vector<double> track_features;
+            //std::vector<double> track_features;
 
-            track_features.insert(track_features.end(), lr.begin(), lr.end());
-            track_features.push_back(depE);
-            track_features.insert(track_features.end(), dvars.begin(), dvars.end());
+            //track_features.insert(track_features.end(), lr.begin(), lr.end());
+            //track_features.push_back(depE);
+            //track_features.insert(track_features.end(), dvars.begin(), dvars.end());
 
-            debug1muNp << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
-            for(const auto &feature : track_features){debug1muNp << feature << " ";}
-            debug1muNp << endl;
+            //TVector3 Start_mom_v;
+            //Start_mom_v.SetXYZ((islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.x,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.y,(islc.reco.pfp[ipfp].trk.rangeP.p_proton)*islc.reco.pfp[ipfp].trk.dir.z);
 
-            /*
-            debug1muNp << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
-            debug1muNp << bestplane << " " << get_n_valid_hit(islc,ipfp) << " " << islc.reco.pfp[ipfp].trk.len << " " << compute_depE(islc,ipfp,bestplane) << " " << islc.reco.pfp[ipfp].trk.truth.p.pdg << " ";
+            //double ek = sqrt(pow(938.3,2)+pow(Start_mom_v.Mag()*1000,2))-938.3;
+
+            //debug1muNp << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+            //for(const auto &feature : track_features){debug1muNp << feature << " ";}
+            //debug1muNp << ek << " " << islc.reco.pfp[ipfp].trk.calo[bestplane].ke << endl;
+
             
-            for(const auto &prob : prediction_proba)
-            {
-              debug1muNp << prob << "_";
-            }
-
-            debug1muNp << " ";
-
-            for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
-            {
-              debug1muNp << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr << "_";
-            } 
-
-            debug1muNp << " ";
-
-            for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
-            {
-              debug1muNp << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx << "_";
-            } 
+            //debug1muNp << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+            //debug1muNp << bestplane << " " << get_n_valid_hit(islc,ipfp) << " " << islc.reco.pfp[ipfp].trk.len << " " << compute_depE(islc,ipfp,bestplane) << " " << islc.reco.pfp[ipfp].trk.truth.p.pdg << " ";
             
-            debug1muNp << endl;
-            */
-        }
-    }
+            //for(const auto &prob : prediction_proba)
+            //{
+              //debug1muNp << prob << "_";
+            //}
+
+            //debug1muNp << " ";
+
+            //for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
+            //{
+              //debug1muNp << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr << "_";
+            //} 
+
+            //debug1muNp << " ";
+
+            //for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
+            //{
+              //debug1muNp << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx << "_";
+            //} 
+            
+            //debug1muNp << endl;
+            
+        //}
+    //}
     
   }
 
@@ -1776,6 +1689,7 @@ const SpillMultiVar fdebug1mu0p0pi([](const caf::SRSpillProxy* sr)-> std::vector
 
 });
 
+*/
 
 ///////////////////////////////////////////////////////////////////////////////////
 //////////                PRED PROBA DISTRIBUTIONS                /////////////////
@@ -1909,13 +1823,20 @@ const SpillMultiVar fdump_pred_proba([](const caf::SRSpillProxy* sr)-> std::vect
 //////////                           SELECTION                           //////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-/*
+
 std::vector<std::string> slices_reco_class;
 std::vector<std::string> slices_true_class;
-int tot_1muNp;
+int tot_1muNp = 0;
+
+//int tot_1mu0p0pi_slices = 0;
+//int tot_NON_protons_1mu0p0pi_slices = 0;
+//int tot_NON_protons_1mu0p0pi_protons = 0;
+
 //ofstream dumpNuE("dumpNuE_temp.txt");
 
 bool ismc;
+
+//ofstream dump_reco_class("dump_reco_class_prova_ke_taglio_depE.txt");
 
 const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
@@ -1951,14 +1872,17 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
       }
       slices_true_class.push_back(slice_class_true);
 
+      //std::string slice_class = selection_1muNp_newPID_mod(sr,islc,10,100,-1,-1,-1);
       std::string slice_class = selection_1muNp_newPID(sr,islc,10,100,-1,-1,-1);
       slices_reco_class.push_back(slice_class);
+
+      //dump_reco_class << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << nuE << " " << slice_class << " " << slice_class_true << endl;
 
     }//loop over all slices
 
   return vector_active;
 });
-*/
+
 
 ///////////////////////////////////////////////////////////////////////////////////
 //////////                     SELECTION WITH STITCHING                  //////////
@@ -2173,7 +2097,7 @@ const SpillMultiVar selection_newPID([](const caf::SRSpillProxy* sr)-> std::vect
             }//loop over all pfp's daughters
 
             //searching for muon rising secondaries
-            if(pid_class == 1 && best_daughter_depE < 50 && best_daughter_depE > 20 && std::abs(best_angle)*180/M_PI<45 && islc.reco.pfp[best_daughter_pfp].trk.len > 20 && isInContained(islc.reco.pfp[best_daughter_pfp].trk.end.x, islc.reco.pfp[best_daughter_pfp].trk.end.y, islc.reco.pfp[best_daughter_pfp].trk.end.z, 5))
+            if(pid_class == 1 && best_daughter_depE < 50 && best_daughter_depE > 20 && std::abs(best_angle)*180/M_PI<45 && islc.reco.pfp[best_daughter_pfp].trk.len > 20 && isInContained(islc.reco.pfp[best_daughter_pfp].trk.end.x, islc.reco.pfp[best_daughter_pfp].trk.end.y, islc.reco.pfp[best_daughter_pfp].trk.end.z, CONTAINMENT_CUT))
             //if(best_daughter_pfp!=-1 && (pid_class == 1 || pid_class == 5) && PIDclass(islc,best_daughter_pfp)==0 && islc.reco.pfp[best_daughter_pfp].trk.len > 20)
             {
               //if(islc.reco.pfp[ipfp].trk.truth.p.pdg==2212){cout << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << endl; }
@@ -2236,7 +2160,7 @@ const SpillMultiVar DATAlikelihood([](const caf::SRSpillProxy* sr)-> std::vector
           if(bestplane!=2)continue;
           std::vector<double> likelihood_ratios = likelihood(islc,ipfp,prob_d_coll, prob_d_ind1, prob_d_ind2);
 
-          if(isInContained(islc.reco.pfp[ipfp].trk.end.x, islc.reco.pfp[ipfp].trk.end.y, islc.reco.pfp[ipfp].trk.end.z,5))
+          if(isInContained(islc.reco.pfp[ipfp].trk.end.x, islc.reco.pfp[ipfp].trk.end.y, islc.reco.pfp[ipfp].trk.end.z,CONTAINMENT_CUT))
           {
             lr_data << "stopping ";
             for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[2].points.size(); ++ihit )
@@ -2299,7 +2223,7 @@ const SpillMultiVar fchi2dump([](const caf::SRSpillProxy* sr)-> std::vector<doub
 
       if(!islc.reco.pfp[ipfp].parent_is_primary)continue;
 
-      if(!isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,5.0))continue; 
+      if(!isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,CONTAINMENT_CUT))continue; 
         
       if((islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x)<0)continue;
 

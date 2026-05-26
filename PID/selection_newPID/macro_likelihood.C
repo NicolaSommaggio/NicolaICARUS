@@ -78,9 +78,11 @@ void macro_likelihood(){
 // 1 file
 //const std::string fdata = "/pnfs/sbn/data/sbn_fd/poms_production/mc/2025A_ICARUS_Overlays_BNB_MC_RUN2/summer_2025/v10_06_00_06p01/flatcaf/39/51/overlay_neutrino_stage1_66812186_2689.flat.caf-009e8064-a5da-49d8-8634-3acebbf4b82f.root";
 // small stat MC
-const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlay_neutrino_stage1_flat_cafs_v10_06_00_04p04_concat.root";
+// const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlay_neutrino_stage1_flat_cafs_v10_06_00_04p04_concat.root";
 
-//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_[1,2,3]/*flat.caf.root";
+//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_3/group_6659.flat.caf.root";
+
+//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_[2]/*flat.caf.root";
 
 //MPVMPR
 //const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/cafs_MPV_MPR_Nicola/*.root";
@@ -95,40 +97,8 @@ const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlay_neu
 
 //const std::string fdata = "/exp/icarus/data/users/nsommagg/MPVMPR/nu_1_tot/*.root";
 
-//CNAF
-//TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
-//auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
-//auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
-//auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
-//auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
-
-//FNAL
-TFile* file = TFile::Open("/exp/icarus/data/users/nsommagg/RefCurvesChi2.root");
-auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
-auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
-auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
-auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
-
-
-//TFile * f_prob_densities_coll_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning.root", "READ");
-//TFile * f_prob_densities_ind1_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning_IND1.root", "READ");
-//TFile * f_prob_densities_ind2_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning_IND2.root", "READ");
-
-//TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_stat.root", "READ");
-//TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root", "READ");
-//TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND2.root", "READ");
-
-TFile * f_prob_densities_coll = TFile::Open("collection.root", "READ");
-TFile * f_prob_densities_ind1 = TFile::Open("induction1.root", "READ");
-TFile * f_prob_densities_ind2 = TFile::Open("induction2.root", "READ");
-
-//prob_d_coll_150 = load_prob_densities("coll",f_prob_densities_coll_150);
-//prob_d_ind1_150 = load_prob_densities("ind1",f_prob_densities_ind1_150);
-//prob_d_ind2_150 = load_prob_densities("ind2",f_prob_densities_ind2_150);
-
-prob_d_coll = load_prob_densities("coll",f_prob_densities_coll);
-prob_d_ind1 = load_prob_densities("ind1",f_prob_densities_ind1);
-prob_d_ind2 = load_prob_densities("ind2",f_prob_densities_ind2);
+// 1/4 MC OVERLAYS FROM GRAY
+const std::string fdata = "/exp/icarus/data/users/nsommagg/TRAINING_FOLDER/*.root";
 
 SpectrumLoader loader(fdata);         
 
@@ -142,29 +112,6 @@ double factor = s1.POT();
 
 TH1D* h1 = s1.ToTH1(factor);
 
-/*
-TFile *file_genp_MPVMPR = new TFile("file_genp_MPVMPR.root","RECREATE");
-TH1D *h_genp_mu = new TH1D("genp_module_MU","genp module MU [MeV]",200, 0, 1000);
-TH1D *h_genp_pro = new TH1D("genp_module_PRO","genp module PRO [MeV]",200, 0, 1000);
-TH1D *h_genp_pi = new TH1D("genp_module_PI","genp module PI [MeV]",200, 0, 1000);
-
-for(int track=0; track<(int)genp_mu.size(); track++)
-{
-    h_genp_mu->Fill(genp_mu[track]*1000);
-}
-for(int track=0; track<(int)genp_pro.size(); track++)
-{
-    h_genp_pro->Fill(genp_pro[track]*1000);
-}
-for(int track=0; track<(int)genp_pi.size(); track++)
-{
-    h_genp_pi->Fill(genp_pi[track]*1000);
-}
-
-h_genp_mu->Write();
-h_genp_pro->Write();
-h_genp_pi->Write();
-*/
 cout << n_mu << " " << n_pro << " " << n_pi << endl << endl;
 
 cout << n_c0 << " muon rising" << endl;

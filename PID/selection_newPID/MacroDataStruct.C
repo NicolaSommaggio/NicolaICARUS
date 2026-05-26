@@ -6,7 +6,7 @@
 
 //#include "helper_stitch_simulz0.h"
 //#include "helper_1muNp_puro.h"
-//include "create_data_struct.h"
+//#include "create_data_struct.h"
 #include "create_data_struct_multiplane.h"
 #include "TCanvas.h"
 #include "TFile.h"
@@ -89,16 +89,18 @@ void MacroDataStruct(){
 //mpv from nu 2.36005e+19 POT
 //const std::string fdata = "/exp/icarus/data/users/nsommagg/MPVMPR/nu_1/*.root";
 
-//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_[2,3]/*flat.caf.root";
+//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_[3]/*flat.caf.root";
 
-const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_4/group_6664_24.flat.caf.root";
+const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_3/group_6659.flat.caf.root";
+
+//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_4/group_6664_24.flat.caf.root";
 
 SpectrumLoader loader(fdata);       //CAF that I produced with all dedx vs rr   
 
 const Binning kBinz = Binning::Simple(300,0,30);
 
 std::string filename;
-filename = "/exp/icarus/data/users/nsommagg/data_struct_multiplane/data_struct_provaMaria.root";
+filename = "/exp/icarus/data/users/nsommagg/DataStructDebug.root";
 //filename = "/exp/icarus/data/users/nsommagg/data_struct_multiplane/run9435.root";
 TFile *f = new TFile(filename.c_str(), "RECREATE");
 
@@ -110,21 +112,21 @@ cout << "using file: " << fdata << endl;
 cout << "writing the data struct in: " << filename << endl;
 //cout << "writing neutrino from spill in: " << txt_name << endl;
 
-TFile * f_prob_densities_coll_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning.root", "READ");
-TFile * f_prob_densities_ind1_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning_IND1.root", "READ");
-TFile * f_prob_densities_ind2_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning_IND2.root", "READ");
+//TFile * f_prob_densities_coll_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning.root", "READ");
+//TFile * f_prob_densities_ind1_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning_IND1.root", "READ");
+//TFile * f_prob_densities_ind2_150 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_mediumbinning_IND2.root", "READ");
 
-TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_stat.root", "READ");
-TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root", "READ");
-TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND2.root", "READ");
+//TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_stat.root", "READ");
+//TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND1.root", "READ");
+//TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/HISTO_prob_densities_6_classes_30percent_IND2.root", "READ");
 
-prob_d_coll_150 = load_prob_densities("coll",f_prob_densities_coll_150);
-prob_d_ind1_150 = load_prob_densities("ind1",f_prob_densities_ind1_150);
-prob_d_ind2_150 = load_prob_densities("ind2",f_prob_densities_ind2_150);
+//prob_d_coll_150 = load_prob_densities("coll",f_prob_densities_coll_150);
+//prob_d_ind1_150 = load_prob_densities("ind1",f_prob_densities_ind1_150);
+//prob_d_ind2_150 = load_prob_densities("ind2",f_prob_densities_ind2_150);
 
-prob_d_coll = load_prob_densities("coll",f_prob_densities_coll);
-prob_d_ind1 = load_prob_densities("ind1",f_prob_densities_ind1);
-prob_d_ind2 = load_prob_densities("ind2",f_prob_densities_ind2);
+//prob_d_coll = load_prob_densities("coll",f_prob_densities_coll);
+//prob_d_ind1 = load_prob_densities("ind1",f_prob_densities_ind1);
+//prob_d_ind2 = load_prob_densities("ind2",f_prob_densities_ind2);
 
 
 Spectrum s1("", kBinz, loader, DataLoader ,kCRTPMTNeutrino );

@@ -3,7 +3,8 @@
 #include "sbnana/CAFAna/Core/SpectrumLoader.h"
 #include "sbnana/CAFAna/Core/Spectrum.h"
 
-#include "helper_selection_newPID.h"
+//#include "helper_selection_newPID.h"
+#include "helper_selection_newPID_light.h"
 #include "TCanvas.h"
 #include "TFile.h"
 #include "TTreeReader.h"
@@ -24,11 +25,17 @@ using namespace ana;
 
 void macro_selection_newPID(){
 
+//MC 2D
+//const std::string fdata = "production_mc_2025A_ICARUS_Overlays_BNB_MC_RUN2_summer_2025_v10_06_00_06p01_flatcaf";
+
+//mc low stat
+//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlay_neutrino_stage1_flat_cafs_v10_06_00_04p04_concat.root";
+
 //10% data run2
 //const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/Data_prescaled_Run2_calibrated/*.root";
 
-//70 % of large MC (30 % used to construct probability densities)
-const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_[2,3]/*flat.caf.root";
+//large MC (30 % used to construct probability densities)
+//const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_[1]/*flat.caf.root";
 
 //test file
 //const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_3/group_6664_1.flat.caf.root";
@@ -44,6 +51,39 @@ const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_20
 
 //null
 //const std::string fdata = "/pnfs/sbn/data/sbn_fd/poms_production/2024A_ICARUS_MC_Sys_NuCos/2024A_MC_Sys_NuCos_NullVar_2ndV/mc/reconstructed/icaruscode_v09_89_01_01p03/flatcaf/*/*/*.root";
+
+//POT OFFBEAM = 2.11e+20
+//POT MC CLASSIC = 1.5342e+20 
+//POT MC GRAY = 4.88297e+20
+//POT MC GRAY PDF = 1.22871e+20 
+//POT MC GRAY TRAINING = 1.22419e+20 
+//POT MC GRAY SELECTION = 2.43007e+20 
+
+//19197 muon rising
+//6510 muon mip
+//61268 proton rising
+//16810 proton interacting
+//3245 pion rising
+//8499 pion interacting
+
+//POT MC LOW STAT = 1.64645e+19 --> TRAINING
+//POT MC CLASSIC 1/3 = 5.01111e+19 --> PROB DISTRO
+//POT DATA_PRESCALED = 1.97615e+19 / 1.99201e+19
+
+//SELECTION FOLDER 
+const std::string fdata = "/exp/icarus/app/users/nsommagg/SELECTION_FOLDER/*.root";
+
+//ICARUS MC
+//const std::string fdata = "/pnfs/icarus/scratch/users/gputnam/Ar23+_iterE/ICARUSSpringMC/*/*flat.caf.root";
+
+//ICARUS Offbeam
+//const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_06_00_01p05_offbeambnbmajority_flatcaf_unblind";
+
+//DATI
+//const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_2_v10_06_00_06p03_bnbmajority_flatcaf_prescaled";
+
+//MC per SBND
+//const std::string fdata = "/pnfs/sbn/scratch/users/sungbino/sbnd/v10_06_00_09/mc_1e20";
 
 //CNAF
 //TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
@@ -67,11 +107,11 @@ const Binning kBinz = Binning::Simple(300,0,30);
 //Spectrum s1("", kBinz, loader, selection_newPID ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, DATAlikelihood ,kCRTPMTNeutrino );
 //Spectrum s1("", kBinz, loader, kStitch ,kNoSpillCut );
-//Spectrum s1("", kBinz, loader, selection ,kNoSpillCut );
+Spectrum s1("", kBinz, loader, selection ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fchi2dump ,kNoSpillCut );
-Spectrum s1("", kBinz, loader, fdebug1mu0p0pi ,kNoSpillCut );
+//Spectrum s1("", kBinz, loader, fdebug1mu0p0pi ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fdump_pred_proba ,kNoSpillCut );
-
+//Spectrum s1("", kBinz, loader, files_check ,kNoSpillCut );
 
 //muons.clear();
 //pions.clear();
@@ -238,7 +278,7 @@ outfile->Close();
 
 //counts how many 1muNp selected
 
-/*
+/* HERE */
 double selected_1muNp = 0;
 double selected_1muNp_correct = 0;
 
@@ -258,9 +298,14 @@ if(ismc)
     cout << selected_1muNp_correct << " correct" << endl;
     cout << "efficiency " << selected_1muNp_correct/tot_1muNp << endl;
     cout << "purity " << selected_1muNp_correct/selected_1muNp << endl;
-}
 
-*/
+    //cout << endl << "********" << endl << endl;
+
+    //cout << tot_1mu0p0pi_slices << " 1mu0p0pi slices " << tot_NON_protons_1mu0p0pi_slices << " with no protons" << endl;
+    //cout << tot_NON_protons_1mu0p0pi_protons << " misclassified protons in 1mu0p0pi slices" << endl;
+}
+/**/
+
 
 //232 offbeam
 
@@ -280,6 +325,51 @@ if(ismc)
 //7814 correct
 //efficiency 0.592688
 //purity 0.765253
+
+
+//9346 tot selected 1muNp
+//7362 correct
+//efficiency 0.558404
+//purity 0.787717
+
+//********
+
+//272 1mu0p0pi slices 16 with no protons
+//19 misclassified protons in 1mu0p0pi slices
+
+
+//9532 tot selected 1muNp
+//7479 correct
+//efficiency 0.567279
+//purity 0.78462
+
+//********
+
+//296 1mu0p0pi slices 21 with no protons
+//25 misclassified protons in 1mu0p0pi slices
+
+
+//9333 tot selected 1muNp
+//7361 correct
+//efficiency 0.558328
+//purity 0.788707
+
+//********
+
+//218 1mu0p0pi slices 21 with no protons
+//25 misclassified protons in 1mu0p0pi slices
+
+
+//14036 tot true 1muNp
+//11149 tot selected 1muNp
+//8513 correct
+//efficiency 0.606512
+//purity 0.763566
+
+//********
+
+//378 1mu0p0pi slices 96 with no protons
+//114 misclassified protons in 1mu0p0pi slices
 
 //stitching only with daughters
 

@@ -18,5 +18,5 @@ PID/BDTtesi
 *.root
 *.txt
 
-
+conda_env/
 

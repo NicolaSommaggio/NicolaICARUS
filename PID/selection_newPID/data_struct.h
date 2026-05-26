@@ -12,39 +12,64 @@ public:
     std::vector<double> dedx;
     std::vector<double> rr;
     std::vector<double> pitch;
-    std::vector<double> hitx;
-    std::vector<double> hity;
-    std::vector<double> hitz;
+
+    std::vector<double> dedx_ind1; //<-- DONE
+    std::vector<double> rr_ind1; //<-- DONE
+    std::vector<double> pitch_ind1; //<-- DONE
+    std::vector<double> dedx_ind2; //<-- DONE
+    std::vector<double> rr_ind2; //<-- DONE
+    std::vector<double> pitch_ind2; //<-- DONE
+
+    int bestplane = -1; //<-- DONE
+
+    //int predicted_class = -1; //<-- DONE
+    //std::vector<double> predicted_probabilities; //<-- DONE
+
+    int id_ipfp_reco = -1; //<-- DONE
+    
+    //std::vector<double> hitx;
+    //std::vector<double> hity;
+    //std::vector<double> hitz;
+
+
+    std::vector<double> dir; //<-- DONE
+
+    double ek_coll = -1; //<-- DONE
+    double ek_ind1 = -1; //<-- DONE
+    double ek_ind2 = -1; //<-- DONE
+
+    double ek_bestplane = -1; //<-- DONe
 
     double chi2_as_mu = -1;
     double chi2_as_pro = -1;
 
-    double length = 0;
-    double trackscore = 0;
-    double start_distance_from_reco_vertex = 0;
-    double end_distance_from_reco_vertex = 0;
+    double length = -1;
+    double trackscore = -1;
+    double start_distance_from_reco_vertex = -1;
+    double end_distance_from_reco_vertex = -1;
 
     bool is_start_contained = false;
     bool is_end_contained = false;
     bool all_in_1_tpc = false;
     bool is_primary = false;
 
-    double energy_deposited_as_pro = 0;
-    double energy_deposited_as_pi  = 0;
+    double energy_deposited_as_pro = -1;
+    double energy_deposited_as_pi  = -1;
+    double energy_deposited_as_mu = -1;
 
-    double shower_energy = 0;
+    double shower_energy = -1;
 
     std::vector<double> start;
     std::vector<double> end;
     std::vector<double> likelihood_ratios;
-    std::vector<double> likelihood_ratios_mediumbinning;
+    //std::vector<double> likelihood_ratios_mediumbinning;
 
     double daughter_depE = -1;
     double daughter_angle_end = -1;
 
-    int nhits_coll;
+    //int nhits_coll;
 
-    double deposited_energy = 0;
+    double deposited_energy = -1;
     int ipfp = -1;
 
     reco_track() {}
@@ -93,6 +118,11 @@ public:
     int evt = -1;
 
     std::string true_slice_classifications;
+    //std::string reco_slice_classification; //<-- DONE
+
+    bool is_true_1muNp = false; //<-- DONE
+    //bool is_reco_1muNp = false; //<-- DONE
+    bool is_true_1mu0p0pi = false; //<-- DONE
 
     bool is_charged_current = false;
     bool is_neutral_current = false;
