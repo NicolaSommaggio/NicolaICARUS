@@ -45,7 +45,7 @@
 
 double PROTON_KINETIC_E = 50.;
 double CONTAINMENT_CUT = 10.;
-double DEP_E_P_RISING_CUT = 25.;
+double DEP_E_P_RISING_CUT = 0.;
 
 using namespace ana;
 
@@ -735,8 +735,8 @@ std::string selection_1muNp_newPID ( const caf::SRSpillProxy* sr, const caf::Pro
   double delta=fabs(bar_flash(sr,islc)-islc.charge_center.z);
 
   if(bar_falsh_x*islc.vertex.x <= 0)return "bad_slice_CRT_PMT";
-  //if(bar_flash_z <= -10000)return "bad_slice_BARYCENTER";
-  //if(delta <= 0 || delta >= cut_baryc) return "bad_slice_BARYCENTER";
+  if(bar_flash_z <= -10000)return "bad_slice_BARYCENTER";
+  if(delta <= 0 || delta >= cut_baryc) return "bad_slice_BARYCENTER";
   // <--
 
   int ipfp_mu = -1;
@@ -887,15 +887,16 @@ double T3D_angle_mup ( const caf::Proxy<caf::SRSlice>& islc, int ipfp_mu, int ip
 ///////////////////////////////////////////////////////////////////////////////////
 
 
+
 std::vector<std::string> slices_reco_class;
 std::vector<std::string> slices_true_class;
 int tot_1muNp = 0;
 
-ofstream dumpNuE("NEW_MC_dumpNuE_CONTAINMENT_10CM.txt");
+//ofstream dumpNuE("NEW_MC_dumpNuE_CONTAINMENT_10CM.txt");
 
 bool ismc;
 
-ofstream dump_reco_class("NEW_MC_dump_selezione_finale_no_light_depE25.txt");
+ofstream dump_reco_class("NEW_MC_dump_selezione_finale_WITH_LIGHT_MC.txt");
 
 const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
@@ -987,4 +988,320 @@ const SpillMultiVar files_check([](const caf::SRSpillProxy* sr)-> std::vector<do
 
     return vector_active;
 });
+*/
+
+/*
+std::string file_sample = "OFFBEAM";
+
+ofstream muon_candidates(Form("PIDSYST_MUON_CANDIDATES_%s.txt",file_sample.c_str()));
+ofstream selected_muons(Form("PIDSYST_SELECTED_MUON_%s.txt",file_sample.c_str()));
+ofstream selected_protons(Form("PIDSYST_SELECTED_PROTONS_%s.txt",file_sample.c_str()));
+ofstream selected_pions(Form("PIDSYST_SELECTED_PIONS_%s.txt",file_sample.c_str()));
+
+const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<double>
+{
+    std::vector<double> vector_active;
+
+    int slice_counter = -1;
+    for(const auto &islc : sr->slc)
+    { 
+      slice_counter ++;
+
+      if(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z))continue;
+
+      if(!isInFV(islc.vertex.x,islc.vertex.y,islc.vertex.z))continue;
+
+      if(!(all_contained(islc)))continue;
+
+	    double bar_falsh_x = bar_flash_x(sr,islc);
+
+      if(bar_falsh_x*islc.vertex.x <= 0)continue;
+
+      // MUON SEARCH
+
+      int ipfp_mu = -1;
+
+      double max_p_as_mu = -1;
+
+      TVector3 RecoVtx;
+      RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
+      TVector3 RecoStart;
+
+      for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
+      {
+
+        if(std::isnan(islc.reco.pfp[ipfp].trk.start.x) || std::isnan(islc.reco.pfp[ipfp].trk.len)) continue;
+        
+        RecoStart.SetXYZ(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z);
+        
+        bool is_primary = islc.reco.pfp[ipfp].parent_is_primary;
+
+        if(islc.reco.pfp[ipfp].trackScore<0.5)continue;
+        if((RecoVtx-RecoStart).Mag() >= 10)continue;
+        if(islc.reco.pfp[ipfp].trk.len <= 50 )continue;
+        if(!(isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,CONTAINMENT_CUT)))continue;
+        if((islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x) <= 0)continue;
+        if(!is_primary)continue;
+
+        // --> at this point it is a muon candidate!
+
+        // --> retrieve BDT variables
+
+        int bestplane = find_best_plane(islc,ipfp);
+
+        if(bestplane == -1)continue; //no valid hits (RR < 25 cm and RR > 1 cm and dEdx < 30 MeV/cm and dEdx > 1 MeV/cm) in neither of the 3 planes
+
+        std::vector<double> temp_dedx;
+        std::vector<double> temp_rr;
+        std::vector<double> temp_pitch;
+        std::vector<double> temp_x;
+        std::vector<double> temp_mult;
+        std::vector<double> temp_proba = PIDproba(islc,ipfp);
+
+        double average_pitch = 0;
+        double track_dir_x;
+
+        for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit )
+        {
+          temp_rr.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr);
+          temp_dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx);
+          temp_pitch.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch);
+          temp_x.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].x);
+          temp_mult.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].mult);
+
+          average_pitch = average_pitch + islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch;
+        }
+
+        average_pitch = average_pitch / islc.reco.pfp[ipfp].trk.calo[bestplane].points.size();
+        track_dir_x = islc.reco.pfp[ipfp].trk.dir.x;
+
+        double thetaXW = std::atan(track_dir_x * average_pitch/0.3);
+
+        std::vector<double> temp_ke = compute_ke(islc,ipfp,bestplane);
+
+        std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+        double depE = compute_depE(islc,ipfp,bestplane);
+        std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+
+        muon_candidates << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+        for(const auto &l : lr){muon_candidates << l << " ";}
+        muon_candidates << depE << " " << dvars[0] << " " << dvars[1] << " ";
+        muon_candidates << bestplane << " ";
+        for(const auto &p : temp_proba){muon_candidates << p << " ";}
+        for(const auto &dedx : temp_dedx){muon_candidates << dedx << "_";}
+        muon_candidates << " ";
+        for(const auto &rr : temp_rr){muon_candidates << rr << "_";}
+        muon_candidates << " ";
+        for(const auto &pitch : temp_pitch){muon_candidates << pitch << "_";}
+        muon_candidates << " ";
+        for(const auto &x : temp_x){muon_candidates << x << "_";}
+        muon_candidates << " ";
+        for(const auto &m : temp_mult){muon_candidates << m << "_";}
+        muon_candidates << " ";
+        for(const auto &ke : temp_ke){muon_candidates << ke << " ";}
+        muon_candidates << thetaXW << " " << track_dir_x;
+        muon_candidates << endl;
+        
+
+
+        // --> query the PID
+
+        int pid_pred = PIDclass(islc,ipfp);
+        if(pid_pred == 2 || pid_pred == 3)continue;
+
+        std::vector<double> prediction_proba;
+        prediction_proba = PIDproba(islc,ipfp); //probabilities for the track to be each of the 6 classes
+
+        double imu_prob = std::max(prediction_proba[0], prediction_proba[1]);
+ 
+        if(imu_prob > max_p_as_mu)
+        {
+          max_p_as_mu=imu_prob;
+          ipfp_mu=ipfp;
+        }
+
+      }//loop of pfp to find muon
+
+      if(ipfp_mu != -1)
+      {
+        int bestplane = find_best_plane(islc,ipfp_mu);
+
+        std::vector<double> temp_dedx;
+        std::vector<double> temp_rr;
+        std::vector<double> temp_pitch;
+        std::vector<double> temp_x;
+        std::vector<double> temp_mult;
+        std::vector<double> temp_proba = PIDproba(islc,ipfp_mu);
+
+        double average_pitch = 0;
+        double track_dir_x;
+
+        for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points.size(); ++ihit )
+        {
+          temp_rr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].rr);
+          temp_dedx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx);
+          temp_pitch.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].pitch);
+          temp_x.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].x);
+          temp_mult.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].mult);
+
+          average_pitch = average_pitch + islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].pitch;
+        }
+
+        average_pitch = average_pitch / islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points.size();
+        track_dir_x = islc.reco.pfp[ipfp_mu].trk.dir.x;
+
+        double thetaXW = std::atan(track_dir_x * average_pitch/0.3);
+
+        std::vector<double> temp_ke = compute_ke(islc,ipfp_mu,bestplane);
+
+        std::vector<double> lr = likelihood(islc,ipfp_mu, prob_d_coll, prob_d_ind1, prob_d_ind2);
+        double depE = compute_depE(islc,ipfp_mu,bestplane);
+        std::vector<double> dvars = compute_daughter_vars(islc,ipfp_mu);
+
+        selected_muons << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+        for(const auto &l : lr){selected_muons << l << " ";}
+        selected_muons << depE << " " << dvars[0] << " " << dvars[1] << " ";
+        selected_muons << bestplane << " ";
+        for(const auto &p : temp_proba){selected_muons << p << " ";}
+        for(const auto &dedx : temp_dedx){selected_muons << dedx << "_";}
+        selected_muons << " ";
+        for(const auto &rr : temp_rr){selected_muons << rr << "_";}
+        selected_muons << " ";
+        for(const auto &pitch : temp_pitch){selected_muons << pitch << "_";}
+        selected_muons << " ";
+        for(const auto &x : temp_x){selected_muons << x << "_";}
+        selected_muons << " ";
+        for(const auto &m : temp_mult){selected_muons << m << "_";}
+        selected_muons << " ";
+        for(const auto &ke : temp_ke){selected_muons << ke << " ";}
+        selected_muons << thetaXW << " " << track_dir_x;
+        selected_muons << endl;
+      }
+
+      // PION AND PROTON FOUND
+
+      for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
+      {
+        if((int)ipfp == ipfp_mu)continue;
+
+        int id_pfp = id_pfp_newPID(islc, ipfp, 10);
+        if(id_pfp == 1)
+        {
+          int bestplane = find_best_plane(islc,ipfp);
+
+          std::vector<double> temp_dedx;
+          std::vector<double> temp_rr;
+          std::vector<double> temp_pitch;
+          std::vector<double> temp_x;
+          std::vector<double> temp_mult;
+          std::vector<double> temp_proba = PIDproba(islc,ipfp);
+
+          double average_pitch = 0;
+          double track_dir_x;
+
+          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit )
+          {
+            temp_rr.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr);
+            temp_dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx);
+            temp_pitch.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch);
+            temp_x.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].x);
+            temp_mult.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].mult);
+
+            average_pitch = average_pitch + islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch;
+          }
+
+          average_pitch = average_pitch / islc.reco.pfp[ipfp].trk.calo[bestplane].points.size();
+          track_dir_x = islc.reco.pfp[ipfp].trk.dir.x;
+
+          double thetaXW = std::atan(track_dir_x * average_pitch/0.3);
+
+          std::vector<double> temp_ke = compute_ke(islc,ipfp,bestplane);
+
+          std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+          double depE = compute_depE(islc,ipfp,bestplane);
+          std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+
+          selected_protons << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+          for(const auto &l : lr){selected_protons << l << " ";}
+          selected_protons << depE << " " << dvars[0] << " " << dvars[1] << " ";
+          selected_protons << bestplane << " ";
+          for(const auto &p : temp_proba){selected_protons << p << " ";}
+          for(const auto &dedx : temp_dedx){selected_protons << dedx << "_";}
+          selected_protons << " ";
+          for(const auto &rr : temp_rr){selected_protons << rr << "_";}
+          selected_protons << " ";
+          for(const auto &pitch : temp_pitch){selected_protons << pitch << "_";}
+          selected_protons << " ";
+          for(const auto &x : temp_x){selected_protons << x << "_";}
+          selected_protons << " ";
+          for(const auto &m : temp_mult){selected_protons << m << "_";}
+          selected_protons << " ";
+          for(const auto &ke : temp_ke){selected_protons << ke << " ";}
+          selected_protons << thetaXW << " " << track_dir_x;
+          selected_protons << endl;
+        }
+        if(id_pfp == 2)
+        {
+          int bestplane = find_best_plane(islc,ipfp);
+
+          std::vector<double> temp_dedx;
+          std::vector<double> temp_rr;
+          std::vector<double> temp_pitch;
+          std::vector<double> temp_x;
+          std::vector<double> temp_mult;
+          std::vector<double> temp_proba = PIDproba(islc,ipfp);
+
+          double average_pitch = 0;
+          double track_dir_x;
+
+          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit )
+          {
+            temp_rr.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr);
+            temp_dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx);
+            temp_pitch.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch);
+            temp_x.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].x);
+            temp_mult.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].mult);
+
+            average_pitch = average_pitch + islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch;
+          }
+
+          average_pitch = average_pitch / islc.reco.pfp[ipfp].trk.calo[bestplane].points.size();
+          track_dir_x = islc.reco.pfp[ipfp].trk.dir.x;
+
+          double thetaXW = std::atan(track_dir_x * average_pitch/0.3);
+
+          std::vector<double> temp_ke = compute_ke(islc,ipfp,bestplane);
+
+          std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+          double depE = compute_depE(islc,ipfp,bestplane);
+          std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+
+          selected_pions << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
+          for(const auto &l : lr){selected_pions << l << " ";}
+          selected_pions << depE << " " << dvars[0] << " " << dvars[1] << " ";
+          selected_pions << bestplane << " ";
+          for(const auto &p : temp_proba){selected_pions << p << " ";}
+          for(const auto &dedx : temp_dedx){selected_pions << dedx << "_";}
+          selected_pions << " ";
+          for(const auto &rr : temp_rr){selected_pions << rr << "_";}
+          selected_pions << " ";
+          for(const auto &pitch : temp_pitch){selected_pions << pitch << "_";}
+          selected_pions << " ";
+          for(const auto &x : temp_x){selected_pions << x << "_";}
+          selected_pions << " ";
+          for(const auto &m : temp_mult){selected_pions << m << "_";}
+          selected_pions << " ";
+          for(const auto &ke : temp_ke){selected_pions << ke << " ";}
+          selected_pions << thetaXW << " " << track_dir_x;
+          selected_pions << endl;
+        }
+
+      }
+
+
+    }//loop on slices
+
+    return vector_active;
+});
+
 */

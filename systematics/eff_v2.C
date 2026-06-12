@@ -21,30 +21,66 @@
 #include <vector>
 #include <cmath>           // per isnan
 
-std::vector<int> trovaDuplicati(const std::vector<int>& input) {
-    std::unordered_map<int, int> conteggio;
-    std::vector<int> duplicati;
+std::pair<int,int> wireToHit(std::vector<std::pair<int,int>> wires_hits, std::vector<TVector3> coordinates, int first_wire, int second_wire)
+{
+	std::vector<int> hits_first_wire;
+	std::vector<int> hits_second_wire;
+	for(int w = 0; w<wires_hits.size(); w++)
+	{
+		if(wires_hits[w].first == first_wire)
+		{
+			hits_first_wire.push_back(w);
+		}
+		if(wires_hits[w].first == second_wire)
+		{
+			hits_second_wire.push_back(w);
+		}
+	}
 
-    // Conta le occorrenze di ogni elemento
-    for (int elem : input) {
-        conteggio[elem]++;
-    }
+	if(hits_first_wire.size() == 1 && hits_second_wire.size() == 1)return {wires_hits[hits_first_wire[0]].second,wires_hits[hits_second_wire[0]].second};
+	
+	
+	double best_distance = 1e6;
+	std::pair<int,int> best_couple = {-1, -1};
+	for(int i = 0; i < hits_first_wire.size(); i++)
+	{
+		for(int j = 0; j < hits_second_wire.size(); j++)
+		{
+			double distance = (coordinates[hits_first_wire[i]] - coordinates[hits_second_wire[j]]).Mag();
+			if(distance < best_distance)
+			{
+				best_distance = distance;
+				best_couple = {hits_first_wire[i],hits_second_wire[j]};
+			}
+		}
+	}
 
-    // Raccoglie gli elementi con più di una occorrenza
-    for (const auto& [valore, conta] : conteggio) {
-        if (conta > 1) {
-            duplicati.push_back(valore);
-        }
-    }
+	return{wires_hits[best_couple.first].second,wires_hits[best_couple.second].second};
+	
 
-    // Ordina il risultato (opzionale, per output deterministico)
-    std::sort(duplicati.begin(), duplicati.end());
-
-    return duplicati;
 }
 
 //define main function
-void efficiency(string file_list, int file_number) {
+void efficiency(string file_list, int file_number, std::string sample_name) {
+
+
+	bool PRINT_WEST_IND1_TPC0 = false;
+	bool PRINT_WEST_IND1_TPC1 = false;
+	bool PRINT_WEST_IND1_TPC2 = false;
+	bool PRINT_WEST_IND1_TPC3 = false;
+	bool PRINT_WEST_IND2_TPC01 = false;
+	bool PRINT_WEST_IND2_TPC23 = false;
+	bool PRINT_WEST_COLL_TPC01 = false;
+	bool PRINT_WEST_COLL_TPC23 = false;
+
+	bool PRINT_EAST_IND1_TPC0 = false;
+	bool PRINT_EAST_IND1_TPC1 = false;
+	bool PRINT_EAST_IND1_TPC2 = false;
+	bool PRINT_EAST_IND1_TPC3 = false;
+	bool PRINT_EAST_IND2_TPC01 = false;
+	bool PRINT_EAST_IND2_TPC23 = false;
+	bool PRINT_EAST_COLL_TPC01 = false;
+	bool PRINT_EAST_COLL_TPC23 = false;
 
 
   	TH2D *hind1buchi=new TH2D("hind1buchi","",400,0,4.,50,-0.5,49.5);
@@ -119,6 +155,10 @@ void efficiency(string file_list, int file_number) {
 	int _max_buco = -1;
 
 	short _which_t0 = -1;
+	float _t0PFP = -1;
+	float _t0CRTTrack = -1;
+	float _t0CRTHit = -1;
+
 	int _nholes = -1;
 	std::vector<std::vector<double>> _wire_holes; // --> it contains:
 									 			  // _hole_dimension
@@ -130,8 +170,10 @@ void efficiency(string file_list, int file_number) {
 												  // _hit_dir_after_buco 
 												  // _hit_time_before_buco
 												  // _hit_time_after_buco
+												  // _hit_mult_before_buco
+												  // _hit_mult_after_buco
 
-	TFile * tree_outfile = new TFile("tree_outfile.root","RECREATE");
+	TFile * tree_outfile = new TFile(Form("tree_outfile_%s.root",sample_name.c_str()),"RECREATE");
 	tree_outfile -> cd();
 	TTree * outree = new TTree("outree","outree");
 	outree -> Branch("run",&_run);
@@ -149,6 +191,9 @@ void efficiency(string file_list, int file_number) {
 	outree -> Branch("trk_length",&_trk_length);
 	outree -> Branch("max_buco",&_max_buco);
 	outree -> Branch("whicht0",&_which_t0);
+	outree -> Branch("t0PFP", &_t0PFP);
+	outree -> Branch("t0CRTTrack", &_t0CRTTrack);
+	outree -> Branch("t0CRTHit", &_t0CRTHit);
 	outree -> Branch("nholes",&_nholes);
 	outree -> Branch("wire_holes",&_wire_holes);
 
@@ -170,9 +215,9 @@ void efficiency(string file_list, int file_number) {
 	//print traces with eff lower than upper_eff_print 
 	float upper_eff_print = 0.5;
 	//output file for traces with eff lower than upper_eff_print 
-	ofstream oFile("histograms_all_muons/low_eff_traces.txt");
-    ofstream outfiletracks("tracks_west_9435.txt");
-    ofstream outfiletracksE("tracks_east_9435.txt");
+	//ofstream oFile("histograms_all_muons/low_eff_traces.txt");
+    //ofstream outfiletracks("tracks_west_9435.txt");
+    //ofstream outfiletracksE("tracks_east_9435.txt");
 
 
 	//wire array format: wire_array_plane_logicTPC
@@ -634,6 +679,12 @@ void efficiency(string file_list, int file_number) {
 							endzTPCW(myReaderTPCW, "end.z");
         				
     TTreeReaderValue<bool> clear_cosmic_muonTPCW_0(myReaderTPCW, "clear_cosmic_muon");
+
+	TTreeReaderValue<float> t0_PFP_TPCW(myReaderTPCW, "t0PFP");
+	TTreeReaderValue<float> t0_CRT_Track_TPCW(myReaderTPCW, "t0CRTTrack");
+	TTreeReaderValue<float> t0_CRT_Hit_TPCW(myReaderTPCW, "t0CRTHit");
+
+	TTreeReaderValue<int>   truthG4W(myReaderTPCW, "truth.p.G4ID");
         	
     //define TPC WEST variables for plane 0 (ind1)
     TTreeReaderArray<unsigned short> tpcTPCW_0(myReaderTPCW, "hits0.h.tpc");
@@ -648,12 +699,17 @@ void efficiency(string file_list, int file_number) {
 	TTreeReaderArray<float> hit_diry_TPCW_0(myReaderTPCW, "hits0.dir.y");
 	TTreeReaderArray<float> hit_dirz_TPCW_0(myReaderTPCW, "hits0.dir.z");
 
+	TTreeReaderArray<unsigned short> hit_mult_TPCW_0(myReaderTPCW, "hits0.h.mult");
+
 	TTreeReaderArray<float> hit_time_TPCW_0(myReaderTPCW, "hits0.h.time");
         				
     TTreeReaderArray<unsigned short> wireTPCW_0(myReaderTPCW, "hits0.h.wire");     				
         				
     TTreeReaderArray<float>	dqdxTPCW_0(myReaderTPCW, "hits0.dqdx"), 
 							pitchTPCW_0(myReaderTPCW, "hits0.pitch");
+
+	TTreeReaderArray<float>    h0_truth_ne_W  (myReaderTPCW, "hits0.h.truth.nelec");
+    TTreeReaderArray<float>    h0_truth_e_W  (myReaderTPCW, "hits0.h.truth.e");
        					
     //define TPC WEST variables for plane 1 (ind2)
     TTreeReaderArray<unsigned short> tpcTPCW_1(myReaderTPCW, "hits1.h.tpc");
@@ -668,12 +724,17 @@ void efficiency(string file_list, int file_number) {
 	TTreeReaderArray<float> hit_diry_TPCW_1(myReaderTPCW, "hits1.dir.y");
 	TTreeReaderArray<float> hit_dirz_TPCW_1(myReaderTPCW, "hits1.dir.z");
 
+	TTreeReaderArray<unsigned short> hit_mult_TPCW_1(myReaderTPCW, "hits1.h.mult");
+
 	TTreeReaderArray<float> hit_time_TPCW_1(myReaderTPCW, "hits1.h.time");
         				
     TTreeReaderArray<unsigned short> wireTPCW_1(myReaderTPCW, "hits1.h.wire");     				
         				
     TTreeReaderArray<float>	dqdxTPCW_1(myReaderTPCW, "hits1.dqdx"),
 							pitchTPCW_1(myReaderTPCW, "hits1.pitch");
+
+	TTreeReaderArray<float>    h1_truth_ne_W  (myReaderTPCW, "hits1.h.truth.nelec");
+    TTreeReaderArray<float>    h1_truth_e_W  (myReaderTPCW, "hits1.h.truth.e");
        					
     //define TPC WEST variables for plane 2 (coll)
     TTreeReaderArray<unsigned short> tpcTPCW_2(myReaderTPCW, "hits2.h.tpc");
@@ -688,12 +749,17 @@ void efficiency(string file_list, int file_number) {
 	TTreeReaderArray<float> hit_diry_TPCW_2(myReaderTPCW, "hits2.dir.y");
 	TTreeReaderArray<float> hit_dirz_TPCW_2(myReaderTPCW, "hits2.dir.z");
 
+	TTreeReaderArray<unsigned short> hit_mult_TPCW_2(myReaderTPCW, "hits2.h.mult");
+
 	TTreeReaderArray<float> hit_time_TPCW_2(myReaderTPCW, "hits2.h.time");
         				
     TTreeReaderArray<unsigned short> wireTPCW_2(myReaderTPCW, "hits2.h.wire");     				
         				
 	TTreeReaderArray<float>	dqdxTPCW_2(myReaderTPCW, "hits2.dqdx"),
        					 	pitchTPCW_2(myReaderTPCW, "hits2.pitch");
+
+	TTreeReaderArray<float>    h2_truth_ne_W  (myReaderTPCW, "hits2.h.truth.nelec");
+    TTreeReaderArray<float>    h2_truth_e_W  (myReaderTPCW, "hits2.h.truth.e");
 
 		
 //      	//
@@ -716,6 +782,12 @@ void efficiency(string file_list, int file_number) {
 							endzTPCE(myReaderTPCE, "end.z");
         				
     TTreeReaderValue<bool>	clear_cosmic_muonTPCE_0(myReaderTPCE, "clear_cosmic_muon");
+
+	TTreeReaderValue<float> t0_PFP_TPCE(myReaderTPCE, "t0PFP");
+	TTreeReaderValue<float> t0_CRT_Track_TPCE(myReaderTPCE, "t0CRTTrack");
+	TTreeReaderValue<float> t0_CRT_Hit_TPCE(myReaderTPCE, "t0CRTHit");
+
+	TTreeReaderValue<int>   truthG4E(myReaderTPCE, "truth.p.G4ID");
         	
     //define TPC EAST variables for plane 0 (ind1)
     TTreeReaderArray<unsigned short> tpcTPCE_0(myReaderTPCE, "hits0.h.tpc");
@@ -730,12 +802,17 @@ void efficiency(string file_list, int file_number) {
 	TTreeReaderArray<float> hit_diry_TPCE_0(myReaderTPCE, "hits0.dir.y");
 	TTreeReaderArray<float> hit_dirz_TPCE_0(myReaderTPCE, "hits0.dir.z");
 
+	TTreeReaderArray<unsigned short> hit_mult_TPCE_0(myReaderTPCE, "hits0.h.mult");
+
 	TTreeReaderArray<float> hit_time_TPCE_0(myReaderTPCE, "hits0.h.time");
         				
     TTreeReaderArray<unsigned short> wireTPCE_0(myReaderTPCE, "hits0.h.wire");     				
         				
     TTreeReaderArray<float>	dqdxTPCE_0(myReaderTPCE, "hits0.dqdx"),
        						pitchTPCE_0(myReaderTPCE, "hits0.pitch");
+
+	TTreeReaderArray<float>    h0_truth_ne_E  (myReaderTPCE, "hits0.h.truth.nelec");
+    TTreeReaderArray<float>    h0_truth_e_E  (myReaderTPCE, "hits0.h.truth.e");
        					
     //define TPC EAST variables for plane 1 (ind2)
     TTreeReaderArray<unsigned short> tpcTPCE_1(myReaderTPCE, "hits1.h.tpc");
@@ -750,12 +827,17 @@ void efficiency(string file_list, int file_number) {
 	TTreeReaderArray<float> hit_diry_TPCE_1(myReaderTPCE, "hits1.dir.y");
 	TTreeReaderArray<float> hit_dirz_TPCE_1(myReaderTPCE, "hits1.dir.z");
 
+	TTreeReaderArray<unsigned short> hit_mult_TPCE_1(myReaderTPCE, "hits1.h.mult");
+
 	TTreeReaderArray<float> hit_time_TPCE_1(myReaderTPCE, "hits1.h.time");
         				
     TTreeReaderArray<unsigned short> wireTPCE_1(myReaderTPCE, "hits1.h.wire");     				
         				
     TTreeReaderArray<float>	dqdxTPCE_1(myReaderTPCE, "hits1.dqdx"),
        						pitchTPCE_1(myReaderTPCE, "hits1.pitch");
+
+	TTreeReaderArray<float>    h1_truth_ne_E  (myReaderTPCE, "hits1.h.truth.nelec");
+    TTreeReaderArray<float>    h1_truth_e_E  (myReaderTPCE, "hits1.h.truth.e");
        					
     //define TPC EAST variables for plane 2 (coll)
     TTreeReaderArray<unsigned short> tpcTPCE_2(myReaderTPCE, "hits2.h.tpc");
@@ -770,12 +852,17 @@ void efficiency(string file_list, int file_number) {
 	TTreeReaderArray<float> hit_diry_TPCE_2(myReaderTPCE, "hits2.dir.y");
 	TTreeReaderArray<float> hit_dirz_TPCE_2(myReaderTPCE, "hits2.dir.z");
 
+	TTreeReaderArray<unsigned short> hit_mult_TPCE_2(myReaderTPCE, "hits2.h.mult");
+
 	TTreeReaderArray<float> hit_time_TPCE_2(myReaderTPCE, "hits2.h.time");
         				
     TTreeReaderArray<unsigned short> wireTPCE_2(myReaderTPCE, "hits2.h.wire");     				
         				
     TTreeReaderArray<float>	dqdxTPCE_2(myReaderTPCE, "hits2.dqdx"),
        						pitchTPCE_2(myReaderTPCE, "hits2.pitch");
+
+	TTreeReaderArray<float>    h2_truth_ne_E  (myReaderTPCE, "hits2.h.truth.nelec");
+    TTreeReaderArray<float>    h2_truth_e_E  (myReaderTPCE, "hits2.h.truth.e");
 
 //
 //	EFFICIENCY OVER THE RR LIMIT FOR ALL PLANES
@@ -789,10 +876,26 @@ myReaderTPCW.Restart();
 while(myReaderTPCW.Next())
 {	
 
+	//cout << "NEW TRACK" << endl << endl;;
+	//for(int hit = 0; hit < h2_truth_ne_W.GetSize(); hit++)
+	//{
+	//	cout << h2_truth_ne_W[hit] << " ";
+	//}
+	//cout << endl;
+	//for(int hit = 0; hit < h2_truth_e_W.GetSize(); hit++)
+	//{
+	//	cout << h2_truth_e_W[hit] << " ";
+	//}
+	//cout << endl << endl;
+	
+
+
+	if(*truthG4W == -1)continue;
+
 	//muon length must be greater than 1 meter
 	if(*lengthTPCW > 100 && ( (*whicht0TPCW)==0 || (*whicht0TPCW)==2 )) 
 	{
-		outfiletracks << (*runTPCW) << " " << (*evtTPCW) <<  " 1 " << (*startxTPCW) << " " << (*startyTPCW) << " " << (*startzTPCW) << " " << (*endxTPCW) << " " << (*endyTPCW) << " " << (*endzTPCW) << " " << (*lengthTPCW) << endl;
+		//outfiletracks << (*runTPCW) << " " << (*evtTPCW) <<  " 1 " << (*startxTPCW) << " " << (*startyTPCW) << " " << (*startzTPCW) << " " << (*endxTPCW) << " " << (*endyTPCW) << " " << (*endzTPCW) << " " << (*lengthTPCW) << endl;
 		
 		//
 		//	PLANE IND1 WEST
@@ -865,7 +968,8 @@ while(myReaderTPCW.Next())
 			}
 
 			//find max wire
-			for(int k = 1056; k > 0; --k) 
+			//for(int k = 1056; k > 0; --k) 
+			for(int k = 1055; k > 0; --k) 
 			{
 				if(wire_array_0_0[k] == 1) 
 				{
@@ -880,27 +984,34 @@ while(myReaderTPCW.Next())
 
 			//cout << "wire <-> hit" << endl;
 			std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-			std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
+			std::vector<std::pair<int,int>> wire_hits;
+			std::vector<TVector3> coordinates;
+
 
 			for(int hit = 0; hit<wireTPCW_0.GetSize(); hit++)
 			{
-				if(tpcTPCW_0[hit] == 0 /*hasSPTPCW_0[hit]*/)
+				if(tpcTPCW_0[hit] == 0 /*hasSPTPCW_0[hit]*/) // SP request already in wire_array... == 1
 				{
-					cout << wireTPCW_0[hit] << " " << hit_time_TPCW_0[hit] << " " << hasSPTPCW_0[hit] << " " << (wireTPCW_0[hit] >= min_wire_0 && wireTPCW_0[hit] <= max_wire_0) << endl;
+					if(PRINT_WEST_IND1_TPC0)
+					{
+						cout << wireTPCW_0[hit] << " " << hit_time_TPCW_0[hit] << " " << hasSPTPCW_0[hit] << " " << (wireTPCW_0[hit] >= min_wire_0 && wireTPCW_0[hit] <= max_wire_0) << " " << w_0_0_w[wireTPCW_0[hit]] << " ";
+						if(!isnan(hitx_TPCW_0[hit])){ cout << hitx_TPCW_0[hit] << " " << hity_TPCW_0[hit] << " " << hitz_TPCW_0[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
 
 					if(wireTPCW_0[hit] >= min_wire_0 && wireTPCW_0[hit] <= max_wire_0)
 					{
-						wireToHit[wireTPCW_0[hit]] = hit;
-						//cout << wireTPCW_0[hit] << " " << hit << endl;
+						wire_hits.push_back({wireTPCW_0[hit],hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_0[hit],hity_TPCW_0[hit],hitz_TPCW_0[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 			}
 
-			//cout << endl << "wire <-> hit after" << endl;
+			double start_buco = -1;
 			for(int k = min_wire_0; k <= max_wire_0; ++k) 
-			{
-				//cout << k << " " << wireToHit[k] << endl; 
-
+			{ 
                 wcount_0+=w_0_0_w[k];
                 if(w_0_0_w[k]>0 && wire_array_0_0[k] == 1 && buco>0) 
 				{
@@ -908,35 +1019,50 @@ while(myReaderTPCW.Next())
 					
 					std::vector<double> this_hole;
 
+					int wire_before_hole = start_buco - 1;
+					while(wire_array_0_0[wire_before_hole] == 0){wire_before_hole = wire_before_hole -1;}
+					
+					std::pair<int,int> hh = wireToHit(wire_hits,coordinates,wire_before_hole,k);
+
 					// --> get more info about holes
 					this_hole.push_back(buco);
-					this_hole.push_back(hitx_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hity_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitz_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitx_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hity_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hitz_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(k-buco-1);
+					this_hole.push_back(hitx_TPCW_0[hh.first]);
+					this_hole.push_back(hity_TPCW_0[hh.first]);
+					this_hole.push_back(hitz_TPCW_0[hh.first]);
+					this_hole.push_back(hitx_TPCW_0[hh.second]);
+					this_hole.push_back(hity_TPCW_0[hh.second]);
+					this_hole.push_back(hitz_TPCW_0[hh.second]);
+					this_hole.push_back(wire_before_hole);
 					this_hole.push_back(k);
-					this_hole.push_back(hit_dirx_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_diry_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirz_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirx_TPCW_0[wireToHit[k]]); 
-					this_hole.push_back(hit_diry_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hit_dirz_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hit_time_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_time_TPCW_0[wireToHit[k]]);
+					this_hole.push_back(hit_dirx_TPCW_0[hh.first]);
+					this_hole.push_back(hit_diry_TPCW_0[hh.first]);
+					this_hole.push_back(hit_dirz_TPCW_0[hh.first]);
+					this_hole.push_back(hit_dirx_TPCW_0[hh.second]); 
+					this_hole.push_back(hit_diry_TPCW_0[hh.second]);
+					this_hole.push_back(hit_dirz_TPCW_0[hh.second]);
+					this_hole.push_back(hit_time_TPCW_0[hh.first]);
+					this_hole.push_back(hit_time_TPCW_0[hh.second]);
+					this_hole.push_back(hit_mult_TPCW_0[hh.first]);
+					this_hole.push_back(hit_mult_TPCW_0[hh.second]);
 
 					holes_temp.push_back(this_hole);
 					this_hole.clear();
 					// <--
 
 					hind1buchi->Fill(holder_0,buco);
-					if(buco>max_buco)max_buco=buco;buco=0;
+					if(buco>max_buco)max_buco=buco;
+					buco=0;
+					start_buco = -1;
 				}
 				else if(w_0_0_w[k]>0 && wire_array_0_0[k] == 1 && buco==0) ++count_0;
-				else if(w_0_0_w[k]>0 && wire_array_0_0[k] == 0) ++buco;
+				else if(w_0_0_w[k]>0 && wire_array_0_0[k] == 0)
+				{ 
+					if(buco == 0)start_buco = k;
+					++buco;
+				}
 			}
+
+			wire_hits.clear();
 					
 			//store efficiency and average pitch in the ind1 vectors
 			if(wcount_0 > (max_wire_0-min_wire_0+1) || count_0 > wcount_0)cout << "IND 0 0 W " << count_0 << " " << wcount_0 << " " << min_wire_0 << " " << max_wire_0 << endl; 
@@ -968,27 +1094,30 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
+			_t0PFP = *t0_PFP_TPCW;
+			_t0CRTTrack = *t0_CRT_Track_TPCW;
+			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
 
 			//cout << _start.X() << " " << _start.Y() << " " << _start.Z() << " " << _end.X() << " " << _end.Y() << " " << _end.Z() << " | " << " " << _nholes << " holes: ";
-			cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
-			for(const auto &hole : _wire_holes)
-        	{
-            	cout << "hole ";
-            	for(const auto &hole_feature : hole)
-            	{
-                	cout << hole_feature << " ";
-            	}
-        	}
+			if(PRINT_WEST_IND1_TPC0)
+			{
+				cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+				for(const auto &hole : _wire_holes)
+        		{
+            		cout << "hole ";
+            		for(const auto &hole_feature : hole)
+            		{
+                		cout << hole_feature << " ";
+            		}
+        		}
+			}
 
 			outree -> Fill();
 			cout << "filled" << endl;
 
 			holes_temp.clear();
-			wireToHit.clear();
-
-
 		}
 				
 		// TPC1 IND1
@@ -1007,7 +1136,8 @@ while(myReaderTPCW.Next())
 			}
 
 			//find max wire
-			for(int k = 1056; k > 0; --k) 
+			//for(int k = 1056; k > 0; --k) 
+			for(int k = 1055; k > 0; --k) 
 			{
 				if(wire_array_0_1[k] == 1) 
 				{
@@ -1020,18 +1150,32 @@ while(myReaderTPCW.Next())
 			count_1 = 0; wcount_1 = 0; buco=0;max_buco=0;
 
 			std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-			std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
+			std::vector<std::pair<int,int>> wire_hits;
+			std::vector<TVector3> coordinates;
+
+
 			for(int hit = 0; hit<wireTPCW_0.GetSize(); hit++)
 			{
-				if(tpcTPCW_0[hit] == 1 && hasSPTPCW_0[hit])
+				if(tpcTPCW_0[hit] == 1 /*&& hasSPTPCW_0[hit]*/)
 				{
+					if(PRINT_WEST_IND1_TPC1)
+					{
+						cout << wireTPCW_0[hit] << " " << hit_time_TPCW_0[hit] << " " << hasSPTPCW_0[hit] << " " << (wireTPCW_0[hit] >= min_wire_1 && wireTPCW_0[hit] <= max_wire_1) << " " << w_0_1_w[wireTPCW_0[hit]] << " ";
+						if(!isnan(hitx_TPCW_0[hit])){ cout << hitx_TPCW_0[hit] << " " << hity_TPCW_0[hit] << " " << hitz_TPCW_0[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_0[hit] >= min_wire_1 && wireTPCW_0[hit] <= max_wire_1)
 					{
-						wireToHit[wireTPCW_0[hit]] = hit;
+						wire_hits.push_back({wireTPCW_0[hit],hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_0[hit],hity_TPCW_0[hit],hitz_TPCW_0[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 			}
 
+			double start_buco = -1;
 			for(int k = min_wire_1; k <= max_wire_1; ++k) 
 			{
 
@@ -1042,35 +1186,50 @@ while(myReaderTPCW.Next())
 
 					std::vector<double> this_hole;
 
+					int wire_before_hole = start_buco - 1;
+					while(wire_array_0_1[wire_before_hole] == 0){wire_before_hole = wire_before_hole -1;}
+					
+					std::pair<int,int> hh = wireToHit(wire_hits,coordinates,wire_before_hole,k);
+
 					// --> get more info about holes
 					this_hole.push_back(buco);
-					this_hole.push_back(hitx_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hity_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitz_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitx_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hity_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hitz_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(k-buco-1);
+					this_hole.push_back(hitx_TPCW_0[hh.first]);
+					this_hole.push_back(hity_TPCW_0[hh.first]);
+					this_hole.push_back(hitz_TPCW_0[hh.first]);
+					this_hole.push_back(hitx_TPCW_0[hh.second]);
+					this_hole.push_back(hity_TPCW_0[hh.second]);
+					this_hole.push_back(hitz_TPCW_0[hh.second]);
+					this_hole.push_back(wire_before_hole);
 					this_hole.push_back(k);
-					this_hole.push_back(hit_dirx_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_diry_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirz_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirx_TPCW_0[wireToHit[k]]); 
-					this_hole.push_back(hit_diry_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hit_dirz_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hit_time_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_time_TPCW_0[wireToHit[k]]);
+					this_hole.push_back(hit_dirx_TPCW_0[hh.first]);
+					this_hole.push_back(hit_diry_TPCW_0[hh.first]);
+					this_hole.push_back(hit_dirz_TPCW_0[hh.first]);
+					this_hole.push_back(hit_dirx_TPCW_0[hh.second]); 
+					this_hole.push_back(hit_diry_TPCW_0[hh.second]);
+					this_hole.push_back(hit_dirz_TPCW_0[hh.second]);
+					this_hole.push_back(hit_time_TPCW_0[hh.first]);
+					this_hole.push_back(hit_time_TPCW_0[hh.second]);
+					this_hole.push_back(hit_mult_TPCW_0[hh.first]);
+					this_hole.push_back(hit_mult_TPCW_0[hh.second]);
 
 					holes_temp.push_back(this_hole);
 					this_hole.clear();
 					// <--
 
 					hind1buchi->Fill(holder_1,buco);
-					if(buco>max_buco)max_buco=buco;buco=0;
+					if(buco>max_buco)max_buco=buco;
+					buco=0;
+					start_buco = -1;
 				}
 			  	else if(w_0_1_w[k]>0 && wire_array_0_1[k] == 1 && buco==0) ++count_1;
-			  	else if(w_0_1_w[k]>0 && wire_array_0_1[k] == 0) ++buco;
+			  	else if(w_0_1_w[k]>0 && wire_array_0_1[k] == 0)
+				{ 
+					if(buco == 0)start_buco = k;
+					++buco;
+				}
 			}
+
+			wire_hits.clear();
 
 			//count_1 = 0;
 			//for(int k = min_wire_1; k <= max_wire_1; ++k) {
@@ -1099,14 +1258,29 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
+			_t0PFP = *t0_PFP_TPCW;
+			_t0CRTTrack = *t0_CRT_Track_TPCW;
+			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+
+			if(PRINT_WEST_IND1_TPC1)
+			{
+				cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+				for(const auto &hole : _wire_holes)
+        		{
+            		cout << "hole ";
+            		for(const auto &hole_feature : hole)
+            		{
+                		cout << hole_feature << " ";
+            		}
+        		}
+			}
 
 			outree -> Fill();
 			cout << "filled" << endl;
 
 			holes_temp.clear();
-			wireToHit.clear();
 		}
 				
 		// TPC2 IND1	
@@ -1125,7 +1299,8 @@ while(myReaderTPCW.Next())
 			}
 
 			//find max wire
-			for(int k = 1056; k > 0; --k) 
+			//for(int k = 1056; k > 0; --k) 
+			for(int k = 1055; k > 0; --k)
 			{
 				if(wire_array_0_2[k] == 1) 
 				{
@@ -1138,18 +1313,32 @@ while(myReaderTPCW.Next())
 			count_2 = 0; wcount_2 = 0; buco=0;max_buco=0;
 
 			std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-			std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
+			std::vector<std::pair<int,int>> wire_hits;
+			std::vector<TVector3> coordinates;
+
+
 			for(int hit = 0; hit<wireTPCW_0.GetSize(); hit++)
 			{
-				if(tpcTPCW_0[hit] == 2 && hasSPTPCW_0[hit])
+				if(tpcTPCW_0[hit] == 2 /*&& hasSPTPCW_0[hit]*/)
 				{
+					if(PRINT_WEST_IND1_TPC2)
+					{
+						cout << wireTPCW_0[hit] << " " << hit_time_TPCW_0[hit] << " " << hasSPTPCW_0[hit] << " " << (wireTPCW_0[hit] >= min_wire_2 && wireTPCW_0[hit] <= max_wire_2) << " " << w_0_2_w[wireTPCW_0[hit]] << " ";
+						if(!isnan(hitx_TPCW_0[hit])){ cout << hitx_TPCW_0[hit] << " " << hity_TPCW_0[hit] << " " << hitz_TPCW_0[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_0[hit] >= min_wire_2 && wireTPCW_0[hit] <= max_wire_2)
 					{
-						wireToHit[wireTPCW_0[hit]] = hit;
+						wire_hits.push_back({wireTPCW_0[hit],hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_0[hit],hity_TPCW_0[hit],hitz_TPCW_0[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 			}
 					
+			double start_buco = -1;
 			for(int k = min_wire_2; k <= max_wire_2; ++k) 
 			{
                 wcount_2+=w_0_2_w[k];
@@ -1159,35 +1348,49 @@ while(myReaderTPCW.Next())
 
 					std::vector<double> this_hole;
 
+					int wire_before_hole = start_buco - 1;
+					while(wire_array_0_2[wire_before_hole] == 0){wire_before_hole = wire_before_hole -1;}
+					
+					std::pair<int,int> hh = wireToHit(wire_hits,coordinates,wire_before_hole,k);
+
 					// --> get more info about holes
 					this_hole.push_back(buco);
-					this_hole.push_back(hitx_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hity_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitz_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitx_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hity_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hitz_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(k-buco-1);
+					this_hole.push_back(hitx_TPCW_0[hh.first]);
+					this_hole.push_back(hity_TPCW_0[hh.first]);
+					this_hole.push_back(hitz_TPCW_0[hh.first]);
+					this_hole.push_back(hitx_TPCW_0[hh.second]);
+					this_hole.push_back(hity_TPCW_0[hh.second]);
+					this_hole.push_back(hitz_TPCW_0[hh.second]);
+					this_hole.push_back(wire_before_hole);
 					this_hole.push_back(k);
-					this_hole.push_back(hit_dirx_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_diry_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirz_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirx_TPCW_0[wireToHit[k]]); 
-					this_hole.push_back(hit_diry_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hit_dirz_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hit_time_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_time_TPCW_0[wireToHit[k]]);
+					this_hole.push_back(hit_dirx_TPCW_0[hh.first]);
+					this_hole.push_back(hit_diry_TPCW_0[hh.first]);
+					this_hole.push_back(hit_dirz_TPCW_0[hh.first]);
+					this_hole.push_back(hit_dirx_TPCW_0[hh.second]); 
+					this_hole.push_back(hit_diry_TPCW_0[hh.second]);
+					this_hole.push_back(hit_dirz_TPCW_0[hh.second]);
+					this_hole.push_back(hit_time_TPCW_0[hh.first]);
+					this_hole.push_back(hit_time_TPCW_0[hh.second]);
+					this_hole.push_back(hit_mult_TPCW_0[hh.first]);
+					this_hole.push_back(hit_mult_TPCW_0[hh.second]);
 
 					holes_temp.push_back(this_hole);
 					this_hole.clear();
 					// <--
 
 					hind1buchi->Fill(holder_2,buco);
-					if(buco>max_buco)max_buco=buco;buco=0;
+					if(buco>max_buco)max_buco=buco;
+					buco=0;
+					start_buco = -1;
 				}
 				else if(w_0_2_w[k]>0 && wire_array_0_2[k] == 1 && buco==0) ++count_2;
-				else if(w_0_2_w[k]>0 && wire_array_0_2[k] == 0) ++buco;
+				else if(w_0_2_w[k]>0 && wire_array_0_2[k] == 0)
+				{
+					if(buco == 0)start_buco = k;
+					++buco;
+				}
 			}
+			wire_hits.clear();
 
 			//count_2 = 0;
 			//for(int k = min_wire_2; k <= max_wire_2; ++k) {
@@ -1215,14 +1418,29 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
+			_t0PFP = *t0_PFP_TPCW;
+			_t0CRTTrack = *t0_CRT_Track_TPCW;
+			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+
+			if(PRINT_WEST_IND1_TPC2)
+			{
+				cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+				for(const auto &hole : _wire_holes)
+        		{
+            		cout << "hole ";
+            		for(const auto &hole_feature : hole)
+            		{
+                		cout << hole_feature << " ";
+            		}
+        		}
+			}
 
 			outree -> Fill();
 			cout << "filled" << endl;
 
 			holes_temp.clear();
-			wireToHit.clear();
 			
 		}
 				
@@ -1243,7 +1461,8 @@ while(myReaderTPCW.Next())
 			}
 					
 			//find max wire
-			for(int k = 1056; k > 0; --k) 
+			//for(int k = 1056; k > 0; --k) 
+			for(int k = 1055; k > 0; --k)
 			{
 				if(wire_array_0_3[k] == 1) 
 				{
@@ -1256,18 +1475,32 @@ while(myReaderTPCW.Next())
 			count_3 = 0; buco=0; wcount_3 = 0;max_buco=0;
 
 			std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-			std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
+			std::vector<std::pair<int,int>> wire_hits;
+			std::vector<TVector3> coordinates;
+
+
 			for(int hit = 0; hit<wireTPCW_0.GetSize(); hit++)
 			{
-				if(tpcTPCW_0[hit] == 3 && hasSPTPCW_0[hit])
+				if(tpcTPCW_0[hit] == 3 /*&& hasSPTPCW_0[hit]*/)
 				{
+					if(PRINT_WEST_IND1_TPC3)
+					{
+						cout << wireTPCW_0[hit] << " " << hit_time_TPCW_0[hit] << " " << hasSPTPCW_0[hit] << " " << (wireTPCW_0[hit] >= min_wire_3 && wireTPCW_0[hit] <= max_wire_3) << " " << w_0_3_w[wireTPCW_0[hit]] << " ";
+						if(!isnan(hitx_TPCW_0[hit])){ cout << hitx_TPCW_0[hit] << " " << hity_TPCW_0[hit] << " " << hitz_TPCW_0[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_0[hit] >= min_wire_3 && wireTPCW_0[hit] <= max_wire_3)
 					{
-						wireToHit[wireTPCW_0[hit]] = hit;
+						wire_hits.push_back({wireTPCW_0[hit],hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_0[hit],hity_TPCW_0[hit],hitz_TPCW_0[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 			}
 
+			double start_buco = -1;
 			for(int k = min_wire_3; k <= max_wire_3; ++k) 
 			{
                 wcount_3+=w_0_3_w[k];
@@ -1277,35 +1510,49 @@ while(myReaderTPCW.Next())
 
 					std::vector<double> this_hole;
 
+					int wire_before_hole = start_buco - 1;
+					while(wire_array_0_3[wire_before_hole] == 0){wire_before_hole = wire_before_hole -1;}
+					
+					std::pair<int,int> hh = wireToHit(wire_hits,coordinates,wire_before_hole,k);
+
 					// --> get more info about holes
 					this_hole.push_back(buco);
-					this_hole.push_back(hitx_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hity_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitz_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitx_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hity_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hitz_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(k-buco-1);
+					this_hole.push_back(hitx_TPCW_0[hh.first]);
+					this_hole.push_back(hity_TPCW_0[hh.first]);
+					this_hole.push_back(hitz_TPCW_0[hh.first]);
+					this_hole.push_back(hitx_TPCW_0[hh.second]);
+					this_hole.push_back(hity_TPCW_0[hh.second]);
+					this_hole.push_back(hitz_TPCW_0[hh.second]);
+					this_hole.push_back(wire_before_hole);
 					this_hole.push_back(k);
-					this_hole.push_back(hit_dirx_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_diry_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirz_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirx_TPCW_0[wireToHit[k]]); 
-					this_hole.push_back(hit_diry_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hit_dirz_TPCW_0[wireToHit[k]]);
-					this_hole.push_back(hit_time_TPCW_0[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_time_TPCW_0[wireToHit[k]]);
+					this_hole.push_back(hit_dirx_TPCW_0[hh.first]);
+					this_hole.push_back(hit_diry_TPCW_0[hh.first]);
+					this_hole.push_back(hit_dirz_TPCW_0[hh.first]);
+					this_hole.push_back(hit_dirx_TPCW_0[hh.second]); 
+					this_hole.push_back(hit_diry_TPCW_0[hh.second]);
+					this_hole.push_back(hit_dirz_TPCW_0[hh.second]);
+					this_hole.push_back(hit_time_TPCW_0[hh.first]);
+					this_hole.push_back(hit_time_TPCW_0[hh.second]);
+					this_hole.push_back(hit_mult_TPCW_0[hh.first]);
+					this_hole.push_back(hit_mult_TPCW_0[hh.second]);
 
 					holes_temp.push_back(this_hole);
 					this_hole.clear();
 					// <--
 
 					hind1buchi->Fill(holder_3,buco);
-					if(buco>max_buco)max_buco=buco;buco=0;
+					if(buco>max_buco)max_buco=buco;
+					buco=0;
+					start_buco = -1;
 				}
 			  	else if(w_0_3_w[k]>0 && wire_array_0_3[k] == 1 && buco==0) ++count_3;
-			  	else if(w_0_3_w[k]>0 && wire_array_0_3[k] == 0) ++buco;
+			  	else if(w_0_3_w[k]>0 && wire_array_0_3[k] == 0)
+				{
+					if(buco == 0)start_buco = k;
+					++buco;
+				}
 			}
+			wire_hits.clear();
 
 			//count_3 = 0;
 			//for(int k = min_wire_3; k <= max_wire_3; ++k) {
@@ -1333,14 +1580,29 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
+			_t0PFP = *t0_PFP_TPCW;
+			_t0CRTTrack = *t0_CRT_Track_TPCW;
+			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+
+			if(PRINT_WEST_IND1_TPC3)
+			{
+				cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+				for(const auto &hole : _wire_holes)
+        		{
+            		cout << "hole ";
+            		for(const auto &hole_feature : hole)
+            		{
+                		cout << hole_feature << " ";
+            		}
+        		}
+			}
 
 			outree -> Fill();
 			cout << "filled" << endl;
 
 			holes_temp.clear();
-			wireToHit.clear();
 		}
 				
 //
@@ -1436,7 +1698,8 @@ while(myReaderTPCW.Next())
 			}
 					
 			//find max wire
-			for(int k = 5600; k > 0; --k) 
+			//for(int k = 5600; k > 0; --k) 
+			for(int k = 5599; k > 0; --k) 
 			{
 				if(wire_array_1_01[k] == 1) 
 				{
@@ -1449,26 +1712,50 @@ while(myReaderTPCW.Next())
 			count_01 = 0; wcount_01 = 0; buco=0;max_buco=0;
 
 			std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-			std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
+			std::vector<std::pair<int,int>> wire_hits;
+			std::vector<TVector3> coordinates;
+
+
 			for(int hit = 0; hit<wireTPCW_1.GetSize(); hit++)
 			{
 
-				if(tpcTPCW_1[hit] == 0 && hasSPTPCW_1[hit])
+				if(tpcTPCW_1[hit] == 0 /*&& hasSPTPCW_1[hit]*/)
 				{
+					if(PRINT_WEST_IND2_TPC01)
+					{
+						cout << wireTPCW_1[hit] << " " << hit_time_TPCW_1[hit] << " " << hasSPTPCW_1[hit] << " " << (wireTPCW_1[hit] >= min_wire_01 && wireTPCW_1[hit] <= max_wire_01) << " " << w_1_01_w[wireTPCW_1[hit]] << " ";
+						if(!isnan(hitx_TPCW_1[hit])){ cout << hitx_TPCW_1[hit] << " " << hity_TPCW_1[hit] << " " << hitz_TPCW_1[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_1[hit] >= min_wire_01 && wireTPCW_1[hit] <= max_wire_01)
 					{
-						wireToHit[wireTPCW_1[hit]] = hit;
+						wire_hits.push_back({wireTPCW_1[hit],hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_1[hit],hity_TPCW_1[hit],hitz_TPCW_1[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 				else if(tpcTPCW_1[hit] == 1)
 				{
+					if(PRINT_WEST_IND2_TPC01)
+					{
+						cout << wireTPCW_1[hit] + 2536 << " " << hit_time_TPCW_1[hit] << " " << hasSPTPCW_1[hit] << " " << (wireTPCW_1[hit] + 2536 >= min_wire_01 && wireTPCW_1[hit] + 2536 <= max_wire_01) << " " << w_1_01_w[wireTPCW_1[hit] + 2536] << " ";
+						if(!isnan(hitx_TPCW_1[hit])){ cout << hitx_TPCW_1[hit] << " " << hity_TPCW_1[hit] << " " << hitz_TPCW_1[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_1[hit] + 2536 >= min_wire_01 && wireTPCW_1[hit] + 2536 <= max_wire_01)
 					{
-						wireToHit[wireTPCW_1[hit] + 2536] = hit;
+						wire_hits.push_back({wireTPCW_1[hit] + 2536,hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_1[hit],hity_TPCW_1[hit],hitz_TPCW_1[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 			}
 
+			double start_buco = -1;
 			for(int k = min_wire_01; k <= max_wire_01; ++k) 
 			{
                 wcount_01+=w_1_01_w[k];
@@ -1479,35 +1766,50 @@ while(myReaderTPCW.Next())
 
 					std::vector<double> this_hole;
 
+					int wire_before_hole = start_buco - 1;
+					while(wire_array_1_01[wire_before_hole] == 0){wire_before_hole = wire_before_hole -1;}
+					
+					std::pair<int,int> hh = wireToHit(wire_hits,coordinates,wire_before_hole,k);
+
 					// --> get more info about holes
 					this_hole.push_back(buco);
-					this_hole.push_back(hitx_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hity_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitz_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitx_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(hity_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(hitz_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(k-buco-1);
+					this_hole.push_back(hitx_TPCW_1[hh.first]);
+					this_hole.push_back(hity_TPCW_1[hh.first]);
+					this_hole.push_back(hitz_TPCW_1[hh.first]);
+					this_hole.push_back(hitx_TPCW_1[hh.second]);
+					this_hole.push_back(hity_TPCW_1[hh.second]);
+					this_hole.push_back(hitz_TPCW_1[hh.second]);
+					this_hole.push_back(wire_before_hole);
 					this_hole.push_back(k);
-					this_hole.push_back(hit_dirx_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_diry_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirz_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirx_TPCW_1[wireToHit[k]]); 
-					this_hole.push_back(hit_diry_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(hit_dirz_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(hit_time_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_time_TPCW_1[wireToHit[k]]);
+					this_hole.push_back(hit_dirx_TPCW_1[hh.first]);
+					this_hole.push_back(hit_diry_TPCW_1[hh.first]);
+					this_hole.push_back(hit_dirz_TPCW_1[hh.first]);
+					this_hole.push_back(hit_dirx_TPCW_1[hh.second]); 
+					this_hole.push_back(hit_diry_TPCW_1[hh.second]);
+					this_hole.push_back(hit_dirz_TPCW_1[hh.second]);
+					this_hole.push_back(hit_time_TPCW_1[hh.first]);
+					this_hole.push_back(hit_time_TPCW_1[hh.second]);
+					this_hole.push_back(hit_mult_TPCW_1[hh.first]);
+					this_hole.push_back(hit_mult_TPCW_1[hh.second]);
 
 					holes_temp.push_back(this_hole);
 					this_hole.clear();
 					// <--
 
 					hind2buchi->Fill(holder_01,buco);
-					if(buco>max_buco)max_buco=buco;buco=0;
+					if(buco>max_buco)max_buco=buco;
+					buco=0;
+					start_buco = -1;
 				}
 				else if(w_1_01_w[k]>0 && wire_array_1_01[k] == 1 && buco==0) ++count_01;
-				else if(w_1_01_w[k]>0 && wire_array_1_01[k] == 0) ++buco;
+				else if(w_1_01_w[k]>0 && wire_array_1_01[k] == 0)
+				{
+					if(buco == 0)start_buco = k;
+					++buco;
+				}
 			}
+
+			wire_hits.clear();
 
 			//count_01 = 0;
 			//for(int k = min_wire_01; k <= max_wire_01; ++k) {
@@ -1536,14 +1838,29 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 		    _which_t0 = *whicht0TPCW;
+			_t0PFP = *t0_PFP_TPCW;
+			_t0CRTTrack = *t0_CRT_Track_TPCW;
+			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+
+			if(PRINT_WEST_IND2_TPC01)
+			{
+				cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+				for(const auto &hole : _wire_holes)
+        		{
+            		cout << "hole ";
+            		for(const auto &hole_feature : hole)
+            		{
+                		cout << hole_feature << " ";
+            		}
+        		}
+			}
 
 			outree -> Fill();
 			cout << "filled" << endl;
 
 			holes_temp.clear();
-			wireToHit.clear();
 
 		}
 				
@@ -1564,7 +1881,8 @@ while(myReaderTPCW.Next())
 			}
 					
 			//find max wire
-			for(int k = 5600; k > 0; --k) 
+			//for(int k = 5600; k > 0; --k) 
+			for(int k = 5599; k > 0; --k) 
 			{
 				if(wire_array_1_23[k] == 1) 
 				{
@@ -1577,25 +1895,49 @@ while(myReaderTPCW.Next())
 			count_23 = 0; wcount_23 = 0; buco=0;max_buco=0;
 
 			std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-			std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
+			std::vector<std::pair<int,int>> wire_hits;
+			std::vector<TVector3> coordinates;
+
+
 			for(int hit = 0; hit<wireTPCW_1.GetSize(); hit++)
 			{
-				if(tpcTPCW_1[hit] == 2 && hasSPTPCW_1[hit])
+				if(tpcTPCW_1[hit] == 2 /*&& hasSPTPCW_1[hit]*/)
 				{
+					if(PRINT_WEST_IND2_TPC23)
+					{
+						cout << wireTPCW_1[hit] << " " << hit_time_TPCW_1[hit] << " " << hasSPTPCW_1[hit] << " " << (wireTPCW_1[hit] >= min_wire_23 && wireTPCW_1[hit] <= max_wire_23) << " " << w_1_23_w[wireTPCW_1[hit]] << " ";
+						if(!isnan(hitx_TPCW_1[hit])){ cout << hitx_TPCW_1[hit] << " " << hity_TPCW_1[hit] << " " << hitz_TPCW_1[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_1[hit] >= min_wire_23 && wireTPCW_1[hit] <= max_wire_23)
 					{
-						wireToHit[wireTPCW_1[hit]] = hit;
+						wire_hits.push_back({wireTPCW_1[hit],hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_1[hit],hity_TPCW_1[hit],hitz_TPCW_1[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 				else if(tpcTPCW_1[hit] == 3)
 				{
+					if(PRINT_WEST_IND2_TPC23)
+					{
+						cout << wireTPCW_1[hit] + 2536 << " " << hit_time_TPCW_1[hit] << " " << hasSPTPCW_1[hit] << " " << (wireTPCW_1[hit] + 2536 >= min_wire_23 && wireTPCW_1[hit] + 2536 <= max_wire_23) << " " << w_1_23_w[wireTPCW_1[hit] + 2536] << " ";
+						if(!isnan(hitx_TPCW_1[hit])){ cout << hitx_TPCW_1[hit] << " " << hity_TPCW_1[hit] << " " << hitz_TPCW_1[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_1[hit] + 2536 >= min_wire_23 && wireTPCW_1[hit] + 2536 <= max_wire_23)
 					{
-						wireToHit[wireTPCW_1[hit] + 2536] = hit;
+						wire_hits.push_back({wireTPCW_1[hit] + 2536,hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_1[hit],hity_TPCW_1[hit],hitz_TPCW_1[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 			}
 
+			double start_buco = -1;
 			for(int k = min_wire_23; k <= max_wire_23; ++k) 
 			{
                 wcount_23+=w_1_23_w[k];
@@ -1606,35 +1948,50 @@ while(myReaderTPCW.Next())
 
 					std::vector<double> this_hole;
 
+					int wire_before_hole = start_buco - 1;
+					while(wire_array_1_23[wire_before_hole] == 0){wire_before_hole = wire_before_hole -1;}
+					
+					std::pair<int,int> hh = wireToHit(wire_hits,coordinates,wire_before_hole,k);
+
 					// --> get more info about holes
 					this_hole.push_back(buco);
-					this_hole.push_back(hitx_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hity_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitz_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitx_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(hity_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(hitz_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(k-buco-1);
+					this_hole.push_back(hitx_TPCW_1[hh.first]);
+					this_hole.push_back(hity_TPCW_1[hh.first]);
+					this_hole.push_back(hitz_TPCW_1[hh.first]);
+					this_hole.push_back(hitx_TPCW_1[hh.second]);
+					this_hole.push_back(hity_TPCW_1[hh.second]);
+					this_hole.push_back(hitz_TPCW_1[hh.second]);
+					this_hole.push_back(wire_before_hole);
 					this_hole.push_back(k);
-					this_hole.push_back(hit_dirx_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_diry_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirz_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirx_TPCW_1[wireToHit[k]]); 
-					this_hole.push_back(hit_diry_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(hit_dirz_TPCW_1[wireToHit[k]]);
-					this_hole.push_back(hit_time_TPCW_1[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_time_TPCW_1[wireToHit[k]]);
+					this_hole.push_back(hit_dirx_TPCW_1[hh.first]);
+					this_hole.push_back(hit_diry_TPCW_1[hh.first]);
+					this_hole.push_back(hit_dirz_TPCW_1[hh.first]);
+					this_hole.push_back(hit_dirx_TPCW_1[hh.second]); 
+					this_hole.push_back(hit_diry_TPCW_1[hh.second]);
+					this_hole.push_back(hit_dirz_TPCW_1[hh.second]);
+					this_hole.push_back(hit_time_TPCW_1[hh.first]);
+					this_hole.push_back(hit_time_TPCW_1[hh.second]);
+					this_hole.push_back(hit_mult_TPCW_1[hh.first]);
+					this_hole.push_back(hit_mult_TPCW_1[hh.second]);
 
 					holes_temp.push_back(this_hole);
 					this_hole.clear();
 					// <--
 
 					hind2buchi->Fill(holder_23,buco);
-					if(buco>max_buco)max_buco=buco;buco=0;
+					if(buco>max_buco)max_buco=buco;
+					buco=0;
+					start_buco = -1;
 				}
 				else if(w_1_23_w[k]>0 && wire_array_1_23[k] == 1 && buco==0) ++count_23;
-				else if(w_1_23_w[k]>0 && wire_array_1_23[k] == 0) ++buco;
+				else if(w_1_23_w[k]>0 && wire_array_1_23[k] == 0)
+				{
+					if(buco == 0)start_buco = k;
+					++buco;
+				}
 			}
+
+			wire_hits.clear();
 
 			//count_23 = 0;
 			//for(int k = min_wire_23; k <= max_wire_23; ++k) {
@@ -1663,14 +2020,30 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
+			_t0PFP = *t0_PFP_TPCW;
+			_t0CRTTrack = *t0_CRT_Track_TPCW;
+			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+
+			if(PRINT_WEST_IND2_TPC23)
+			{
+				cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+				for(const auto &hole : _wire_holes)
+        		{
+            		cout << "hole ";
+            		for(const auto &hole_feature : hole)
+            		{
+                		cout << hole_feature << " ";
+            		}
+        		}
+			}
 
 			outree -> Fill();
 			cout << "filled" << endl;
 
 			holes_temp.clear();
-			wireToHit.clear();
+
 		}
 				
 //
@@ -1760,7 +2133,8 @@ while(myReaderTPCW.Next())
 			}
 					
 			//find max wire
-			for(int k = 5600; k > 0; --k) 
+			//for(int k = 5600; k > 0; --k) 
+			for(int k = 5599; k > 0; --k) 
 			{
 				if(wire_array_2_01[k] == 1) 
 				{
@@ -1773,25 +2147,49 @@ while(myReaderTPCW.Next())
             count_01 = 0; buco=0; wcount_01=0;max_buco=0;
 
 			std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-			std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
+			std::vector<std::pair<int,int>> wire_hits;
+			std::vector<TVector3> coordinates;
+
+
 			for(int hit = 0; hit<wireTPCW_2.GetSize(); hit++)
 			{
-				if(tpcTPCW_2[hit] == 0 && hasSPTPCW_2[hit])
+				if(tpcTPCW_2[hit] == 0 /*&& hasSPTPCW_2[hit]*/)
 				{
+					if(PRINT_WEST_COLL_TPC01)
+					{
+						cout << wireTPCW_2[hit] << " " << hit_time_TPCW_2[hit] << " " << hasSPTPCW_2[hit] << " " << (wireTPCW_2[hit] >= min_wire_01 && wireTPCW_2[hit] <= max_wire_01) << " " << w_2_01_w[wireTPCW_2[hit]] << " ";
+						if(!isnan(hitx_TPCW_2[hit])){ cout << hitx_TPCW_2[hit] << " " << hity_TPCW_2[hit] << " " << hitz_TPCW_2[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_2[hit] >= min_wire_01 && wireTPCW_2[hit] <= max_wire_01)
 					{
-						wireToHit[wireTPCW_2[hit]] = hit;
+						wire_hits.push_back({wireTPCW_2[hit],hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_2[hit],hity_TPCW_2[hit],hitz_TPCW_2[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 				else if(tpcTPCW_2[hit] == 1)
 				{
+					if(PRINT_WEST_COLL_TPC01)
+					{
+						cout << wireTPCW_2[hit] + 2536 << " " << hit_time_TPCW_2[hit] << " " << hasSPTPCW_2[hit] << " " << (wireTPCW_2[hit] + 2536 >= min_wire_01 && wireTPCW_2[hit] + 2536 <= max_wire_01) << " " << w_2_01_w[wireTPCW_2[hit] + 2536] << " ";
+						if(!isnan(hitx_TPCW_2[hit])){ cout << hitx_TPCW_2[hit] << " " << hity_TPCW_2[hit] << " " << hitz_TPCW_2[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_2[hit] + 2536 >= min_wire_01 && wireTPCW_2[hit] + 2536 <= max_wire_01)
 					{
-						wireToHit[wireTPCW_2[hit] + 2536] = hit;
+						wire_hits.push_back({wireTPCW_2[hit] + 2536,hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_2[hit],hity_TPCW_2[hit],hitz_TPCW_2[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 			}
 
+			double start_buco = -1;
 			for(int k = min_wire_01; k <= max_wire_01; ++k) 
 			{
                 wcount_01+=w_2_01_w[k];
@@ -1802,35 +2200,49 @@ while(myReaderTPCW.Next())
 
 					std::vector<double> this_hole;
 
+					int wire_before_hole = start_buco - 1;
+					while(wire_array_2_01[wire_before_hole] == 0){wire_before_hole = wire_before_hole -1;}
+					
+					std::pair<int,int> hh = wireToHit(wire_hits,coordinates,wire_before_hole,k);
+
 					// --> get more info about holes
 					this_hole.push_back(buco);
-					this_hole.push_back(hitx_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hity_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitz_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitx_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(hity_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(hitz_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(k-buco-1);
+					this_hole.push_back(hitx_TPCW_2[hh.first]);
+					this_hole.push_back(hity_TPCW_2[hh.first]);
+					this_hole.push_back(hitz_TPCW_2[hh.first]);
+					this_hole.push_back(hitx_TPCW_2[hh.second]);
+					this_hole.push_back(hity_TPCW_2[hh.second]);
+					this_hole.push_back(hitz_TPCW_2[hh.second]);
+					this_hole.push_back(wire_before_hole);
 					this_hole.push_back(k);
-					this_hole.push_back(hit_dirx_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_diry_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirz_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirx_TPCW_2[wireToHit[k]]); 
-					this_hole.push_back(hit_diry_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(hit_dirz_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(hit_time_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_time_TPCW_2[wireToHit[k]]);
+					this_hole.push_back(hit_dirx_TPCW_2[hh.first]);
+					this_hole.push_back(hit_diry_TPCW_2[hh.first]);
+					this_hole.push_back(hit_dirz_TPCW_2[hh.first]);
+					this_hole.push_back(hit_dirx_TPCW_2[hh.second]); 
+					this_hole.push_back(hit_diry_TPCW_2[hh.second]);
+					this_hole.push_back(hit_dirz_TPCW_2[hh.second]);
+					this_hole.push_back(hit_time_TPCW_2[hh.first]);
+					this_hole.push_back(hit_time_TPCW_2[hh.second]);
+					this_hole.push_back(hit_mult_TPCW_2[hh.first]);
+					this_hole.push_back(hit_mult_TPCW_2[hh.second]);
 
 					holes_temp.push_back(this_hole);
 					this_hole.clear();
 					// <--
 
 					hcollbuchi->Fill(holder_01,buco);
-					if(buco>max_buco)max_buco=buco;buco=0;
+					if(buco>max_buco)max_buco=buco;
+					buco=0;
+					start_buco = -1;
 				}
 				else if(w_2_01_w[k]>0 && wire_array_2_01[k] == 1 && buco==0) ++count_01;
-				else if(w_2_01_w[k]>0 && wire_array_2_01[k] == 0) ++buco;
+				else if(w_2_01_w[k]>0 && wire_array_2_01[k] == 0)
+				{
+					if(buco == 0)start_buco = k;
+					++buco;
+				}
 			}
+			wire_hits.clear();
 					
 			//count_01 = 0;
 			//for(int k = min_wire_01; k <= max_wire_01; ++k) 
@@ -1844,18 +2256,18 @@ while(myReaderTPCW.Next())
 			if(max_buco<10)hist_average_pitch_2.push_back(holder_01);
 
 			//print details of low efficiency traces
-			if(count_01/(max_wire_01 - min_wire_01 + 1) < upper_eff_print) 
-			{
-				oFile << "WEST 01 COLL " << *runTPCW << " " << *evtTPCW;
-				oFile << endl << "\t";
-				oFile << "Efficiency: " << count_01/(max_wire_01 - min_wire_01 + 1);
-				oFile << " over " << *lengthTPCW << " cm.";
-				oFile << endl << "\t";
-				oFile << *startxTPCW << " " << *startyTPCW << " " << *startzTPCW << " ";
-				oFile << endl << "\t";
-				oFile << *endxTPCW << " " << *endyTPCW << " " << *endzTPCW << " ";
-				oFile << endl << endl;
-			}		
+			//if(count_01/(max_wire_01 - min_wire_01 + 1) < upper_eff_print) 
+			//{
+			//	oFile << "WEST 01 COLL " << *runTPCW << " " << *evtTPCW;
+			//	oFile << endl << "\t";
+			//	oFile << "Efficiency: " << count_01/(max_wire_01 - min_wire_01 + 1);
+			//	oFile << " over " << *lengthTPCW << " cm.";
+			//	oFile << endl << "\t";
+			//	oFile << *startxTPCW << " " << *startyTPCW << " " << *startzTPCW << " ";
+			//	oFile << endl << "\t";
+			//	oFile << *endxTPCW << " " << *endyTPCW << " " << *endzTPCW << " ";
+			//	oFile << endl << endl;
+			//}		
 
 			cout << "WEST CRYO, PLANE COLL, LOGIC TPC 01 ";
 			// WRITE VARIABLES IN TREE --> WEST CRYO, PLANE COLL, LOGIC TPC 01
@@ -1874,14 +2286,29 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
+			_t0PFP = *t0_PFP_TPCW;
+			_t0CRTTrack = *t0_CRT_Track_TPCW;
+			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+
+			if(PRINT_WEST_COLL_TPC01)
+			{
+				cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+				for(const auto &hole : _wire_holes)
+        		{
+            		cout << "hole ";
+            		for(const auto &hole_feature : hole)
+            		{
+                		cout << hole_feature << " ";
+            		}
+        		}
+			}
 
 			outree -> Fill();
 			cout << "filled" << endl;
 
 			holes_temp.clear();
-			wireToHit.clear();
 
 		}
 				
@@ -1902,7 +2329,8 @@ while(myReaderTPCW.Next())
 			}
 					
 			//find max wire
-			for(int k = 5600; k > 0; --k) 
+			//for(int k = 5600; k > 0; --k) 
+			for(int k = 5599; k > 0; --k) 
 			{
 				if(wire_array_2_23[k] == 1) 
 				{
@@ -1915,25 +2343,49 @@ while(myReaderTPCW.Next())
             count_23 = 0; buco=0; wcount_23=0;max_buco=0;
 
 			std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-			std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
+			std::vector<std::pair<int,int>> wire_hits;
+			std::vector<TVector3> coordinates;
+
+
 			for(int hit = 0; hit<wireTPCW_2.GetSize(); hit++)
 			{
-				if(tpcTPCW_2[hit] == 2 && hasSPTPCW_2[hit])
+				if(tpcTPCW_2[hit] == 2 /*&& hasSPTPCW_2[hit]*/)
 				{
+					if(PRINT_WEST_COLL_TPC23)
+					{
+						cout << wireTPCW_2[hit] << " " << hit_time_TPCW_2[hit] << " " << hasSPTPCW_2[hit] << " " << (wireTPCW_2[hit] >= min_wire_23 && wireTPCW_2[hit] <= max_wire_23) << " " << w_2_23_w[wireTPCW_2[hit]] << " ";
+						if(!isnan(hitx_TPCW_2[hit])){ cout << hitx_TPCW_2[hit] << " " << hity_TPCW_2[hit] << " " << hitz_TPCW_2[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_2[hit] >= min_wire_23 && wireTPCW_2[hit] <= max_wire_23)
 					{
-						wireToHit[wireTPCW_2[hit]] = hit;
+						wire_hits.push_back({wireTPCW_2[hit],hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_2[hit],hity_TPCW_2[hit],hitz_TPCW_2[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 				else if(tpcTPCW_2[hit] == 3)
 				{
+					if(PRINT_WEST_COLL_TPC23)
+					{
+						cout << wireTPCW_2[hit] + 2536 << " " << hit_time_TPCW_2[hit] << " " << hasSPTPCW_2[hit] << " " << (wireTPCW_2[hit] + 2536 >= min_wire_23 && wireTPCW_2[hit] + 2536 <= max_wire_23) << " " << w_2_23_w[wireTPCW_2[hit] + 2536] << " ";
+						if(!isnan(hitx_TPCW_2[hit])){ cout << hitx_TPCW_2[hit] << " " << hity_TPCW_2[hit] << " " << hitz_TPCW_2[hit] << endl;}
+						else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+					}
+
 					if(wireTPCW_2[hit] + 2536 >= min_wire_23 && wireTPCW_2[hit] + 2536 <= max_wire_23)
 					{
-						wireToHit[wireTPCW_2[hit] + 2536] = hit;
+						wire_hits.push_back({wireTPCW_2[hit] + 2536,hit});
+						TVector3 temp_coord;
+						temp_coord.SetXYZ(hitx_TPCW_2[hit],hity_TPCW_2[hit],hitz_TPCW_2[hit]);
+						coordinates.push_back(temp_coord);
 					}
 				}
 			}
 
+			double start_buco = -1;
 			for(int k = min_wire_23; k <= max_wire_23; ++k) 
 			{
                 wcount_23+=w_2_23_w[k];
@@ -1944,35 +2396,50 @@ while(myReaderTPCW.Next())
 
 					std::vector<double> this_hole;
 
+					int wire_before_hole = start_buco - 1;
+					while(wire_array_2_23[wire_before_hole] == 0){wire_before_hole = wire_before_hole -1;}
+					
+					std::pair<int,int> hh = wireToHit(wire_hits,coordinates,wire_before_hole,k);
+
 					// --> get more info about holes
 					this_hole.push_back(buco);
-					this_hole.push_back(hitx_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hity_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitz_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hitx_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(hity_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(hitz_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(k-buco-1);
+					this_hole.push_back(hitx_TPCW_2[hh.first]);
+					this_hole.push_back(hity_TPCW_2[hh.first]);
+					this_hole.push_back(hitz_TPCW_2[hh.first]);
+					this_hole.push_back(hitx_TPCW_2[hh.second]);
+					this_hole.push_back(hity_TPCW_2[hh.second]);
+					this_hole.push_back(hitz_TPCW_2[hh.second]);
+					this_hole.push_back(wire_before_hole);
 					this_hole.push_back(k);
-					this_hole.push_back(hit_dirx_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_diry_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirz_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_dirx_TPCW_2[wireToHit[k]]); 
-					this_hole.push_back(hit_diry_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(hit_dirz_TPCW_2[wireToHit[k]]);
-					this_hole.push_back(hit_time_TPCW_2[wireToHit[k-buco-1]]);
-					this_hole.push_back(hit_time_TPCW_2[wireToHit[k]]);
+					this_hole.push_back(hit_dirx_TPCW_2[hh.first]);
+					this_hole.push_back(hit_diry_TPCW_2[hh.first]);
+					this_hole.push_back(hit_dirz_TPCW_2[hh.first]);
+					this_hole.push_back(hit_dirx_TPCW_2[hh.second]); 
+					this_hole.push_back(hit_diry_TPCW_2[hh.second]);
+					this_hole.push_back(hit_dirz_TPCW_2[hh.second]);
+					this_hole.push_back(hit_time_TPCW_2[hh.first]);
+					this_hole.push_back(hit_time_TPCW_2[hh.second]);
+					this_hole.push_back(hit_mult_TPCW_2[hh.first]);
+					this_hole.push_back(hit_mult_TPCW_2[hh.second]);
 
 					holes_temp.push_back(this_hole);
 					this_hole.clear();
 					// <--
 
 					hcollbuchi->Fill(holder_23,buco);
-					if(buco>max_buco)max_buco=buco;buco=0;
+					if(buco>max_buco)max_buco=buco;
+					buco=0;
+					start_buco = -1;
+
 				}
 				else if(w_2_23_w[k]>0 && wire_array_2_23[k] == 1 && buco==0) ++count_23;
-				else if(w_2_23_w[k]>0 && wire_array_2_23[k] == 0) ++buco;
+				else if(w_2_23_w[k]>0 && wire_array_2_23[k] == 0)
+				{
+					if(buco == 0)start_buco = k;
+					++buco;
+				}
 			}
+			wire_hits.clear();
 
 			//count_23 = 0;
 			//for(int k = min_wire_23; k <= max_wire_23; ++k) 
@@ -1987,17 +2454,17 @@ while(myReaderTPCW.Next())
 			if(max_buco<10)hist_average_pitch_2.push_back(holder_23);
 			//print details of low efficiency traces
 			
-			if(count_23/(max_wire_23 - min_wire_23 + 1) < upper_eff_print) {
-				oFile << "WEST 23 COLL " << *runTPCW << " " << *evtTPCW;
-				oFile << endl << "\t";
-				oFile << "Efficiency: " << count_23/(max_wire_23 - min_wire_23 + 1);
-				oFile << " over " << *lengthTPCW << " cm.";
-				oFile << endl << "\t";
-				oFile << *startxTPCW << " " << *startyTPCW << " " << *startzTPCW << " ";
-				oFile << endl << "\t";
-				oFile << *endxTPCW << " " << *endyTPCW << " " << *endzTPCW << " ";
-				oFile << endl << endl;
-			}			
+			//if(count_23/(max_wire_23 - min_wire_23 + 1) < upper_eff_print) {
+			//	oFile << "WEST 23 COLL " << *runTPCW << " " << *evtTPCW;
+			//	oFile << endl << "\t";
+			//	oFile << "Efficiency: " << count_23/(max_wire_23 - min_wire_23 + 1);
+			//	oFile << " over " << *lengthTPCW << " cm.";
+			//	oFile << endl << "\t";
+			//	oFile << *startxTPCW << " " << *startyTPCW << " " << *startzTPCW << " ";
+			//	oFile << endl << "\t";
+			//	oFile << *endxTPCW << " " << *endyTPCW << " " << *endzTPCW << " ";
+			//	oFile << endl << endl;
+			//}			
 
 			cout << "WEST CRYO, PLANE COLL, LOGIC TPC 23 ";
 			// WRITE VARIABLES IN TREE --> WEST CRYO, PLANE COLL, LOGIC TPC 23
@@ -2016,14 +2483,29 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
+			_t0PFP = *t0_PFP_TPCW;
+			_t0CRTTrack = *t0_CRT_Track_TPCW;
+			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+
+			if(PRINT_WEST_COLL_TPC23)
+			{
+				cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+				for(const auto &hole : _wire_holes)
+        		{
+            		cout << "hole ";
+            		for(const auto &hole_feature : hole)
+            		{
+                		cout << hole_feature << " ";
+            		}
+        		}
+			}
 
 			outree -> Fill();
 			cout << "filled" << endl;
 
 			holes_temp.clear();
-			wireToHit.clear();
 
 		}
 
@@ -2047,22 +2529,23 @@ while(myReaderTPCW.Next())
 }
 }			
 
-
-//		
+//
 // EAST
 //
-
-
+ 
+ 
 myReaderTPCE.Restart();
 while(myReaderTPCE.Next()) 
 {	
 
+if(*truthG4E == -1)continue;
+ 
 //muon length must be greater than 1 meter
 if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2)) 
 {
-                            
-	outfiletracksE << (*runTPCE) << " " << (*evtTPCE) <<  " 0 " << (*startxTPCE) << " " << (*startyTPCE) << " " << (*startzTPCE) << " " << (*endxTPCE) << " " << (*endyTPCE) << " " << (*endzTPCE) << " " << (*lengthTPCE) << endl;
-
+                        
+	//outfiletracksE << (*runTPCE) << " " << (*evtTPCE) <<  " 0 " << (*startxTPCE) << " " << (*startyTPCE) << " " << (*startzTPCE) << " " << (*endxTPCE) << " " << (*endyTPCE) << " " << (*endzTPCE) << " " << (*lengthTPCE) << endl;
+ 
 //
 //	PLANE IND1 EAST
 //
@@ -2106,24 +2589,13 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 			else wire_array_0_3[wireTPCE_0[j]] = 1;
 		}
 	}
-
-	//check if there are at least the minimum amount of wires in the TPCs	
-  	/*                                      
-	for(int k = 0; k < 1056; ++k) 
-	{
-		if(wire_array_0_0[k] == 1)h0_0_e->Fill(k);
-		if(wire_array_0_1[k] == 1)h0_1_e->Fill(k);
-		if(wire_array_0_2[k] == 1)h0_2_e->Fill(k);
-		if(wire_array_0_3[k] == 1)h0_3_e->Fill(k);
- 	}*/
-				
+ 
 	// TPC0 IND1
-				
 	if(count_0 > wire_threshold) 
 	{
 		//average pitch
 		holder_0 = holder_0/count_0;
-
+ 
 		//find min wire
 		for(int k = 0; k < 1056; ++k) 
 		{
@@ -2135,7 +2607,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		}
 					
 		//find max wire
-		for(int k = 1056; k > 0; --k) 
+		//for(int k = 1056; k > 0; --k) 
+		for(int k = 1055; k > 0; --k)
 		{
 			if(wire_array_0_0[k] == 1) 
 			{
@@ -2145,70 +2618,90 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		}
 				
 		//find total amount of wires in the trace
-        count_0 = 0; buco=0; wcount_0=0;max_buco=0;
-
-		std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-		std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
-		for(int hit = 0; hit<wireTPCE_0.GetSize(); hit++)
+        count_0 = 0; buco=0; wcount_0=0; max_buco=0;
+ 
+		std::vector<std::vector<double>> holes_temp;
+		std::vector<std::pair<int,int>> wire_hits;
+		std::vector<TVector3> coordinates;
+ 
+		for(int hit = 0; hit < wireTPCE_0.GetSize(); hit++)
 		{
-			if(tpcTPCE_0[hit] == 0 && hasSPTPCE_0[hit])
+			if(tpcTPCE_0[hit] == 0 /*&& hasSPTPCE_0[hit]*/)
 			{
+				if(PRINT_EAST_IND1_TPC0)
+				{
+					cout << wireTPCE_0[hit] << " " << hit_time_TPCE_0[hit] << " " << hasSPTPCE_0[hit] << " " << (wireTPCE_0[hit] >= min_wire_0 && wireTPCE_0[hit] <= max_wire_0) << " " << w_0_0_e[wireTPCE_0[hit]] << " ";
+					if(!isnan(hitx_TPCE_0[hit])){ cout << hitx_TPCE_0[hit] << " " << hity_TPCE_0[hit] << " " << hitz_TPCE_0[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_0[hit] >= min_wire_0 && wireTPCE_0[hit] <= max_wire_0)
 				{
-					wireToHit[wireTPCE_0[hit]] = hit;
+					wire_hits.push_back({wireTPCE_0[hit], hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_0[hit], hity_TPCE_0[hit], hitz_TPCE_0[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 		}
-
+ 
+		double start_buco = -1;
 		for(int k = min_wire_0; k <= max_wire_0; ++k) 
-		{
-            wcount_0+=w_0_0_e[k];
+		{ 
+            wcount_0 += w_0_0_e[k];
             if(w_0_0_e[k]>0 && wire_array_0_0[k] == 1 && buco>0) 
 			{
-				++count_0;
-
+				++count_0; 
+				
 				std::vector<double> this_hole;
-
-				// --> get more info about holes
+ 
+				int wire_before_hole = start_buco - 1;
+				while(wire_array_0_0[wire_before_hole] == 0){wire_before_hole = wire_before_hole - 1;}
+				
+				std::pair<int,int> hh = wireToHit(wire_hits, coordinates, wire_before_hole, k);
+ 
 				this_hole.push_back(buco);
-				this_hole.push_back(hitx_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hity_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitz_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitx_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hity_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hitz_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(k-buco-1);
+				this_hole.push_back(hitx_TPCE_0[hh.first]);
+				this_hole.push_back(hity_TPCE_0[hh.first]);
+				this_hole.push_back(hitz_TPCE_0[hh.first]);
+				this_hole.push_back(hitx_TPCE_0[hh.second]);
+				this_hole.push_back(hity_TPCE_0[hh.second]);
+				this_hole.push_back(hitz_TPCE_0[hh.second]);
+				this_hole.push_back(wire_before_hole);
 				this_hole.push_back(k);
-				this_hole.push_back(hit_dirx_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_diry_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirz_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirx_TPCE_0[wireToHit[k]]); 
-				this_hole.push_back(hit_diry_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hit_dirz_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hit_time_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_time_TPCE_0[wireToHit[k]]);
-
+				this_hole.push_back(hit_dirx_TPCE_0[hh.first]);
+				this_hole.push_back(hit_diry_TPCE_0[hh.first]);
+				this_hole.push_back(hit_dirz_TPCE_0[hh.first]);
+				this_hole.push_back(hit_dirx_TPCE_0[hh.second]); 
+				this_hole.push_back(hit_diry_TPCE_0[hh.second]);
+				this_hole.push_back(hit_dirz_TPCE_0[hh.second]);
+				this_hole.push_back(hit_time_TPCE_0[hh.first]);
+				this_hole.push_back(hit_time_TPCE_0[hh.second]);
+				this_hole.push_back(hit_mult_TPCE_0[hh.first]);
+				this_hole.push_back(hit_mult_TPCE_0[hh.second]);
+ 
 				holes_temp.push_back(this_hole);
 				this_hole.clear();
-				// <--
-
-				hind1buchi->Fill(holder_0,buco);
-				if(buco>max_buco)max_buco=buco;buco=0;
+ 
+				hind1buchi->Fill(holder_0, buco);
+				if(buco > max_buco) max_buco = buco;
+				buco = 0;
+				start_buco = -1;
 			}
 			else if(w_0_0_e[k]>0 && wire_array_0_0[k] == 1 && buco==0) ++count_0;
-			else if(w_0_0_e[k]>0 && wire_array_0_0[k] == 0) ++buco;
+			else if(w_0_0_e[k]>0 && wire_array_0_0[k] == 0)
+			{ 
+				if(buco == 0) start_buco = k;
+				++buco;
+			}
 		}
-					
-		//count_0 = 0;
-		//for(int k = min_wire_0; k <= max_wire_0; ++k) 
-		//{
-		//	if(wire_array_0_0[k] == 1) ++count_0;
-		//}
-		//store efficiency and average pitch in the ind1 vectors
-
-		if(max_buco<10)hist_eff_0.push_back(count_0/(wcount_0));
-		if(max_buco<10)hist_average_pitch_0.push_back(holder_0);
-
+ 
+		wire_hits.clear();
+ 
+		if(wcount_0 > (max_wire_0-min_wire_0+1) || count_0 > wcount_0) cout << "IND 0 0 E " << count_0 << " " << wcount_0 << " " << min_wire_0 << " " << max_wire_0 << endl;
+		if(max_buco<10) hist_eff_0.push_back(count_0/(wcount_0));
+		if(max_buco<10) hist_average_pitch_0.push_back(holder_0);
+ 
 		cout << "EAST CRYO, PLANE IND1, LOGIC TPC 0 ";
 		// WRITE VARIABLES IN TREE --> EAST CRYO, PLANE IND1, LOGIC TPC 0
 		_run = *runTPCE;
@@ -2218,23 +2711,38 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_plane = 0;
 		_min_wire = min_wire_0;
 		_max_wire = max_wire_0;
-		_start.SetXYZ(*startxTPCE,*startyTPCE,*startzTPCE);
-		_end.SetXYZ(*endxTPCE,*endyTPCE,*endzTPCE);
+		_start.SetXYZ(*startxTPCE, *startyTPCE, *startzTPCE);
+		_end.SetXYZ(*endxTPCE, *endyTPCE, *endzTPCE);
 		_hit_wires = count_0;
 		_tot_wires = wcount_0;
 		_avg_pitch = holder_0;
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
+		_t0PFP = *t0_PFP_TPCE;
+		_t0CRTTrack = *t0_CRT_Track_TPCE;
+		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
+		if(PRINT_EAST_IND1_TPC0)
+		{
+			cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+			for(const auto &hole : _wire_holes)
+        	{
+        		cout << "hole ";
+        		for(const auto &hole_feature : hole)
+        		{
+            		cout << hole_feature << " ";
+        		}
+        	}
+		}
+ 
 		outree -> Fill();
 		cout << "filled" << endl;
-
+ 
 		holes_temp.clear();
-		wireToHit.clear();
-
+ 
 	}
 				
 	// TPC1 IND1
@@ -2242,7 +2750,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 	{
 		//average pitch
 		holder_1 = holder_1/count_1;
-
+ 
 		//find min wire
 		for(int k = 0; k < 1056; ++k) 
 		{
@@ -2252,9 +2760,10 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find max wire
-		for(int k = 1056; k > 0; --k) 
+		//for(int k = 1056; k > 0; --k) 
+		for(int k = 1055; k > 0; --k) 
 		{
 			if(wire_array_0_1[k] == 1) 
 			{
@@ -2262,72 +2771,92 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find total amount of wires in the trace
-        count_1 = 0; buco=0; wcount_1=0;max_buco=0;
-
-		std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-		std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
-		for(int hit = 0; hit<wireTPCE_0.GetSize(); hit++)
+        count_1 = 0; buco=0; wcount_1=0; max_buco=0;
+ 
+		std::vector<std::vector<double>> holes_temp;
+		std::vector<std::pair<int,int>> wire_hits;
+		std::vector<TVector3> coordinates;
+ 
+		for(int hit = 0; hit < wireTPCE_0.GetSize(); hit++)
 		{
-			if(tpcTPCE_0[hit] == 1 && hasSPTPCE_0[hit])
+			if(tpcTPCE_0[hit] == 1 /*&& hasSPTPCE_0[hit]*/)
 			{
+				if(PRINT_EAST_IND1_TPC1)
+				{
+					cout << wireTPCE_0[hit] << " " << hit_time_TPCE_0[hit] << " " << hasSPTPCE_0[hit] << " " << (wireTPCE_0[hit] >= min_wire_1 && wireTPCE_0[hit] <= max_wire_1) << " " << w_0_1_e[wireTPCE_0[hit]] << " ";
+					if(!isnan(hitx_TPCE_0[hit])){ cout << hitx_TPCE_0[hit] << " " << hity_TPCE_0[hit] << " " << hitz_TPCE_0[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_0[hit] >= min_wire_1 && wireTPCE_0[hit] <= max_wire_1)
 				{
-					wireToHit[wireTPCE_0[hit]] = hit;
+					wire_hits.push_back({wireTPCE_0[hit], hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_0[hit], hity_TPCE_0[hit], hitz_TPCE_0[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 		}
-
+ 
+		double start_buco = -1;
 		for(int k = min_wire_1; k <= max_wire_1; ++k) 
 		{
-        	wcount_1+=w_0_1_e[k];
-		  	if(w_0_1_e[k]>0 && wire_array_0_1[k] == 1 && buco>0) 
+            wcount_1 += w_0_1_e[k];
+            if(w_0_1_e[k]>0 && wire_array_0_1[k] == 1 && buco>0) 
 			{
 				++count_1;
-
+ 
 				std::vector<double> this_hole;
-
-				// --> get more info about holes
+ 
+				int wire_before_hole = start_buco - 1;
+				while(wire_array_0_1[wire_before_hole] == 0){wire_before_hole = wire_before_hole - 1;}
+				
+				std::pair<int,int> hh = wireToHit(wire_hits, coordinates, wire_before_hole, k);
+ 
 				this_hole.push_back(buco);
-				this_hole.push_back(hitx_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hity_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitz_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitx_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hity_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hitz_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(k-buco-1);
+				this_hole.push_back(hitx_TPCE_0[hh.first]);
+				this_hole.push_back(hity_TPCE_0[hh.first]);
+				this_hole.push_back(hitz_TPCE_0[hh.first]);
+				this_hole.push_back(hitx_TPCE_0[hh.second]);
+				this_hole.push_back(hity_TPCE_0[hh.second]);
+				this_hole.push_back(hitz_TPCE_0[hh.second]);
+				this_hole.push_back(wire_before_hole);
 				this_hole.push_back(k);
-				this_hole.push_back(hit_dirx_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_diry_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirz_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirx_TPCE_0[wireToHit[k]]); 
-				this_hole.push_back(hit_diry_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hit_dirz_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hit_time_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_time_TPCE_0[wireToHit[k]]);
-
+				this_hole.push_back(hit_dirx_TPCE_0[hh.first]);
+				this_hole.push_back(hit_diry_TPCE_0[hh.first]);
+				this_hole.push_back(hit_dirz_TPCE_0[hh.first]);
+				this_hole.push_back(hit_dirx_TPCE_0[hh.second]); 
+				this_hole.push_back(hit_diry_TPCE_0[hh.second]);
+				this_hole.push_back(hit_dirz_TPCE_0[hh.second]);
+				this_hole.push_back(hit_time_TPCE_0[hh.first]);
+				this_hole.push_back(hit_time_TPCE_0[hh.second]);
+				this_hole.push_back(hit_mult_TPCE_0[hh.first]);
+				this_hole.push_back(hit_mult_TPCE_0[hh.second]);
+ 
 				holes_temp.push_back(this_hole);
 				this_hole.clear();
-				// <--
-
-				hind1buchi->Fill(holder_1,buco);
-				if(buco>max_buco)max_buco=buco;buco=0;
+ 
+				hind1buchi->Fill(holder_1, buco);
+				if(buco > max_buco) max_buco = buco;
+				buco = 0;
+				start_buco = -1;
 			}
 		  	else if(w_0_1_e[k]>0 && wire_array_0_1[k] == 1 && buco==0) ++count_1;
-		  	else if(w_0_1_e[k]>0 && wire_array_0_1[k] == 0) ++buco;
+		  	else if(w_0_1_e[k]>0 && wire_array_0_1[k] == 0)
+			{
+				if(buco == 0) start_buco = k;
+				++buco;
+			}
 		}
-
-		//count_1 = 0;
-		//for(int k = min_wire_1; k <= max_wire_1; ++k) 
-		//{
-		//	if(wire_array_0_1[k] == 1) ++count_1;
-		//}
-		//store efficiency and average pitch in the ind1 vectors
-
-		if(max_buco<10)hist_eff_0.push_back(count_1/(wcount_1));
-		if(max_buco<10)hist_average_pitch_0.push_back(holder_1);
-
+ 
+		wire_hits.clear();
+ 
+		if(wcount_1 > (max_wire_1-min_wire_1+1) || count_1 > wcount_1) cout << "IND 0 1 E " << count_1 << " " << wcount_1 << " " << min_wire_1 << " " << max_wire_1 << endl;
+		if(max_buco<10) hist_eff_0.push_back(count_1/(wcount_1));
+		if(max_buco<10) hist_average_pitch_0.push_back(holder_1);
+ 
 		cout << "EAST CRYO, PLANE IND1, LOGIC TPC 1 ";
 		// WRITE VARIABLES IN TREE --> EAST CRYO, PLANE IND1, LOGIC TPC 1
 		_run = *runTPCE;
@@ -2337,23 +2866,38 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_plane = 0;
 		_min_wire = min_wire_1;
 		_max_wire = max_wire_1;
-		_start.SetXYZ(*startxTPCE,*startyTPCE,*startzTPCE);
-		_end.SetXYZ(*endxTPCE,*endyTPCE,*endzTPCE);
+		_start.SetXYZ(*startxTPCE, *startyTPCE, *startzTPCE);
+		_end.SetXYZ(*endxTPCE, *endyTPCE, *endzTPCE);
 		_hit_wires = count_1;
 		_tot_wires = wcount_1;
 		_avg_pitch = holder_1;
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
+		_t0PFP = *t0_PFP_TPCE;
+		_t0CRTTrack = *t0_CRT_Track_TPCE;
+		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
+		if(PRINT_EAST_IND1_TPC1)
+		{
+			cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+			for(const auto &hole : _wire_holes)
+        	{
+        		cout << "hole ";
+        		for(const auto &hole_feature : hole)
+        		{
+            		cout << hole_feature << " ";
+        		}
+        	}
+		}
+ 
 		outree -> Fill();
 		cout << "filled" << endl;
-
+ 
 		holes_temp.clear();
-		wireToHit.clear();
-
+ 
 	}
 				
 	// TPC2 IND1	
@@ -2361,7 +2905,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 	{
 		//average pitch
 		holder_2 = holder_2/count_2;
-
+ 
 		//find min wire
 		for(int k = 0; k < 1056; ++k) 
 		{
@@ -2373,7 +2917,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		}
 				
 		//find max wire
-		for(int k = 1056; k > 0; --k) 
+		//for(int k = 1056; k > 0; --k) 
+		for(int k = 1055; k > 0; --k) 
 		{
 			if(wire_array_0_2[k] == 1) 
 			{
@@ -2381,72 +2926,92 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find total amount of wires in the trace
-        count_2 = 0; max_buco=0;buco=0; wcount_2=0;
-
-		std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-		std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
-		for(int hit = 0; hit<wireTPCE_0.GetSize(); hit++)
+        count_2 = 0; buco=0; wcount_2=0; max_buco=0;
+ 
+		std::vector<std::vector<double>> holes_temp;
+		std::vector<std::pair<int,int>> wire_hits;
+		std::vector<TVector3> coordinates;
+ 
+		for(int hit = 0; hit < wireTPCE_0.GetSize(); hit++)
 		{
-			if(tpcTPCE_0[hit] == 2 && hasSPTPCE_0[hit])
+			if(tpcTPCE_0[hit] == 2 /*&& hasSPTPCE_0[hit]*/)
 			{
+				if(PRINT_EAST_IND1_TPC2)
+				{
+					cout << wireTPCE_0[hit] << " " << hit_time_TPCE_0[hit] << " " << hasSPTPCE_0[hit] << " " << (wireTPCE_0[hit] >= min_wire_2 && wireTPCE_0[hit] <= max_wire_2) << " " << w_0_2_e[wireTPCE_0[hit]] << " ";
+					if(!isnan(hitx_TPCE_0[hit])){ cout << hitx_TPCE_0[hit] << " " << hity_TPCE_0[hit] << " " << hitz_TPCE_0[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_0[hit] >= min_wire_2 && wireTPCE_0[hit] <= max_wire_2)
 				{
-					wireToHit[wireTPCE_0[hit]] = hit;
+					wire_hits.push_back({wireTPCE_0[hit], hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_0[hit], hity_TPCE_0[hit], hitz_TPCE_0[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 		}
-
+ 
+		double start_buco = -1;
 		for(int k = min_wire_2; k <= max_wire_2; ++k) 
 		{
-            wcount_2+=w_0_2_e[k];
+            wcount_2 += w_0_2_e[k];
 			if(w_0_2_e[k]>0 && wire_array_0_2[k] == 1 && buco>0) 
 			{
 				++count_2;
-
+ 
 				std::vector<double> this_hole;
-
-				// --> get more info about holes
+ 
+				int wire_before_hole = start_buco - 1;
+				while(wire_array_0_2[wire_before_hole] == 0){wire_before_hole = wire_before_hole - 1;}
+				
+				std::pair<int,int> hh = wireToHit(wire_hits, coordinates, wire_before_hole, k);
+ 
 				this_hole.push_back(buco);
-				this_hole.push_back(hitx_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hity_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitz_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitx_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hity_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hitz_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(k-buco-1);
+				this_hole.push_back(hitx_TPCE_0[hh.first]);
+				this_hole.push_back(hity_TPCE_0[hh.first]);
+				this_hole.push_back(hitz_TPCE_0[hh.first]);
+				this_hole.push_back(hitx_TPCE_0[hh.second]);
+				this_hole.push_back(hity_TPCE_0[hh.second]);
+				this_hole.push_back(hitz_TPCE_0[hh.second]);
+				this_hole.push_back(wire_before_hole);
 				this_hole.push_back(k);
-				this_hole.push_back(hit_dirx_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_diry_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirz_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirx_TPCE_0[wireToHit[k]]); 
-				this_hole.push_back(hit_diry_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hit_dirz_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hit_time_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_time_TPCE_0[wireToHit[k]]);
-
+				this_hole.push_back(hit_dirx_TPCE_0[hh.first]);
+				this_hole.push_back(hit_diry_TPCE_0[hh.first]);
+				this_hole.push_back(hit_dirz_TPCE_0[hh.first]);
+				this_hole.push_back(hit_dirx_TPCE_0[hh.second]); 
+				this_hole.push_back(hit_diry_TPCE_0[hh.second]);
+				this_hole.push_back(hit_dirz_TPCE_0[hh.second]);
+				this_hole.push_back(hit_time_TPCE_0[hh.first]);
+				this_hole.push_back(hit_time_TPCE_0[hh.second]);
+				this_hole.push_back(hit_mult_TPCE_0[hh.first]);
+				this_hole.push_back(hit_mult_TPCE_0[hh.second]);
+ 
 				holes_temp.push_back(this_hole);
 				this_hole.clear();
-				// <--
-
-				hind1buchi->Fill(holder_2,buco);
-				if(buco>max_buco)max_buco=buco;buco=0;
+ 
+				hind1buchi->Fill(holder_2, buco);
+				if(buco > max_buco) max_buco = buco;
+				buco = 0;
+				start_buco = -1;
 			}
 			else if(w_0_2_e[k]>0 && wire_array_0_2[k] == 1 && buco==0) ++count_2;
-			else if(w_0_2_e[k]>0 && wire_array_0_2[k] == 0) ++buco;
+			else if(w_0_2_e[k]>0 && wire_array_0_2[k] == 0)
+			{
+				if(buco == 0) start_buco = k;
+				++buco;
+			}
 		}
-
-		//count_2 = 0;
-		//for(int k = min_wire_2; k <= max_wire_2; ++k) 
-		//{
-		//	if(wire_array_0_2[k] == 1) ++count_2;
-		//}
-		//store efficiency and average pitch in the ind1 vectors
-
-		if(max_buco<10)hist_eff_0.push_back(count_2/(wcount_2));
-		if(max_buco<10)hist_average_pitch_0.push_back(holder_2);
-
+ 
+		wire_hits.clear();
+ 
+		if(wcount_2 > (max_wire_2-min_wire_2+1) || count_2 > wcount_2) cout << "IND 0 2 E " << count_2 << " " << wcount_2 << " " << min_wire_2 << " " << max_wire_2 << endl;
+		if(max_buco<10) hist_eff_0.push_back(count_2/(wcount_2));
+		if(max_buco<10) hist_average_pitch_0.push_back(holder_2);
+ 
 		cout << "EAST CRYO, PLANE IND1, LOGIC TPC 2 ";
 		// WRITE VARIABLES IN TREE --> EAST CRYO, PLANE IND1, LOGIC TPC 2
 		_run = *runTPCE;
@@ -2456,32 +3021,46 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_plane = 0;
 		_min_wire = min_wire_2;
 		_max_wire = max_wire_2;
-		_start.SetXYZ(*startxTPCE,*startyTPCE,*startzTPCE);
-		_end.SetXYZ(*endxTPCE,*endyTPCE,*endzTPCE);
+		_start.SetXYZ(*startxTPCE, *startyTPCE, *startzTPCE);
+		_end.SetXYZ(*endxTPCE, *endyTPCE, *endzTPCE);
 		_hit_wires = count_2;
 		_tot_wires = wcount_2;
 		_avg_pitch = holder_2;
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
+		_t0PFP = *t0_PFP_TPCE;
+		_t0CRTTrack = *t0_CRT_Track_TPCE;
+		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
+		if(PRINT_EAST_IND1_TPC2)
+		{
+			cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+			for(const auto &hole : _wire_holes)
+        	{
+        		cout << "hole ";
+        		for(const auto &hole_feature : hole)
+        		{
+            		cout << hole_feature << " ";
+        		}
+        	}
+		}
+ 
 		outree -> Fill();
 		cout << "filled" << endl;
-
+ 
 		holes_temp.clear();
-		wireToHit.clear();
-
+		
 	}
 				
 	// TPC3 IND1	
-
 	if(count_3 > wire_threshold) 
 	{
 		//average pitch
 		holder_3 = holder_3/count_3;
-
+ 
 		//find min wire
 		for(int k = 0; k < 1056; ++k) 
 		{
@@ -2491,9 +3070,10 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find max wire
-		for(int k = 1056; k > 0; --k) 
+		//for(int k = 1056; k > 0; --k) 
+		for(int k = 1055; k > 0; --k) 
 		{
 			if(wire_array_0_3[k] == 1) 
 			{
@@ -2501,71 +3081,92 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find total amount of wires in the trace
-        count_3 = 0; max_buco=0;buco=0;wcount_3=0;
-
-		std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-		std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
-		for(int hit = 0; hit<wireTPCE_0.GetSize(); hit++)
+        count_3 = 0; buco=0; wcount_3=0; max_buco=0;
+ 
+		std::vector<std::vector<double>> holes_temp;
+		std::vector<std::pair<int,int>> wire_hits;
+		std::vector<TVector3> coordinates;
+ 
+		for(int hit = 0; hit < wireTPCE_0.GetSize(); hit++)
 		{
-			if(tpcTPCE_0[hit] == 3 && hasSPTPCE_0[hit])
+			if(tpcTPCE_0[hit] == 3 /*&& hasSPTPCE_0[hit]*/)
 			{
+				if(PRINT_EAST_IND1_TPC3)
+				{
+					cout << wireTPCE_0[hit] << " " << hit_time_TPCE_0[hit] << " " << hasSPTPCE_0[hit] << " " << (wireTPCE_0[hit] >= min_wire_3 && wireTPCE_0[hit] <= max_wire_3) << " " << w_0_3_e[wireTPCE_0[hit]] << " ";
+					if(!isnan(hitx_TPCE_0[hit])){ cout << hitx_TPCE_0[hit] << " " << hity_TPCE_0[hit] << " " << hitz_TPCE_0[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_0[hit] >= min_wire_3 && wireTPCE_0[hit] <= max_wire_3)
 				{
-					wireToHit[wireTPCE_0[hit]] = hit;
+					wire_hits.push_back({wireTPCE_0[hit], hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_0[hit], hity_TPCE_0[hit], hitz_TPCE_0[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 		}
-
+ 
+		double start_buco = -1;
 		for(int k = min_wire_3; k <= max_wire_3; ++k) 
 		{
-        	wcount_3+=w_0_3_e[k];
+        	wcount_3 += w_0_3_e[k];
 		  	if(w_0_3_e[k]>0 && wire_array_0_3[k] == 1 && buco>0) 
 			{
 				++count_3;
-
+ 
 				std::vector<double> this_hole;
-
-				// --> get more info about holes
+ 
+				int wire_before_hole = start_buco - 1;
+				while(wire_array_0_3[wire_before_hole] == 0){wire_before_hole = wire_before_hole - 1;}
+				
+				std::pair<int,int> hh = wireToHit(wire_hits, coordinates, wire_before_hole, k);
+ 
 				this_hole.push_back(buco);
-				this_hole.push_back(hitx_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hity_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitz_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitx_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hity_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hitz_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(k-buco-1);
+				this_hole.push_back(hitx_TPCE_0[hh.first]);
+				this_hole.push_back(hity_TPCE_0[hh.first]);
+				this_hole.push_back(hitz_TPCE_0[hh.first]);
+				this_hole.push_back(hitx_TPCE_0[hh.second]);
+				this_hole.push_back(hity_TPCE_0[hh.second]);
+				this_hole.push_back(hitz_TPCE_0[hh.second]);
+				this_hole.push_back(wire_before_hole);
 				this_hole.push_back(k);
-				this_hole.push_back(hit_dirx_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_diry_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirz_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirx_TPCE_0[wireToHit[k]]); 
-				this_hole.push_back(hit_diry_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hit_dirz_TPCE_0[wireToHit[k]]);
-				this_hole.push_back(hit_time_TPCE_0[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_time_TPCE_0[wireToHit[k]]);
-
+				this_hole.push_back(hit_dirx_TPCE_0[hh.first]);
+				this_hole.push_back(hit_diry_TPCE_0[hh.first]);
+				this_hole.push_back(hit_dirz_TPCE_0[hh.first]);
+				this_hole.push_back(hit_dirx_TPCE_0[hh.second]); 
+				this_hole.push_back(hit_diry_TPCE_0[hh.second]);
+				this_hole.push_back(hit_dirz_TPCE_0[hh.second]);
+				this_hole.push_back(hit_time_TPCE_0[hh.first]);
+				this_hole.push_back(hit_time_TPCE_0[hh.second]);
+				this_hole.push_back(hit_mult_TPCE_0[hh.first]);
+				this_hole.push_back(hit_mult_TPCE_0[hh.second]);
+ 
 				holes_temp.push_back(this_hole);
 				this_hole.clear();
-				// <--
-
-				hind1buchi->Fill(holder_3,buco);
-				if(buco>max_buco)max_buco=buco;buco=0;
+ 
+				hind1buchi->Fill(holder_3, buco);
+				if(buco > max_buco) max_buco = buco;
+				buco = 0;
+				start_buco = -1;
 			}
 		  	else if(w_0_3_e[k]>0 && wire_array_0_3[k] == 1 && buco==0) ++count_3;
-		  	else if(w_0_3_e[k]>0 && wire_array_0_3[k] == 0) ++buco;
+		  	else if(w_0_3_e[k]>0 && wire_array_0_3[k] == 0)
+			{
+				if(buco == 0) start_buco = k;
+				++buco;
+			}
 		}
-		//count_3 = 0;
-		//for(int k = min_wire_3; k <= max_wire_3; ++k) 
-		//{
-		//	if(wire_array_0_3[k] == 1) ++count_3;
-		//}
-		//store efficiency and average pitch in the ind1 vectors
-
-		if(max_buco<10)hist_eff_0.push_back(count_3/(wcount_3));
-		if(max_buco<10)hist_average_pitch_0.push_back(holder_3);
-
+ 
+		wire_hits.clear();
+ 
+		if(wcount_3 > (max_wire_3-min_wire_3+1) || count_3 > wcount_3) cout << "IND 0 3 E " << count_3 << " " << wcount_3 << " " << min_wire_3 << " " << max_wire_3 << endl;
+		if(max_buco<10) hist_eff_0.push_back(count_3/(wcount_3));
+		if(max_buco<10) hist_average_pitch_0.push_back(holder_3);
+ 
 		cout << "EAST CRYO, PLANE IND1, LOGIC TPC 3 ";
 		// WRITE VARIABLES IN TREE --> EAST CRYO, PLANE IND1, LOGIC TPC 3
 		_run = *runTPCE;
@@ -2575,29 +3176,44 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_plane = 0;
 		_min_wire = min_wire_3;
 		_max_wire = max_wire_3;
-		_start.SetXYZ(*startxTPCE,*startyTPCE,*startzTPCE);
-		_end.SetXYZ(*endxTPCE,*endyTPCE,*endzTPCE);
+		_start.SetXYZ(*startxTPCE, *startyTPCE, *startzTPCE);
+		_end.SetXYZ(*endxTPCE, *endyTPCE, *endzTPCE);
 		_hit_wires = count_3;
 		_tot_wires = wcount_3;
 		_avg_pitch = holder_3;
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
+		_t0PFP = *t0_PFP_TPCE;
+		_t0CRTTrack = *t0_CRT_Track_TPCE;
+		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
+		if(PRINT_EAST_IND1_TPC3)
+		{
+			cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+			for(const auto &hole : _wire_holes)
+        	{
+        		cout << "hole ";
+        		for(const auto &hole_feature : hole)
+        		{
+            		cout << hole_feature << " ";
+        		}
+        	}
+		}
+ 
 		outree -> Fill();
 		cout << "filled" << endl;
-
+ 
 		holes_temp.clear();
-		wireToHit.clear();
-
+ 
 	}
-
+ 
 //	
 // RESET ARRAYS AND COUNTERS
 //	
-
+ 
 	for(int j = 0; j < 1056; ++j) 
 	{
 		wire_array_0_0[j] = 0;
@@ -2605,12 +3221,12 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		wire_array_0_2[j] = 0;
 		wire_array_0_3[j] = 0;
 	}
-
+ 
 	count_0 = 0;
 	count_1 = 0;
 	count_2 = 0;
 	count_3 = 0;	
-
+ 
 	holder_0 = 0;	
 	holder_1 = 0;
 	holder_2 = 0;
@@ -2619,7 +3235,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 //
 //	PLANE IND2 EAST
 //
-
+ 
 	//loop over all hits of the trace
 	for(int j = 0; j < wireTPCE_1.GetSize(); ++j) 
 	{
@@ -2657,22 +3273,13 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 			else wire_array_1_23[wireTPCE_1[j] + 2536] = 1;
 		}
 	}
-
-	//check if there are at least the minimum amount of wires in the TPCs	
-  	/*                                                              
-		for(int k = 0; k < 5600; ++k) 
-		{
-			if(wire_array_1_01[k] == 1)h1_01_e->Fill(k);
-			if(wire_array_1_23[k] == 1)h1_23_e->Fill(k);
- 		}
-	*/
-				
+ 
 	// TPC01 IND2
 	if(count_01 > wire_threshold) 
 	{
 		//average pitch
 		holder_01 = holder_01/count_01;
-
+ 
 		//find min wire
 		for(int k = 0; k < 5600; ++k) 
 		{
@@ -2683,7 +3290,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 			}
 		}
 		//find max wire
-		for(int k = 5600; k > 0; --k) 
+		//for(int k = 5600; k > 0; --k) 
+		for(int k = 5599; k > 0; --k) 
 		{
 			if(wire_array_1_01[k] == 1) 
 			{
@@ -2691,81 +3299,109 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find total amount of wires in the trace
-        count_01 = 0; max_buco=0;buco=0; wcount_01=0;
-
-		std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-		std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
-		for(int hit = 0; hit<wireTPCE_1.GetSize(); hit++)
+        count_01 = 0; buco=0; wcount_01=0; max_buco=0;
+ 
+		std::vector<std::vector<double>> holes_temp;
+		std::vector<std::pair<int,int>> wire_hits;
+		std::vector<TVector3> coordinates;
+ 
+		for(int hit = 0; hit < wireTPCE_1.GetSize(); hit++)
 		{
-			if(tpcTPCE_1[hit] == 0 && hasSPTPCE_1[hit])
+			if(tpcTPCE_1[hit] == 0 /*&& hasSPTPCE_1[hit]*/)
 			{
+				if(PRINT_EAST_IND2_TPC01)
+				{
+					cout << wireTPCE_1[hit] << " " << hit_time_TPCE_1[hit] << " " << hasSPTPCE_1[hit] << " " << (wireTPCE_1[hit] >= min_wire_01 && wireTPCE_1[hit] <= max_wire_01) << " " << w_1_01_e[wireTPCE_1[hit]] << " ";
+					if(!isnan(hitx_TPCE_1[hit])){ cout << hitx_TPCE_1[hit] << " " << hity_TPCE_1[hit] << " " << hitz_TPCE_1[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_1[hit] >= min_wire_01 && wireTPCE_1[hit] <= max_wire_01)
 				{
-					wireToHit[wireTPCE_1[hit]] = hit;
+					wire_hits.push_back({wireTPCE_1[hit], hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_1[hit], hity_TPCE_1[hit], hitz_TPCE_1[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 			else if(tpcTPCE_1[hit] == 1)
 			{
+				if(PRINT_EAST_IND2_TPC01)
+				{
+					cout << wireTPCE_1[hit] + 2536 << " " << hit_time_TPCE_1[hit] << " " << hasSPTPCE_1[hit] << " " << (wireTPCE_1[hit] + 2536 >= min_wire_01 && wireTPCE_1[hit] + 2536 <= max_wire_01) << " " << w_1_01_e[wireTPCE_1[hit] + 2536] << " ";
+					if(!isnan(hitx_TPCE_1[hit])){ cout << hitx_TPCE_1[hit] << " " << hity_TPCE_1[hit] << " " << hitz_TPCE_1[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_1[hit] + 2536 >= min_wire_01 && wireTPCE_1[hit] + 2536 <= max_wire_01)
 				{
-					wireToHit[wireTPCE_1[hit] + 2536] = hit;
+					wire_hits.push_back({wireTPCE_1[hit] + 2536, hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_1[hit], hity_TPCE_1[hit], hitz_TPCE_1[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 		}
-
-
+ 
+		double start_buco = -1;
 		for(int k = min_wire_01; k <= max_wire_01; ++k) 
 		{
-            wcount_01+=w_1_01_e[k];
+            wcount_01 += w_1_01_e[k];
 		  	if(w_1_01_e[k]>0 && wire_array_1_01[k] == 1 && buco>0) 
 			{
 				++count_01;
-
+ 
 				std::vector<double> this_hole;
-
-				// --> get more info about holes
+ 
+				int wire_before_hole = start_buco - 1;
+				while(wire_array_1_01[wire_before_hole] == 0){wire_before_hole = wire_before_hole - 1;}
+				
+				std::pair<int,int> hh = wireToHit(wire_hits, coordinates, wire_before_hole, k);
+ 
 				this_hole.push_back(buco);
-				this_hole.push_back(hitx_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hity_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitz_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitx_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(hity_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(hitz_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(k-buco-1);
+				this_hole.push_back(hitx_TPCE_1[hh.first]);
+				this_hole.push_back(hity_TPCE_1[hh.first]);
+				this_hole.push_back(hitz_TPCE_1[hh.first]);
+				this_hole.push_back(hitx_TPCE_1[hh.second]);
+				this_hole.push_back(hity_TPCE_1[hh.second]);
+				this_hole.push_back(hitz_TPCE_1[hh.second]);
+				this_hole.push_back(wire_before_hole);
 				this_hole.push_back(k);
-				this_hole.push_back(hit_dirx_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_diry_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirz_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirx_TPCE_1[wireToHit[k]]); 
-				this_hole.push_back(hit_diry_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(hit_dirz_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(hit_time_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_time_TPCE_1[wireToHit[k]]);
-
+				this_hole.push_back(hit_dirx_TPCE_1[hh.first]);
+				this_hole.push_back(hit_diry_TPCE_1[hh.first]);
+				this_hole.push_back(hit_dirz_TPCE_1[hh.first]);
+				this_hole.push_back(hit_dirx_TPCE_1[hh.second]); 
+				this_hole.push_back(hit_diry_TPCE_1[hh.second]);
+				this_hole.push_back(hit_dirz_TPCE_1[hh.second]);
+				this_hole.push_back(hit_time_TPCE_1[hh.first]);
+				this_hole.push_back(hit_time_TPCE_1[hh.second]);
+				this_hole.push_back(hit_mult_TPCE_1[hh.first]);
+				this_hole.push_back(hit_mult_TPCE_1[hh.second]);
+ 
 				holes_temp.push_back(this_hole);
 				this_hole.clear();
-				// <--
-
-				hind2buchi->Fill(holder_01,buco);
-				if(buco>max_buco)max_buco=buco;buco=0;
+ 
+				hind2buchi->Fill(holder_01, buco);
+				if(buco > max_buco) max_buco = buco;
+				buco = 0;
+				start_buco = -1;
 			}
 		  	else if(w_1_01_e[k]>0 && wire_array_1_01[k] == 1 && buco==0) ++count_01;
-		  	else if(w_1_01_e[k]>0 && wire_array_1_01[k] == 0) ++buco;
+		  	else if(w_1_01_e[k]>0 && wire_array_1_01[k] == 0)
+			{
+				if(buco == 0) start_buco = k;
+				++buco;
+			}
 		}
-
-		//count_01 = 0;
-		//for(int k = min_wire_01; k <= max_wire_01; ++k) 
-		//{
-		//	if(wire_array_1_01[k] == 1) ++count_01;
-		//}
-		//store efficiency and average pitch in the ind2 vectors
-
-		if(max_buco<10)hist_eff_1.push_back(count_01/(wcount_01));
-		if(max_buco<10)hist_average_pitch_1.push_back(holder_01);
-
-
+ 
+		wire_hits.clear();
+ 
+		if(wcount_01 > (max_wire_01-min_wire_01+1) || count_01 > wcount_01) cout << "IND 1 01 E " << count_01 << " " << wcount_01 << " " << min_wire_01 << " " << max_wire_01 << endl;
+		if(max_buco<10) hist_eff_1.push_back(count_01/(wcount_01));
+		if(max_buco<10) hist_average_pitch_1.push_back(holder_01);
+ 
 		cout << "EAST CRYO, PLANE IND2, LOGIC TPC 01 ";
 		// WRITE VARIABLES IN TREE --> EAST CRYO, PLANE IND2, LOGIC TPC 01
 		_run = *runTPCE;
@@ -2775,23 +3411,38 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_plane = 1;
 		_min_wire = min_wire_01;
 		_max_wire = max_wire_01;
-		_start.SetXYZ(*startxTPCE,*startyTPCE,*startzTPCE);
-		_end.SetXYZ(*endxTPCE,*endyTPCE,*endzTPCE);
+		_start.SetXYZ(*startxTPCE, *startyTPCE, *startzTPCE);
+		_end.SetXYZ(*endxTPCE, *endyTPCE, *endzTPCE);
 		_hit_wires = count_01;
 		_tot_wires = wcount_01;
 		_avg_pitch = holder_01;
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
+		_t0PFP = *t0_PFP_TPCE;
+		_t0CRTTrack = *t0_CRT_Track_TPCE;
+		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
+		if(PRINT_EAST_IND2_TPC01)
+		{
+			cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+			for(const auto &hole : _wire_holes)
+        	{
+        		cout << "hole ";
+        		for(const auto &hole_feature : hole)
+        		{
+            		cout << hole_feature << " ";
+        		}
+        	}
+		}
+ 
 		outree -> Fill();
 		cout << "filled" << endl;
-
+ 
 		holes_temp.clear();
-		wireToHit.clear();
-
+ 
 	}
 				
 	// TPC23 IND2
@@ -2799,7 +3450,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 	{
 		//average pitch
 		holder_23 = holder_23/count_23;
-
+ 
 		//find min wire
 		for(int k = 0; k < 5600; ++k) 
 		{
@@ -2809,9 +3460,10 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find max wire
-		for(int k = 5600; k > 0; --k) 
+		//for(int k = 5600; k > 0; --k) 
+		for(int k = 5599; k > 0; --k) 
 		{
 			if(wire_array_1_23[k] == 1) 
 			{
@@ -2819,79 +3471,109 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find total amount of wires in the trace
-        count_23 = 0; max_buco=0;buco=0;wcount_23=0;
-
-		std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-		std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
-		for(int hit = 0; hit<wireTPCE_1.GetSize(); hit++)
+        count_23 = 0; buco=0; wcount_23=0; max_buco=0;
+ 
+		std::vector<std::vector<double>> holes_temp;
+		std::vector<std::pair<int,int>> wire_hits;
+		std::vector<TVector3> coordinates;
+ 
+		for(int hit = 0; hit < wireTPCE_1.GetSize(); hit++)
 		{
-			if(tpcTPCE_1[hit] == 2 && hasSPTPCE_1[hit])
+			if(tpcTPCE_1[hit] == 2 /*&& hasSPTPCE_1[hit]*/)
 			{
+				if(PRINT_EAST_IND2_TPC23)
+				{
+					cout << wireTPCE_1[hit] << " " << hit_time_TPCE_1[hit] << " " << hasSPTPCE_1[hit] << " " << (wireTPCE_1[hit] >= min_wire_23 && wireTPCE_1[hit] <= max_wire_23) << " " << w_1_23_e[wireTPCE_1[hit]] << " ";
+					if(!isnan(hitx_TPCE_1[hit])){ cout << hitx_TPCE_1[hit] << " " << hity_TPCE_1[hit] << " " << hitz_TPCE_1[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_1[hit] >= min_wire_23 && wireTPCE_1[hit] <= max_wire_23)
 				{
-					wireToHit[wireTPCE_1[hit]] = hit;
+					wire_hits.push_back({wireTPCE_1[hit], hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_1[hit], hity_TPCE_1[hit], hitz_TPCE_1[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 			else if(tpcTPCE_1[hit] == 3)
 			{
+				if(PRINT_EAST_IND2_TPC23)
+				{
+					cout << wireTPCE_1[hit] + 2536 << " " << hit_time_TPCE_1[hit] << " " << hasSPTPCE_1[hit] << " " << (wireTPCE_1[hit] + 2536 >= min_wire_23 && wireTPCE_1[hit] + 2536 <= max_wire_23) << " " << w_1_23_e[wireTPCE_1[hit] + 2536] << " ";
+					if(!isnan(hitx_TPCE_1[hit])){ cout << hitx_TPCE_1[hit] << " " << hity_TPCE_1[hit] << " " << hitz_TPCE_1[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_1[hit] + 2536 >= min_wire_23 && wireTPCE_1[hit] + 2536 <= max_wire_23)
 				{
-					wireToHit[wireTPCE_1[hit] + 2536] = hit;
+					wire_hits.push_back({wireTPCE_1[hit] + 2536, hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_1[hit], hity_TPCE_1[hit], hitz_TPCE_1[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 		}
-
+ 
+		double start_buco = -1;
 		for(int k = min_wire_23; k <= max_wire_23; ++k) 
 		{
-            wcount_23+=w_1_23_e[k];
+            wcount_23 += w_1_23_e[k];
 		  	if(w_1_23_e[k]>0 && wire_array_1_23[k] == 1 && buco>0) 
 			{
 				++count_23;
-
+ 
 				std::vector<double> this_hole;
-
-				// --> get more info about holes
+ 
+				int wire_before_hole = start_buco - 1;
+				while(wire_array_1_23[wire_before_hole] == 0){wire_before_hole = wire_before_hole - 1;}
+				
+				std::pair<int,int> hh = wireToHit(wire_hits, coordinates, wire_before_hole, k);
+ 
 				this_hole.push_back(buco);
-				this_hole.push_back(hitx_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hity_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitz_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitx_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(hity_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(hitz_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(k-buco-1);
+				this_hole.push_back(hitx_TPCE_1[hh.first]);
+				this_hole.push_back(hity_TPCE_1[hh.first]);
+				this_hole.push_back(hitz_TPCE_1[hh.first]);
+				this_hole.push_back(hitx_TPCE_1[hh.second]);
+				this_hole.push_back(hity_TPCE_1[hh.second]);
+				this_hole.push_back(hitz_TPCE_1[hh.second]);
+				this_hole.push_back(wire_before_hole);
 				this_hole.push_back(k);
-				this_hole.push_back(hit_dirx_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_diry_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirz_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirx_TPCE_1[wireToHit[k]]); 
-				this_hole.push_back(hit_diry_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(hit_dirz_TPCE_1[wireToHit[k]]);
-				this_hole.push_back(hit_time_TPCE_1[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_time_TPCE_1[wireToHit[k]]);
-
+				this_hole.push_back(hit_dirx_TPCE_1[hh.first]);
+				this_hole.push_back(hit_diry_TPCE_1[hh.first]);
+				this_hole.push_back(hit_dirz_TPCE_1[hh.first]);
+				this_hole.push_back(hit_dirx_TPCE_1[hh.second]); 
+				this_hole.push_back(hit_diry_TPCE_1[hh.second]);
+				this_hole.push_back(hit_dirz_TPCE_1[hh.second]);
+				this_hole.push_back(hit_time_TPCE_1[hh.first]);
+				this_hole.push_back(hit_time_TPCE_1[hh.second]);
+				this_hole.push_back(hit_mult_TPCE_1[hh.first]);
+				this_hole.push_back(hit_mult_TPCE_1[hh.second]);
+ 
 				holes_temp.push_back(this_hole);
 				this_hole.clear();
-				// <--
-
-				hind2buchi->Fill(holder_23,buco);
-				if(buco>max_buco)max_buco=buco;buco=0;
+ 
+				hind2buchi->Fill(holder_23, buco);
+				if(buco > max_buco) max_buco = buco;
+				buco = 0;
+				start_buco = -1;
 			}
 		  	else if(w_1_23_e[k]>0 && wire_array_1_23[k] == 1 && buco==0) ++count_23;
-		  	else if(w_1_23_e[k]>0 && wire_array_1_23[k] == 0) ++buco;
+		  	else if(w_1_23_e[k]>0 && wire_array_1_23[k] == 0)
+			{
+				if(buco == 0) start_buco = k;
+				++buco;
+			}
 		}
-
-		//count_23 = 0;
-		//for(int k = min_wire_23; k <= max_wire_23; ++k) 
-		//{
-		//	if(wire_array_1_23[k] == 1) ++count_23;
-		//}
-		//store efficiency and average pitch in the ind1 vectors
-
-		if(max_buco<10)hist_eff_1.push_back(count_23/(wcount_23));
-		if(max_buco<10)hist_average_pitch_1.push_back(holder_23);
-
+ 
+		wire_hits.clear();
+ 
+		if(wcount_23 > (max_wire_23-min_wire_23+1) || count_23 > wcount_23) cout << "IND 1 23 E " << count_23 << " " << wcount_23 << " " << min_wire_23 << " " << max_wire_23 << endl;
+		if(max_buco<10) hist_eff_1.push_back(count_23/(wcount_23));
+		if(max_buco<10) hist_average_pitch_1.push_back(holder_23);
+ 
 		cout << "EAST CRYO, PLANE IND2, LOGIC TPC 23 ";
 		// WRITE VARIABLES IN TREE --> EAST CRYO, PLANE IND2, LOGIC TPC 23
 		_run = *runTPCE;
@@ -2901,45 +3583,60 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_plane = 1;
 		_min_wire = min_wire_23;
 		_max_wire = max_wire_23;
-		_start.SetXYZ(*startxTPCE,*startyTPCE,*startzTPCE);
-		_end.SetXYZ(*endxTPCE,*endyTPCE,*endzTPCE);
+		_start.SetXYZ(*startxTPCE, *startyTPCE, *startzTPCE);
+		_end.SetXYZ(*endxTPCE, *endyTPCE, *endzTPCE);
 		_hit_wires = count_23;
 		_tot_wires = wcount_23;
 		_avg_pitch = holder_23;
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
+		_t0PFP = *t0_PFP_TPCE;
+		_t0CRTTrack = *t0_CRT_Track_TPCE;
+		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
+		if(PRINT_EAST_IND2_TPC23)
+		{
+			cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+			for(const auto &hole : _wire_holes)
+        	{
+        		cout << "hole ";
+        		for(const auto &hole_feature : hole)
+        		{
+            		cout << hole_feature << " ";
+        		}
+        	}
+		}
+ 
 		outree -> Fill();
 		cout << "filled" << endl;
-
+ 
 		holes_temp.clear();
-		wireToHit.clear();
-
+ 
 	}
 				
 //
 //RESET ARRAYS AND COUNTERS
 //
-
+ 
 	for(int j = 0; j < 5600; ++j) 
 	{
 		wire_array_1_01[j] = 0;
 		wire_array_1_23[j] = 0;
 	}
-
+ 
 	count_01 = 0;
 	count_23 = 0;	
-
+ 
 	holder_01 = 0;	
 	holder_23 = 0;
-
+ 
 //
 //	PLANE COLL EAST
 //
-
+ 
 	//loop over all hits of the trace
 	for(int j = 0; j < wireTPCE_2.GetSize(); ++j) 
 	{
@@ -2977,16 +3674,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 			else wire_array_2_23[wireTPCE_2[j] + 2536] = 1;
 		}
 	}
-
-	//check if there are at least the minimum amount of wires in the TPCs	
-  	/*                                                              
-	for(int k = 0; k < 5600; ++k) 
-	{
-		if(wire_array_2_01[k] == 1)h2_01_e->Fill(k);
-		if(wire_array_2_23[k] == 1)h2_23_e->Fill(k);
- 	}
-	*/
-				
+ 
 	// TPC01 COLL
 	if(count_01 > wire_threshold) 
 	{
@@ -3002,9 +3690,10 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find max wire
-		for(int k = 5600; k > 0; --k) 
+		//for(int k = 5600; k > 0; --k) 
+		for(int k = 5599; k > 0; --k) 
 		{
 			if(wire_array_2_01[k] == 1) 
 			{
@@ -3012,93 +3701,123 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find total amount of wires in the trace
-        count_01 = 0; max_buco=0;buco=0;wcount_01=0;
-
-		std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-		std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
-		for(int hit = 0; hit<wireTPCE_2.GetSize(); hit++)
+        count_01 = 0; buco=0; wcount_01=0; max_buco=0;
+ 
+		std::vector<std::vector<double>> holes_temp;
+		std::vector<std::pair<int,int>> wire_hits;
+		std::vector<TVector3> coordinates;
+ 
+		for(int hit = 0; hit < wireTPCE_2.GetSize(); hit++)
 		{
-			if(tpcTPCE_2[hit] == 0 && hasSPTPCE_2[hit])
+			if(tpcTPCE_2[hit] == 0 /*&& hasSPTPCE_2[hit]*/)
 			{
+				if(PRINT_EAST_COLL_TPC01)
+				{
+					cout << wireTPCE_2[hit] << " " << hit_time_TPCE_2[hit] << " " << hasSPTPCE_2[hit] << " " << (wireTPCE_2[hit] >= min_wire_01 && wireTPCE_2[hit] <= max_wire_01) << " " << w_2_01_e[wireTPCE_2[hit]] << " ";
+					if(!isnan(hitx_TPCE_2[hit])){ cout << hitx_TPCE_2[hit] << " " << hity_TPCE_2[hit] << " " << hitz_TPCE_2[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_2[hit] >= min_wire_01 && wireTPCE_2[hit] <= max_wire_01)
 				{
-					wireToHit[wireTPCE_2[hit]] = hit;
+					wire_hits.push_back({wireTPCE_2[hit], hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_2[hit], hity_TPCE_2[hit], hitz_TPCE_2[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 			else if(tpcTPCE_2[hit] == 1)
 			{
+				if(PRINT_EAST_COLL_TPC01)
+				{
+					cout << wireTPCE_2[hit] + 2536 << " " << hit_time_TPCE_2[hit] << " " << hasSPTPCE_2[hit] << " " << (wireTPCE_2[hit] + 2536 >= min_wire_01 && wireTPCE_2[hit] + 2536 <= max_wire_01) << " " << w_2_01_e[wireTPCE_2[hit] + 2536] << " ";
+					if(!isnan(hitx_TPCE_2[hit])){ cout << hitx_TPCE_2[hit] << " " << hity_TPCE_2[hit] << " " << hitz_TPCE_2[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_2[hit] + 2536 >= min_wire_01 && wireTPCE_2[hit] + 2536 <= max_wire_01)
 				{
-					wireToHit[wireTPCE_2[hit] + 2536] = hit;
+					wire_hits.push_back({wireTPCE_2[hit] + 2536, hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_2[hit], hity_TPCE_2[hit], hitz_TPCE_2[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 		}
-
+ 
+		double start_buco = -1;
 		for(int k = min_wire_01; k <= max_wire_01; ++k) 
 		{
-        	wcount_01+=w_2_01_e[k];
+        	wcount_01 += w_2_01_e[k];
 		  	if(w_2_01_e[k]>0 && wire_array_2_01[k] == 1 && buco>0)
 			{
 				++count_01;
-
+ 
 				std::vector<double> this_hole;
-
-				// --> get more info about holes
+ 
+				int wire_before_hole = start_buco - 1;
+				while(wire_array_2_01[wire_before_hole] == 0){wire_before_hole = wire_before_hole - 1;}
+				
+				std::pair<int,int> hh = wireToHit(wire_hits, coordinates, wire_before_hole, k);
+ 
 				this_hole.push_back(buco);
-				this_hole.push_back(hitx_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hity_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitz_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitx_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(hity_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(hitz_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(k-buco-1);
+				this_hole.push_back(hitx_TPCE_2[hh.first]);
+				this_hole.push_back(hity_TPCE_2[hh.first]);
+				this_hole.push_back(hitz_TPCE_2[hh.first]);
+				this_hole.push_back(hitx_TPCE_2[hh.second]);
+				this_hole.push_back(hity_TPCE_2[hh.second]);
+				this_hole.push_back(hitz_TPCE_2[hh.second]);
+				this_hole.push_back(wire_before_hole);
 				this_hole.push_back(k);
-				this_hole.push_back(hit_dirx_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_diry_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirz_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirx_TPCE_2[wireToHit[k]]); 
-				this_hole.push_back(hit_diry_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(hit_dirz_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(hit_time_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_time_TPCE_2[wireToHit[k]]);
-
+				this_hole.push_back(hit_dirx_TPCE_2[hh.first]);
+				this_hole.push_back(hit_diry_TPCE_2[hh.first]);
+				this_hole.push_back(hit_dirz_TPCE_2[hh.first]);
+				this_hole.push_back(hit_dirx_TPCE_2[hh.second]); 
+				this_hole.push_back(hit_diry_TPCE_2[hh.second]);
+				this_hole.push_back(hit_dirz_TPCE_2[hh.second]);
+				this_hole.push_back(hit_time_TPCE_2[hh.first]);
+				this_hole.push_back(hit_time_TPCE_2[hh.second]);
+				this_hole.push_back(hit_mult_TPCE_2[hh.first]);
+				this_hole.push_back(hit_mult_TPCE_2[hh.second]);
+ 
 				holes_temp.push_back(this_hole);
 				this_hole.clear();
-				// <--
-
-				hcollbuchi->Fill(holder_01,buco);
-				if(buco>max_buco)max_buco=buco;buco=0;
+ 
+				hcollbuchi->Fill(holder_01, buco);
+				if(buco > max_buco) max_buco = buco;
+				buco = 0;
+				start_buco = -1;
 			}
 		  	else if(w_2_01_e[k]>0 && wire_array_2_01[k] == 1 && buco==0) ++count_01;
-		  	else if(w_2_01_e[k]>0 && wire_array_2_01[k] == 0) ++buco;
+		  	else if(w_2_01_e[k]>0 && wire_array_2_01[k] == 0)
+			{
+				if(buco == 0) start_buco = k;
+				++buco;
+			}
 		}
-
-		//count_01 = 0;
-		//for(int k = min_wire_01; k <= max_wire_01; ++k) 
-		//{
-		//	if(wire_array_2_01[k] == 1) ++count_01;
-		//}
-		//store efficiency and average pitch in the ind2 vectors
-		
-		if(max_buco<10)hist_eff_2.push_back(count_01/(wcount_01));
-		if(max_buco<10)hist_average_pitch_2.push_back(holder_01);
+ 
+		wire_hits.clear();
+ 
+		if(wcount_01 > (max_wire_01-min_wire_01+1) || count_01 > wcount_01) cout << "Coll 2 01 E " << count_01 << " " << wcount_01 << " " << min_wire_01 << " " << max_wire_01 << endl;
+		if(max_buco<10) hist_eff_2.push_back(count_01/(wcount_01));
+		if(max_buco<10) hist_average_pitch_2.push_back(holder_01);
 		
 		//print details of low efficiency traces
-		if(count_01/(max_wire_01 - min_wire_01 + 1) < upper_eff_print) 
-		{
-			oFile << "EAST 01 COLL " << *runTPCE << " " << *evtTPCE;
-			oFile << endl << "\t";
-			oFile << "Efficiency: " << count_01/(max_wire_01 - min_wire_01 + 1);
-			oFile << " over " << *lengthTPCE << " cm.";
-			oFile << endl << "\t";
-			oFile << *startxTPCE << " " << *startyTPCE << " " << *startzTPCE << " ";
-			oFile << endl << "\t";
-			oFile << *endxTPCE << " " << *endyTPCE << " " << *endzTPCE << " ";
-			oFile << endl << endl;
-		}		
-
+		//if(count_01/(max_wire_01 - min_wire_01 + 1) < upper_eff_print) 
+		//{
+		//	oFile << "EAST 01 COLL " << *runTPCE << " " << *evtTPCE;
+		//	oFile << endl << "\t";
+		//	oFile << "Efficiency: " << count_01/(max_wire_01 - min_wire_01 + 1);
+		//	oFile << " over " << *lengthTPCE << " cm.";
+		//	oFile << endl << "\t";
+		//	oFile << *startxTPCE << " " << *startyTPCE << " " << *startzTPCE << " ";
+		//	oFile << endl << "\t";
+		//	oFile << *endxTPCE << " " << *endyTPCE << " " << *endzTPCE << " ";
+		//	oFile << endl << endl;
+		//}		
+ 
 		cout << "EAST CRYO, PLANE COLL, LOGIC TPC 01 ";
 		// WRITE VARIABLES IN TREE --> EAST CRYO, PLANE COLL, LOGIC TPC 01
 		_run = *runTPCE;
@@ -3108,22 +3827,37 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_plane = 2;
 		_min_wire = min_wire_01;
 		_max_wire = max_wire_01;
-		_start.SetXYZ(*startxTPCE,*startyTPCE,*startzTPCE);
-		_end.SetXYZ(*endxTPCE,*endyTPCE,*endzTPCE);
+		_start.SetXYZ(*startxTPCE, *startyTPCE, *startzTPCE);
+		_end.SetXYZ(*endxTPCE, *endyTPCE, *endzTPCE);
 		_hit_wires = count_01;
 		_tot_wires = wcount_01;
 		_avg_pitch = holder_01;
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
+		_t0PFP = *t0_PFP_TPCE;
+		_t0CRTTrack = *t0_CRT_Track_TPCE;
+		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
+		if(PRINT_EAST_COLL_TPC01)
+		{
+			cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+			for(const auto &hole : _wire_holes)
+        	{
+        		cout << "hole ";
+        		for(const auto &hole_feature : hole)
+        		{
+            		cout << hole_feature << " ";
+        		}
+        	}
+		}
+ 
 		outree -> Fill();
 		cout << "filled" << endl;
-
+ 
 		holes_temp.clear();
-		wireToHit.clear();
 	}
 				
 	// TPC23 COLL
@@ -3141,9 +3875,10 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find max wire
-		for(int k = 5600; k > 0; --k) 
+		//for(int k = 5600; k > 0; --k) 
+		for(int k = 5599; k > 0; --k) 
 		{
 			if(wire_array_2_23[k] == 1) 
 			{
@@ -3151,93 +3886,123 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 				break;		
 			}
 		}
-
+ 
 		//find total amount of wires in the trace
-        count_23 = 0; max_buco=0;buco=0;wcount_23=0;
-
-		std::vector<std::vector<double>> holes_temp; //--> store all holes in this logic TPC
-		std::unordered_map<int, int> wireToHit; //--> wireToHit[wire] --> hit_index
-		for(int hit = 0; hit<wireTPCE_2.GetSize(); hit++)
+        count_23 = 0; buco=0; wcount_23=0; max_buco=0;
+ 
+		std::vector<std::vector<double>> holes_temp;
+		std::vector<std::pair<int,int>> wire_hits;
+		std::vector<TVector3> coordinates;
+ 
+		for(int hit = 0; hit < wireTPCE_2.GetSize(); hit++)
 		{
-			if(tpcTPCE_2[hit] == 2 && hasSPTPCE_2[hit])
+			if(tpcTPCE_2[hit] == 2 /*&& hasSPTPCE_2[hit]*/)
 			{
+				if(PRINT_EAST_COLL_TPC23)
+				{
+					cout << wireTPCE_2[hit] << " " << hit_time_TPCE_2[hit] << " " << hasSPTPCE_2[hit] << " " << (wireTPCE_2[hit] >= min_wire_23 && wireTPCE_2[hit] <= max_wire_23) << " " << w_2_23_e[wireTPCE_2[hit]] << " ";
+					if(!isnan(hitx_TPCE_2[hit])){ cout << hitx_TPCE_2[hit] << " " << hity_TPCE_2[hit] << " " << hitz_TPCE_2[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_2[hit] >= min_wire_23 && wireTPCE_2[hit] <= max_wire_23)
 				{
-					wireToHit[wireTPCE_2[hit]] = hit;
+					wire_hits.push_back({wireTPCE_2[hit], hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_2[hit], hity_TPCE_2[hit], hitz_TPCE_2[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 			else if(tpcTPCE_2[hit] == 3)
 			{
+				if(PRINT_EAST_COLL_TPC23)
+				{
+					cout << wireTPCE_2[hit] + 2536 << " " << hit_time_TPCE_2[hit] << " " << hasSPTPCE_2[hit] << " " << (wireTPCE_2[hit] + 2536 >= min_wire_23 && wireTPCE_2[hit] + 2536 <= max_wire_23) << " " << w_2_23_e[wireTPCE_2[hit] + 2536] << " ";
+					if(!isnan(hitx_TPCE_2[hit])){ cout << hitx_TPCE_2[hit] << " " << hity_TPCE_2[hit] << " " << hitz_TPCE_2[hit] << endl;}
+					else {cout << -1 << " " << -1 << " " << -1 << endl;} 
+				}
+ 
 				if(wireTPCE_2[hit] + 2536 >= min_wire_23 && wireTPCE_2[hit] + 2536 <= max_wire_23)
 				{
-					wireToHit[wireTPCE_2[hit] + 2536] = hit;
+					wire_hits.push_back({wireTPCE_2[hit] + 2536, hit});
+					TVector3 temp_coord;
+					temp_coord.SetXYZ(hitx_TPCE_2[hit], hity_TPCE_2[hit], hitz_TPCE_2[hit]);
+					coordinates.push_back(temp_coord);
 				}
 			}
 		}
-
+ 
+		double start_buco = -1;
 		for(int k = min_wire_23; k <= max_wire_23; ++k) 
 		{
-            wcount_23+=w_2_23_e[k];
+            wcount_23 += w_2_23_e[k];
 		  	if(w_2_23_e[k]>0 && wire_array_2_23[k] == 1 && buco>0) 
 			{
 				++count_23;
 				
 				std::vector<double> this_hole;
-
-				// --> get more info about holes
+ 
+				int wire_before_hole = start_buco - 1;
+				while(wire_array_2_23[wire_before_hole] == 0){wire_before_hole = wire_before_hole - 1;}
+				
+				std::pair<int,int> hh = wireToHit(wire_hits, coordinates, wire_before_hole, k);
+ 
 				this_hole.push_back(buco);
-				this_hole.push_back(hitx_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hity_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitz_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hitx_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(hity_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(hitz_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(k-buco-1);
+				this_hole.push_back(hitx_TPCE_2[hh.first]);
+				this_hole.push_back(hity_TPCE_2[hh.first]);
+				this_hole.push_back(hitz_TPCE_2[hh.first]);
+				this_hole.push_back(hitx_TPCE_2[hh.second]);
+				this_hole.push_back(hity_TPCE_2[hh.second]);
+				this_hole.push_back(hitz_TPCE_2[hh.second]);
+				this_hole.push_back(wire_before_hole);
 				this_hole.push_back(k);
-				this_hole.push_back(hit_dirx_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_diry_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirz_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_dirx_TPCE_2[wireToHit[k]]); 
-				this_hole.push_back(hit_diry_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(hit_dirz_TPCE_2[wireToHit[k]]);
-				this_hole.push_back(hit_time_TPCE_2[wireToHit[k-buco-1]]);
-				this_hole.push_back(hit_time_TPCE_2[wireToHit[k]]);
-
+				this_hole.push_back(hit_dirx_TPCE_2[hh.first]);
+				this_hole.push_back(hit_diry_TPCE_2[hh.first]);
+				this_hole.push_back(hit_dirz_TPCE_2[hh.first]);
+				this_hole.push_back(hit_dirx_TPCE_2[hh.second]); 
+				this_hole.push_back(hit_diry_TPCE_2[hh.second]);
+				this_hole.push_back(hit_dirz_TPCE_2[hh.second]);
+				this_hole.push_back(hit_time_TPCE_2[hh.first]);
+				this_hole.push_back(hit_time_TPCE_2[hh.second]);
+				this_hole.push_back(hit_mult_TPCE_2[hh.first]);
+				this_hole.push_back(hit_mult_TPCE_2[hh.second]);
+ 
 				holes_temp.push_back(this_hole);
 				this_hole.clear();
-				// <--
-
-				hcollbuchi->Fill(holder_23,buco);
-				if(buco>max_buco)max_buco=buco;buco=0;
+ 
+				hcollbuchi->Fill(holder_23, buco);
+				if(buco > max_buco) max_buco = buco;
+				buco = 0;
+				start_buco = -1;
 			}
 		  	else if(w_2_23_e[k]>0 && wire_array_2_23[k] == 1 && buco==0) ++count_23;
-		  	else if(w_2_23_e[k]>0 && wire_array_2_23[k] == 0) ++buco;
+		  	else if(w_2_23_e[k]>0 && wire_array_2_23[k] == 0)
+			{
+				if(buco == 0) start_buco = k;
+				++buco;
+			}
 		}
-
-		//count_23 = 0;
-		//for(int k = min_wire_23; k <= max_wire_23; ++k) 
-		//{
-		//	if(wire_array_2_23[k] == 1) ++count_23;
-		//}
-		//store efficiency and average pitch in the ind1 vectors
-		
-		if(max_buco<10)hist_eff_2.push_back(count_23/(wcount_23));
-		if(max_buco<10)hist_average_pitch_2.push_back(holder_23);
+ 
+		wire_hits.clear();
+ 
+		if(wcount_23 > (max_wire_23-min_wire_23+1) || count_23 > wcount_23) cout << "Coll 2 23 E " << count_23 << " " << wcount_23 << " " << min_wire_23 << " " << max_wire_23 << endl;
+		if(max_buco<10) hist_eff_2.push_back(count_23/(wcount_23));
+		if(max_buco<10) hist_average_pitch_2.push_back(holder_23);
 		
 		//print details of low efficiency traces
-		if(count_23/(max_wire_23 - min_wire_23 + 1) < upper_eff_print) 
-		{
-			oFile << "EAST 23 COLL " << *runTPCE << " " << *evtTPCE;
-			oFile << endl << "\t";
-			oFile << "Efficiency: " << count_23/(max_wire_23 - min_wire_23 + 1);
-			oFile << " over " << *lengthTPCE << " cm.";
-			oFile << endl << "\t";
-			oFile << *startxTPCE << " " << *startyTPCE << " " << *startzTPCE << " ";
-			oFile << endl << "\t";
-			oFile << *endxTPCE << " " << *endyTPCE << " " << *endzTPCE << " ";
-			oFile << endl << endl;
-		}		
-
+		//if(count_23/(max_wire_23 - min_wire_23 + 1) < upper_eff_print) 
+		//{
+		//	oFile << "EAST 23 COLL " << *runTPCE << " " << *evtTPCE;
+		//	oFile << endl << "\t";
+		//	oFile << "Efficiency: " << count_23/(max_wire_23 - min_wire_23 + 1);
+		//	oFile << " over " << *lengthTPCE << " cm.";
+		//	oFile << endl << "\t";
+		//	oFile << *startxTPCE << " " << *startyTPCE << " " << *startzTPCE << " ";
+		//	oFile << endl << "\t";
+		//	oFile << *endxTPCE << " " << *endyTPCE << " " << *endzTPCE << " ";
+		//	oFile << endl << endl;
+		//}		
+ 
 		cout << "EAST CRYO, PLANE COLL, LOGIC TPC 23 ";
 		// WRITE VARIABLES IN TREE --> EAST CRYO, PLANE COLL, LOGIC TPC 23
 		_run = *runTPCE;
@@ -3247,22 +4012,37 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_plane = 2;
 		_min_wire = min_wire_23;
 		_max_wire = max_wire_23;
-		_start.SetXYZ(*startxTPCE,*startyTPCE,*startzTPCE);
-		_end.SetXYZ(*endxTPCE,*endyTPCE,*endzTPCE);
+		_start.SetXYZ(*startxTPCE, *startyTPCE, *startzTPCE);
+		_end.SetXYZ(*endxTPCE, *endyTPCE, *endzTPCE);
 		_hit_wires = count_23;
 		_tot_wires = wcount_23;
 		_avg_pitch = holder_23;
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
+		_t0PFP = *t0_PFP_TPCE;
+		_t0CRTTrack = *t0_CRT_Track_TPCE;
+		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
+		if(PRINT_EAST_COLL_TPC23)
+		{
+			cout << _min_wire << " " << _max_wire << " | " << _nholes << " holes: ";
+			for(const auto &hole : _wire_holes)
+        	{
+        		cout << "hole ";
+        		for(const auto &hole_feature : hole)
+        		{
+            		cout << hole_feature << " ";
+        		}
+        	}
+		}
+ 
 		outree -> Fill();
 		cout << "filled" << endl;
-
+ 
 		holes_temp.clear();
-		wireToHit.clear();
 	}
 				
 	//reset arrays and counters
@@ -3271,16 +4051,16 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		wire_array_2_01[j] = 0;
 		wire_array_2_23[j] = 0;
 	}
-
+ 
 	count_01 = 0;
 	count_23 = 0;	
-
+ 
 	holder_01 = 0;	
 	holder_23 = 0;
 				
 				
 }
-}			
+}		
 
 	
 	myFile -> Close();	
@@ -3308,6 +4088,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 	for(int i = 0; i < hist_eff_2.size(); ++i) h_eff_vs_pitch_2->Fill(hist_average_pitch_2[i], hist_eff_2[i]);
 
 
+	/*
 	auto *eff_vs_pitch_0_c = new TCanvas();
 	h_eff_vs_pitch_0->SetTitle("Efficiency vs average pitch ind1, ALL;Average pitch;Efficiency");
 	h_eff_vs_pitch_0->Draw("COLZ");
@@ -3322,7 +4103,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 	h_eff_vs_pitch_2->SetTitle("Efficiency vs average pitch coll, ALL;Average pitch;Efficiency");
 	h_eff_vs_pitch_2->Draw("COLZ");
 	eff_vs_pitch_2_c->SaveAs("h_eff_vs_pitch_all_2.root"); 
-
+	*/
 
 	//create TProfile graphs
 	auto *prof_eff_vs_pitch_0 = new TProfile("prof_eff_vs_pitch_0","",bin,0,4,0,1.05,"");
@@ -3333,6 +4114,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 	for(int i = 0; i < hist_eff_1.size(); ++i) prof_eff_vs_pitch_1->Fill(hist_average_pitch_1[i], hist_eff_1[i], 1);
 	for(int i = 0; i < hist_eff_2.size(); ++i) prof_eff_vs_pitch_2->Fill(hist_average_pitch_2[i], hist_eff_2[i], 1);
 
+	/*
 	auto *prof_eff_vs_pitch_0_c = new TCanvas();
 	prof_eff_vs_pitch_0->SetTitle("TProfile Efficiency vs average pitch ind1, ALL;Average pitch;Efficiency");
 	prof_eff_vs_pitch_0->Draw();
@@ -3347,8 +4129,14 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 	prof_eff_vs_pitch_2->SetTitle("TProfile Efficiency vs average pitch coll, ALL;Average pitch;Efficiency");
 	prof_eff_vs_pitch_2->Draw();
 	prof_eff_vs_pitch_2_c->SaveAs("prof_eff_vs_pitch_2.root");	
+	*/
 
-	TFile *outoutfilefile=new TFile("all_histo.root","RECREATE");
+	TFile *outoutfilefile=new TFile(Form("all_histo_%s.root",sample_name.c_str()),"RECREATE");
+
+	h_eff_vs_pitch_0->Write();
+	h_eff_vs_pitch_1->Write();
+	h_eff_vs_pitch_2->Write();
+
     prof_eff_vs_pitch_0->Write();        
     prof_eff_vs_pitch_1->Write(); 
 	prof_eff_vs_pitch_2->Write();
@@ -3368,7 +4156,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 // TREE WRITING 
 //	
 	tree_outfile -> cd();
-	outree->Write();
+	outree->Write(0,TObject::kOverwrite);
 	tree_outfile -> Close();
 
 	/*

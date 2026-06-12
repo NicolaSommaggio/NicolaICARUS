@@ -20,7 +20,9 @@ for(const auto &p : p_prova){cout << p << " ";}
 cout << endl;
   
 //1/2 MC OVERLAYS GRAY
-const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
+//const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
+
+const std::string fdata = "/pnfs/icarus/persistent/users/cfarnese/MC_overlays_2026_[2,3]/*flat.caf.root";
 
 SpectrumLoader loader(fdata);         
 

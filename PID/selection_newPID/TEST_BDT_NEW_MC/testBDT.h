@@ -3,7 +3,7 @@
 
 
 
-ofstream dump_test_bdt("DUMP_TEST_BDT_CUT_OVERLAYS.txt");
+ofstream dump_test_bdt("DUMP_TEST_BDT_CUT_OVERLAYS_OLD_MC.txt");
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////                                                 testBDT                                                      //////

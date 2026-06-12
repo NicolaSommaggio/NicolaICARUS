@@ -416,7 +416,8 @@ std::vector<double> compute_ke(const caf::Proxy<caf::SRSlice>& islc, std::size_t
   double ke_difference_pi_hyp = (ke_range_pi - ke_calo)/ke_calo;
   double ke_difference_pro_hyp = (ke_range_pro - ke_calo)/ke_calo;
 
-  return {ke_difference_mu_hyp,ke_difference_pi_hyp,ke_difference_pro_hyp};
+  //return {ke_difference_mu_hyp,ke_difference_pi_hyp,ke_difference_pro_hyp};
+  return {ke_calo, ke_range_mu, ke_range_pro, ke_range_pi};
 }
 
 std::vector<double> compute_daughter_vars(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp)
@@ -479,20 +480,35 @@ std::vector<double> compute_daughter_vars(const caf::Proxy<caf::SRSlice>& islc, 
     return {daughter_depE,angle_end};
 }
 
+
+/*
+//PID model OLD MC ------------------------------------------------------------------
+
+TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/collection.root", "READ");
+TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/induction1.root", "READ");
+TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/induction2.root", "READ");
+
+std::string path_BDT_model =  "/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/provaBDT_dedxmag1/GBDT_dedx_mag1.txt";
+GBDTModel model = load_model(path_BDT_model.c_str());
+//-----------------------------------------------------------------------------------
+*/
+
+
+
+//PID model NEW MC ------------------------------------------------------------------
+
 TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_COLL_NEW_MC.root", "READ");
 TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_IND1_NEW_MC.root", "READ");
 TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_IND2_NEW_MC.root", "READ");
 
+std::string path_BDT_model =  "/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/TEST_BDT_NEW_MC/GBDT_MODEL_NEW_MC_EXPORT.txt";
+GBDTModel model = load_model(path_BDT_model.c_str());
+//-----------------------------------------------------------------------------------
+
+
 std::array<std::vector<TH1D*>,6> prob_d_coll = load_prob_densities("coll",f_prob_densities_coll);
 std::array<std::vector<TH1D*>,6> prob_d_ind1 = load_prob_densities("ind1",f_prob_densities_ind1);
 std::array<std::vector<TH1D*>,6> prob_d_ind2 = load_prob_densities("ind2",f_prob_densities_ind2);
-
-
-
-//PID model ------------------------------------------------------------------
-std::string path_BDT_model =  "/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/TEST_BDT_NEW_MC/GBDT_MODEL_NEW_MC_EXPORT.txt";
-GBDTModel model = load_model(path_BDT_model.c_str());
-//----------------------------------------------------------------------------
 
 int PIDclass(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp)
 {

@@ -10,7 +10,7 @@ void ReadEffTree()
 
     int run = -1;
 	int evt = -1;
-	short cryo = -1; //0 --> WEST		1 --> EAST
+	short cryo = -1; //0 --> EAST		1 --> WEST
 	short tpc = -1; //0 e 2 --> IND2/COLL, 0,1,2,3 --> IND1 
 	short plane = -1;
 	int min_wire = -1;
@@ -23,6 +23,9 @@ void ReadEffTree()
 	float trk_length = -1;
     int max_buco = -1;
     short which_t0 = -1;
+    float t0PFP = -1;
+    float t0CRTTrack = -1;
+    float t0CRTHit = -1;
 	int nholes = -1;
 	std::vector<std::vector<double>> *wire_holes = nullptr; // --> it contains:
 									 			  // _hole_dimension
@@ -34,6 +37,8 @@ void ReadEffTree()
 												  // _hit_dir_after_buco 
 												  // _hit_time_before_buco
 												  // _hit_time_after_buco
+                                                  // _hit_mult_before_buco
+                                                  // _hit_mult_after_buco
 
     intree -> SetBranchAddress("run",&run);
 	intree -> SetBranchAddress("evt",&evt);
@@ -50,6 +55,9 @@ void ReadEffTree()
 	intree -> SetBranchAddress("trk_length",&trk_length);
     intree -> SetBranchAddress("max_buco",&max_buco);
     intree -> SetBranchAddress("whicht0",&which_t0);
+    intree -> SetBranchAddress("t0PFP",&t0PFP);
+    intree -> SetBranchAddress("t0CRTTrack",&t0CRTTrack);
+    intree -> SetBranchAddress("t0CRTHit",&t0CRTHit);
 	intree -> SetBranchAddress("nholes",&nholes);
 	intree -> SetBranchAddress("wire_holes",&wire_holes);
 
@@ -70,7 +78,7 @@ void ReadEffTree()
     {
         intree->GetEntry(i);
 
-        if(nholes > 0 && wire_holes)
+        if(true) 
         {
             cout << run << " " << evt << " " << nholes << " holes " << endl;
             for(const auto &hole : *wire_holes)
@@ -84,6 +92,8 @@ void ReadEffTree()
             }
             cout << endl;
         }
+
+        if(tot_wires < 0){cout << "TOT_WIRES: " << tot_wires << " TPC: " << tpc << " PLANE: " << plane << " CRYO: " << cryo << " MIN_WIRE: " << min_wire << " MAX_WIRE: " << max_wire << endl;}
 
         if(plane == 0)
         {

@@ -70,8 +70,13 @@ void macro_selection_newPID(){
 //POT MC CLASSIC 1/3 = 5.01111e+19 --> PROB DISTRO
 //POT DATA_PRESCALED = 1.97615e+19 / 1.99201e+19
 
+//--> POT DATA NEW
+//1.90381e+19 POT from hdr differs from 1.91916e+19 POT from the TotalPOT histogram!
+//1.90381e+19 POT over 5111954 readouts
+
+
 //SELECTION FOLDER 
-const std::string fdata = "/exp/icarus/app/users/nsommagg/SELECTION_FOLDER/*.root";
+const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
 
 //ICARUS MC
 //const std::string fdata = "/pnfs/icarus/scratch/users/gputnam/Ar23+_iterE/ICARUSSpringMC/*/*flat.caf.root";
@@ -112,6 +117,7 @@ Spectrum s1("", kBinz, loader, selection ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fdebug1mu0p0pi ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fdump_pred_proba ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, files_check ,kNoSpillCut );
+//Spectrum s1("", kBinz, loader, dump_BDT_vars ,kNoSpillCut );
 
 //muons.clear();
 //pions.clear();
@@ -278,7 +284,7 @@ outfile->Close();
 
 //counts how many 1muNp selected
 
-/* HERE */
+/**/ //HERE 
 double selected_1muNp = 0;
 double selected_1muNp_correct = 0;
 
@@ -306,73 +312,7 @@ if(ismc)
 }
 /**/
 
-
-//232 offbeam
-
-//10266 tot selected 1muNp
-//7824 correct
-//efficiency 0.593447
-//purity 0.762127
-
-//231 offbeam
-
-//10241
-//7821
-//0.59322
-//0.76369
-
-//10211 tot selected 1muNp
-//7814 correct
-//efficiency 0.592688
-//purity 0.765253
-
-
-//9346 tot selected 1muNp
-//7362 correct
-//efficiency 0.558404
-//purity 0.787717
-
-//********
-
-//272 1mu0p0pi slices 16 with no protons
-//19 misclassified protons in 1mu0p0pi slices
-
-
-//9532 tot selected 1muNp
-//7479 correct
-//efficiency 0.567279
-//purity 0.78462
-
-//********
-
-//296 1mu0p0pi slices 21 with no protons
-//25 misclassified protons in 1mu0p0pi slices
-
-
-//9333 tot selected 1muNp
-//7361 correct
-//efficiency 0.558328
-//purity 0.788707
-
-//********
-
-//218 1mu0p0pi slices 21 with no protons
-//25 misclassified protons in 1mu0p0pi slices
-
-
-//14036 tot true 1muNp
-//11149 tot selected 1muNp
-//8513 correct
-//efficiency 0.606512
-//purity 0.763566
-
-//********
-
-//378 1mu0p0pi slices 96 with no protons
-//114 misclassified protons in 1mu0p0pi slices
-
 //stitching only with daughters
-
 
 /*
 TH1D *h_end_distance_stitched = new TH1D("end_distance_stitched","",200,0,200);
