@@ -67,6 +67,262 @@ const SpillCut kCRTPMTNeutrino([](const caf::SRSpillProxy* spill){
   return true;
 });
 
+constexpr double PION_MASS            = 139.570; // MeV
+constexpr double PROTON_MASS          = 938.3;   // MeV
+constexpr double MUON_MASS            = 105.658; // MeV
+
+std::vector<double> chi2_ALG(std::vector<double> &dEdx,std::vector<double> &RR, double rr_min, double rr_max)
+{
+    //The output is chi2s
+
+    ////////////////// correzzione dEdx mc ///////////////////////////////////////////
+    /*
+  correction_function->SetParameters(-1.08107e+00, -1.38302e+00, -2.84635e-02, 5.87297e-02, 7.17814e+00, -3.51461e+00);
+    for(int i=0; i<int(dEdx.size()); i++)
+    {
+        double factor = (2+correction_function->Eval(dEdx[i]))/(2-correction_function->Eval(dEdx[i]));
+        dEdx[i]=dEdx[i]*factor;
+    }
+    */
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    double threshold = 0.5;
+    double max_rr = rr_max;
+    double min_rr = rr_min;
+
+    std::vector<float> trkdedx;
+    std::vector<float> trkres;
+    std::vector<double> vpida;
+    
+
+    for(std::size_t i(0); i<dEdx.size(); ++i){
+      if(i==0 || i==dEdx.size()-1)continue;
+        if(RR[i]<max_rr && RR[i]>rr_min ){trkdedx.push_back(dEdx[i]);trkres.push_back(RR[i]);}       
+    }
+
+
+    int npt = 0;
+    double chi2pro = 0;
+    double chi2ka = 0;
+    double chi2pi = 0;
+    double chi2mu = 0;
+    double avgdedx = 0;
+    double PIDA = 0;
+
+    int used_trkres = 0;
+    for (unsigned i = 0; i < trkdedx.size(); ++i) { 
+      avgdedx += trkdedx[i];
+      if (trkres[i] < 26) {
+        PIDA += trkdedx[i] * pow(trkres[i], 0.42);
+        vpida.push_back(trkdedx[i] * pow(trkres[i], 0.42));
+        used_trkres++;
+      }
+      if (trkdedx[i] > 100 || trkdedx[i]<threshold) continue; //protect against large pulse height
+      int bin = dedx_range_pro->FindBin(trkres[i]);
+      if (bin >= 1 && bin <= dedx_range_pro->GetNbinsX()) {
+        double bincpro = dedx_range_pro->GetBinContent(bin);
+        if (bincpro < 1e-6) { //for 0 bin content, using neighboring bins
+          bincpro =
+            (dedx_range_pro->GetBinContent(bin - 1) + dedx_range_pro->GetBinContent(bin + 1)) / 2;
+        }
+        double bincka = dedx_range_ka->GetBinContent(bin);
+        if (bincka < 1e-6) {
+          bincka =
+            (dedx_range_ka->GetBinContent(bin - 1) + dedx_range_ka->GetBinContent(bin + 1)) / 2;
+        }
+        double bincpi = dedx_range_pi->GetBinContent(bin);
+        if (bincpi < 1e-6) {
+          bincpi =
+            (dedx_range_pi->GetBinContent(bin - 1) + dedx_range_pi->GetBinContent(bin + 1)) / 2;
+        }
+        double bincmu = dedx_range_mu->GetBinContent(bin);
+        if (bincmu < 1e-6) {
+          bincmu =
+            (dedx_range_mu->GetBinContent(bin - 1) + dedx_range_mu->GetBinContent(bin + 1)) / 2;
+        }
+        double binepro = dedx_range_pro->GetBinError(bin);
+        if (binepro < 1e-6) {
+          binepro =
+            (dedx_range_pro->GetBinError(bin - 1) + dedx_range_pro->GetBinError(bin + 1)) / 2;
+        }
+        double bineka = dedx_range_ka->GetBinError(bin);
+        if (bineka < 1e-6) {
+          bineka = (dedx_range_ka->GetBinError(bin - 1) + dedx_range_ka->GetBinError(bin + 1)) / 2;
+        }
+        double binepi = dedx_range_pi->GetBinError(bin);
+        if (binepi < 1e-6) {
+          binepi = (dedx_range_pi->GetBinError(bin - 1) + dedx_range_pi->GetBinError(bin + 1)) / 2;
+        }
+        double binemu = dedx_range_mu->GetBinError(bin);
+        if (binemu < 1e-6) {
+          binemu = (dedx_range_mu->GetBinError(bin - 1) + dedx_range_mu->GetBinError(bin + 1)) / 2;
+        }
+        //double errke = 0.05*trkdedx[i];   //5% KE resolution
+        double errdedx = 0.04231 + 0.0001783 * trkdedx[i] * trkdedx[i]; //resolution on dE/dx
+        errdedx *= trkdedx[i];
+        chi2pro += pow((trkdedx[i] - bincpro) / std::sqrt(pow(binepro, 2) + pow(errdedx, 2)), 2);
+        chi2ka += pow((trkdedx[i] - bincka) / std::sqrt(pow(bineka, 2) + pow(errdedx, 2)), 2);
+        chi2pi += pow((trkdedx[i] - bincpi) / std::sqrt(pow(binepi, 2) + pow(errdedx, 2)), 2);
+        chi2mu += pow((trkdedx[i] - bincmu) / std::sqrt(pow(binemu, 2) + pow(errdedx, 2)), 2);
+        //std::cout<<i<<" "<<trkdedx[i]<<" "<<trkres[i]<<" "<<bincpro<<std::endl;
+        ++npt;
+      }
+    } //hits
+        std::vector<double> chi2s {chi2mu/npt,chi2pro/npt,chi2ka/npt,chi2pi/npt};
+
+    return chi2s;
+}
+
+std::vector<double> compute_chi2(const caf::Proxy<caf::SRSlice>& islc,
+                                  std::size_t ipfp,
+                                  int plane)
+{
+    std::vector<double> dedx, rr;
+
+    const auto& calo = islc.reco.pfp[ipfp].trk.calo[plane].points;
+    if (calo.empty()) return {};
+
+    dedx.reserve(calo.size());
+    rr.reserve(calo.size());
+
+    for (const auto& pt : calo) {
+        dedx.push_back(pt.dedx);
+        rr.push_back(pt.rr);
+    }
+
+    return chi2_ALG(dedx, rr, 0, 25);
+}
+
+inline double kinetic_energy(double mass, double momentum_GeV)
+{
+    double p = momentum_GeV * 1000.0; // → MeV
+    return std::sqrt(mass*mass + p*p) - mass;
+}
+
+int id_pfp_chi2(const caf::Proxy<caf::SRSlice>& islc,
+             int ipfp,
+             double dist_cut = 10.)
+{
+    // =========================================================
+    // Particle ID strategy:
+    //   → only primary PFPs
+    //   → vertex associated
+    //   → track-like → p/π via χ² + KE
+    //   → shower-like → EM shower
+    // =========================================================
+
+    const auto& pfp = islc.reco.pfp[ipfp];
+
+    // =========================================================
+    // CUT 0 — must be primary and valid
+    // =========================================================
+    if (!pfp.parent_is_primary){ return 9;}
+    if (std::isnan(pfp.trk.start.x) || std::isnan(pfp.trk.end.x) ||
+        std::isnan(pfp.trk.len)){ return 9;}
+
+    const TVector3 reco_vtx(islc.vertex.x,
+                            islc.vertex.y,
+                            islc.vertex.z);
+
+    const TVector3 start(pfp.trk.start.x,
+                         pfp.trk.start.y,
+                         pfp.trk.start.z);
+
+    const TVector3 end(pfp.trk.end.x,
+                       pfp.trk.end.y,
+                       pfp.trk.end.z);
+
+    const double min_dist =
+        std::min((start - reco_vtx).Mag(), (end - reco_vtx).Mag());
+
+    // =========================================================
+    // CUT 1 — vertex association
+    // =========================================================
+    if (min_dist > 50){return 9;}
+
+    // =========================================================
+    // CUT 2 — calorimetry availability
+    // =========================================================
+    /*
+    if (pfp.trk.calo[DEFAULT_PLANE].nhit <= 2 ||
+        pfp.trk.calo[DEFAULT_PLANE].points.empty()) {
+        {MyFile << "No calo check - Unknown" << endl; return PFPID::Unknown;}
+    }*/
+
+    std::vector<double> chi2 = compute_chi2(islc, ipfp, 2);
+    if (chi2.size() < 2) {return 9;}
+
+    const double chi2_proton = chi2[1];
+
+    // =========================================================
+    // CUT 3 — good track-like objects
+    // =========================================================
+    if (pfp.trackScore >= 0.5) {
+
+        // ---------- pion hypothesis ----------
+        if (chi2_proton >= 100.0) {
+
+            TVector3 p_pi(pfp.trk.dir.x * pfp.trk.rangeP.p_pion,
+              pfp.trk.dir.y * pfp.trk.rangeP.p_pion,
+              pfp.trk.dir.z * pfp.trk.rangeP.p_pion);
+
+            double ke = kinetic_energy(PION_MASS, p_pi.Mag());
+
+            if ((reco_vtx - start).Mag() < dist_cut && ke >= 25.)
+                {return 2;}
+        }
+
+        // ---------- proton hypothesis ----------
+        if (chi2_proton < 100.0) {
+
+            TVector3 p_pr(pfp.trk.dir.x * pfp.trk.rangeP.p_proton,
+              pfp.trk.dir.y * pfp.trk.rangeP.p_proton,
+              pfp.trk.dir.z * pfp.trk.rangeP.p_proton);
+
+            double ke = kinetic_energy(PROTON_MASS, p_pr.Mag());
+
+            if ((reco_vtx - start).Mag() < dist_cut && ke >= 50.)
+                {return 1;}
+        }
+    }
+
+    // =========================================================
+    // CUT 4 — marginal tracks (proton recovery)
+    // =========================================================
+    if (pfp.trackScore >= 0.4 &&
+        pfp.trackScore <  0.5 &&
+        chi2_proton < 100.0) {
+
+        TVector3 p_pr(pfp.trk.dir.x * pfp.trk.rangeP.p_proton,
+              pfp.trk.dir.y * pfp.trk.rangeP.p_proton,
+              pfp.trk.dir.z * pfp.trk.rangeP.p_proton);
+
+        double ke = kinetic_energy(PROTON_MASS, p_pr.Mag());
+
+        if ((reco_vtx - start).Mag() < dist_cut && ke >= 50.)
+            {return 1;}
+    }
+
+    // =========================================================
+    // CUT 5 — shower-like objects
+    // =========================================================
+    if (!(pfp.trackScore >= 0.4 &&
+        pfp.trackScore <  0.5 &&
+        chi2_proton < 100.0) && pfp.trackScore < 0.5){
+    //if (pfp.trackScore < PRIMARY_TRACK_SCORE) {
+
+        //if (pfp.shw.plane[DEFAULT_PLANE].nHits <= 2){MyFile << "Shw no calo - Unknown" << endl; return PFPID::Unknown;}
+        if (std::isnan(pfp.shw.plane[2].energy)){return 9;}
+
+        double E = pfp.shw.plane[2].energy * 1000.0; // MeV
+
+        if (E > 25.)
+            {return 3;}
+    }
+
+    return 9;
+}
+
 
 bool isInContained (double x, double y, double z, double dist)
 {
@@ -887,7 +1143,7 @@ double T3D_angle_mup ( const caf::Proxy<caf::SRSlice>& islc, int ipfp_mu, int ip
 ///////////////////////////////////////////////////////////////////////////////////
 
 
-
+/*
 std::vector<std::string> slices_reco_class;
 std::vector<std::string> slices_true_class;
 int tot_1muNp = 0;
@@ -977,7 +1233,7 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
   return vector_active;
 });
 
-
+*/
 
 
 /*
@@ -990,13 +1246,13 @@ const SpillMultiVar files_check([](const caf::SRSpillProxy* sr)-> std::vector<do
 });
 */
 
-/*
-std::string file_sample = "OFFBEAM";
 
-ofstream muon_candidates(Form("PIDSYST_MUON_CANDIDATES_%s.txt",file_sample.c_str()));
-ofstream selected_muons(Form("PIDSYST_SELECTED_MUON_%s.txt",file_sample.c_str()));
-ofstream selected_protons(Form("PIDSYST_SELECTED_PROTONS_%s.txt",file_sample.c_str()));
-ofstream selected_pions(Form("PIDSYST_SELECTED_PIONS_%s.txt",file_sample.c_str()));
+std::string file_sample = "DATA";
+
+ofstream muon_candidates(Form("PIDSYST_CHI2_MUON_CANDIDATES_%s.txt",file_sample.c_str()));
+ofstream selected_muons(Form("PIDSYST_CHI2_SELECTED_MUON_%s.txt",file_sample.c_str()));
+ofstream selected_protons(Form("PIDSYST_CHI2_SELECTED_PROTONS_%s.txt",file_sample.c_str()));
+ofstream selected_pions(Form("PIDSYST_CHI2_SELECTED_PIONS_%s.txt",file_sample.c_str()));
 
 const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
@@ -1027,6 +1283,8 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
       RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
       TVector3 RecoStart;
 
+      double max_track_length = -1;
+
       for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
       {
 
@@ -1047,16 +1305,16 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
 
         // --> retrieve BDT variables
 
-        int bestplane = find_best_plane(islc,ipfp);
+        int bestplane = 2;
 
-        if(bestplane == -1)continue; //no valid hits (RR < 25 cm and RR > 1 cm and dEdx < 30 MeV/cm and dEdx > 1 MeV/cm) in neither of the 3 planes
+        // --> if(bestplane == -1)continue; //no valid hits (RR < 25 cm and RR > 1 cm and dEdx < 30 MeV/cm and dEdx > 1 MeV/cm) in neither of the 3 planes
 
         std::vector<double> temp_dedx;
         std::vector<double> temp_rr;
         std::vector<double> temp_pitch;
         std::vector<double> temp_x;
         std::vector<double> temp_mult;
-        std::vector<double> temp_proba = PIDproba(islc,ipfp);
+        // --> std::vector<double> temp_proba = PIDproba(islc,ipfp);
 
         double average_pitch = 0;
         double track_dir_x;
@@ -1079,15 +1337,16 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
 
         std::vector<double> temp_ke = compute_ke(islc,ipfp,bestplane);
 
-        std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+        // --> std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
         double depE = compute_depE(islc,ipfp,bestplane);
-        std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+        // --> std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
 
         muon_candidates << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
-        for(const auto &l : lr){muon_candidates << l << " ";}
-        muon_candidates << depE << " " << dvars[0] << " " << dvars[1] << " ";
-        muon_candidates << bestplane << " ";
-        for(const auto &p : temp_proba){muon_candidates << p << " ";}
+        //for(const auto &l : lr){muon_candidates << l << " ";}
+        //muon_candidates << depE << " " << dvars[0] << " " << dvars[1] << " ";
+        muon_candidates << depE << " ";
+        //muon_candidates << bestplane << " ";
+        //for(const auto &p : temp_proba){muon_candidates << p << " ";}
         for(const auto &dedx : temp_dedx){muon_candidates << dedx << "_";}
         muon_candidates << " ";
         for(const auto &rr : temp_rr){muon_candidates << rr << "_";}
@@ -1106,32 +1365,44 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
 
         // --> query the PID
 
-        int pid_pred = PIDclass(islc,ipfp);
-        if(pid_pred == 2 || pid_pred == 3)continue;
+        // --> int pid_pred = PIDclass(islc,ipfp);
+        // --> if(pid_pred == 2 || pid_pred == 3)continue;
 
-        std::vector<double> prediction_proba;
-        prediction_proba = PIDproba(islc,ipfp); //probabilities for the track to be each of the 6 classes
+        // --> std::vector<double> prediction_proba;
+        // --> prediction_proba = PIDproba(islc,ipfp); //probabilities for the track to be each of the 6 classes
 
-        double imu_prob = std::max(prediction_proba[0], prediction_proba[1]);
+        //double imu_prob = std::max(prediction_proba[0], prediction_proba[1]);
  
-        if(imu_prob > max_p_as_mu)
+        //if(imu_prob > max_p_as_mu)
+        //{
+          //max_p_as_mu=imu_prob;
+          //ipfp_mu=ipfp;
+        //}
+
+        std::vector<double> output_chi2 = compute_chi2(islc,ipfp,2);
+        //std::vector<double> output_chi2 = chi2_ALG(temp_dedx,temp_rr,0,25);
+        if(output_chi2.size() > 1 && islc.reco.pfp[ipfp].trk.len > max_track_length && output_chi2[0] < 30. && output_chi2[1] > 60.)
         {
-          max_p_as_mu=imu_prob;
-          ipfp_mu=ipfp;
+          ipfp_mu = ipfp;
+          max_track_length = islc.reco.pfp[ipfp].trk.len;
         }
+
+
 
       }//loop of pfp to find muon
 
       if(ipfp_mu != -1)
       {
-        int bestplane = find_best_plane(islc,ipfp_mu);
+        // --> int bestplane = find_best_plane(islc,ipfp_mu);
+
+        int bestplane = 2;
 
         std::vector<double> temp_dedx;
         std::vector<double> temp_rr;
         std::vector<double> temp_pitch;
         std::vector<double> temp_x;
         std::vector<double> temp_mult;
-        std::vector<double> temp_proba = PIDproba(islc,ipfp_mu);
+        // --> std::vector<double> temp_proba = PIDproba(islc,ipfp_mu);
 
         double average_pitch = 0;
         double track_dir_x;
@@ -1154,15 +1425,18 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
 
         std::vector<double> temp_ke = compute_ke(islc,ipfp_mu,bestplane);
 
-        std::vector<double> lr = likelihood(islc,ipfp_mu, prob_d_coll, prob_d_ind1, prob_d_ind2);
+        // --> std::vector<double> lr = likelihood(islc,ipfp_mu, prob_d_coll, prob_d_ind1, prob_d_ind2);
         double depE = compute_depE(islc,ipfp_mu,bestplane);
-        std::vector<double> dvars = compute_daughter_vars(islc,ipfp_mu);
+        // --> std::vector<double> dvars = compute_daughter_vars(islc,ipfp_mu);
 
         selected_muons << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
-        for(const auto &l : lr){selected_muons << l << " ";}
-        selected_muons << depE << " " << dvars[0] << " " << dvars[1] << " ";
-        selected_muons << bestplane << " ";
-        for(const auto &p : temp_proba){selected_muons << p << " ";}
+        // --> for(const auto &l : lr){selected_muons << l << " ";}
+        // --> selected_muons << depE << " " << dvars[0] << " " << dvars[1] << " ";
+
+        selected_muons << depE << " ";
+
+        // --> selected_muons << bestplane << " ";
+        // --> for(const auto &p : temp_proba){selected_muons << p << " ";}
         for(const auto &dedx : temp_dedx){selected_muons << dedx << "_";}
         selected_muons << " ";
         for(const auto &rr : temp_rr){selected_muons << rr << "_";}
@@ -1184,17 +1458,23 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
       {
         if((int)ipfp == ipfp_mu)continue;
 
-        int id_pfp = id_pfp_newPID(islc, ipfp, 10);
+        // --> int id_pfp = id_pfp_newPID(islc, ipfp, 10);
+
+        int id_pfp = id_pfp_chi2(islc,ipfp);
+
+
         if(id_pfp == 1)
         {
-          int bestplane = find_best_plane(islc,ipfp);
+          // --> int bestplane = find_best_plane(islc,ipfp);
+
+          int bestplane = 2;
 
           std::vector<double> temp_dedx;
           std::vector<double> temp_rr;
           std::vector<double> temp_pitch;
           std::vector<double> temp_x;
           std::vector<double> temp_mult;
-          std::vector<double> temp_proba = PIDproba(islc,ipfp);
+          // --> std::vector<double> temp_proba = PIDproba(islc,ipfp);
 
           double average_pitch = 0;
           double track_dir_x;
@@ -1217,15 +1497,16 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
 
           std::vector<double> temp_ke = compute_ke(islc,ipfp,bestplane);
 
-          std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+          // --> std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
           double depE = compute_depE(islc,ipfp,bestplane);
-          std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+          // --> std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
 
           selected_protons << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
-          for(const auto &l : lr){selected_protons << l << " ";}
-          selected_protons << depE << " " << dvars[0] << " " << dvars[1] << " ";
-          selected_protons << bestplane << " ";
-          for(const auto &p : temp_proba){selected_protons << p << " ";}
+          // --> for(const auto &l : lr){selected_protons << l << " ";}
+          // --> selected_protons << depE << " " << dvars[0] << " " << dvars[1] << " ";
+          selected_protons << depE << " ";
+          // --> selected_protons << bestplane << " ";
+          // --> for(const auto &p : temp_proba){selected_protons << p << " ";}
           for(const auto &dedx : temp_dedx){selected_protons << dedx << "_";}
           selected_protons << " ";
           for(const auto &rr : temp_rr){selected_protons << rr << "_";}
@@ -1242,14 +1523,16 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
         }
         if(id_pfp == 2)
         {
-          int bestplane = find_best_plane(islc,ipfp);
+          // --> int bestplane = find_best_plane(islc,ipfp);
+
+          int bestplane = 2;
 
           std::vector<double> temp_dedx;
           std::vector<double> temp_rr;
           std::vector<double> temp_pitch;
           std::vector<double> temp_x;
           std::vector<double> temp_mult;
-          std::vector<double> temp_proba = PIDproba(islc,ipfp);
+          // --> std::vector<double> temp_proba = PIDproba(islc,ipfp);
 
           double average_pitch = 0;
           double track_dir_x;
@@ -1272,15 +1555,18 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
 
           std::vector<double> temp_ke = compute_ke(islc,ipfp,bestplane);
 
-          std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
+          // --> std::vector<double> lr = likelihood(islc,ipfp, prob_d_coll, prob_d_ind1, prob_d_ind2);
           double depE = compute_depE(islc,ipfp,bestplane);
-          std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
+          // --> std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
 
           selected_pions << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
-          for(const auto &l : lr){selected_pions << l << " ";}
-          selected_pions << depE << " " << dvars[0] << " " << dvars[1] << " ";
-          selected_pions << bestplane << " ";
-          for(const auto &p : temp_proba){selected_pions << p << " ";}
+          // --> for(const auto &l : lr){selected_pions << l << " ";}
+          // --> selected_pions << depE << " " << dvars[0] << " " << dvars[1] << " ";
+
+          selected_pions << depE << " ";
+
+          // --> selected_pions << bestplane << " ";
+          // --> for(const auto &p : temp_proba){selected_pions << p << " ";}
           for(const auto &dedx : temp_dedx){selected_pions << dedx << "_";}
           selected_pions << " ";
           for(const auto &rr : temp_rr){selected_pions << rr << "_";}
@@ -1304,4 +1590,4 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
     return vector_active;
 });
 
-*/
+
