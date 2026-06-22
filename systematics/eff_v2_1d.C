@@ -77,7 +77,7 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
 	bool PRINT_EAST_IND1_TPC1 = false;
 	bool PRINT_EAST_IND1_TPC2 = false;
 	bool PRINT_EAST_IND1_TPC3 = false;
-	bool PRINT_EAST_IND2_TPC01 = true;
+	bool PRINT_EAST_IND2_TPC01 = false;
 	bool PRINT_EAST_IND2_TPC23 = false;
 	bool PRINT_EAST_COLL_TPC01 = false;
 	bool PRINT_EAST_COLL_TPC23 = false;
@@ -155,9 +155,9 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
 	int _max_buco = -1;
 
 	short _which_t0 = -1;
-	float _t0PFP = -1;
-	float _t0CRTTrack = -1;
-	float _t0CRTHit = -1;
+	//float _t0PFP = -1;
+	//float _t0CRTTrack = -1;
+	//float _t0CRTHit = -1;
 
 	int _nholes = -1;
 	std::vector<std::vector<double>> _wire_holes; // --> it contains:
@@ -191,9 +191,9 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
 	outree -> Branch("trk_length",&_trk_length);
 	outree -> Branch("max_buco",&_max_buco);
 	outree -> Branch("whicht0",&_which_t0);
-	outree -> Branch("t0PFP", &_t0PFP);
-	outree -> Branch("t0CRTTrack", &_t0CRTTrack);
-	outree -> Branch("t0CRTHit", &_t0CRTHit);
+	//outree -> Branch("t0PFP", &_t0PFP);
+	//outree -> Branch("t0CRTTrack", &_t0CRTTrack);
+	//outree -> Branch("t0CRTHit", &_t0CRTHit);
 	outree -> Branch("nholes",&_nholes);
 	outree -> Branch("wire_holes",&_wire_holes);
 
@@ -670,7 +670,7 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
 
 	TTreeReaderValue<int> whicht0TPCW (myReaderTPCW, "whicht0");
     TTreeReaderValue<float>	lengthTPCW(myReaderTPCW, "length"), 
-							t0TPCW(myReaderTPCW, "t0PFP"),
+							//t0TPCW(myReaderTPCW, "t0PFP"),
         					startxTPCW(myReaderTPCW, "start.x"),
         					startyTPCW(myReaderTPCW, "start.y"),
         					startzTPCW(myReaderTPCW, "start.z"),
@@ -680,9 +680,9 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
         				
     TTreeReaderValue<bool> clear_cosmic_muonTPCW_0(myReaderTPCW, "clear_cosmic_muon");
 
-	TTreeReaderValue<float> t0_PFP_TPCW(myReaderTPCW, "t0PFP");
-	TTreeReaderValue<float> t0_CRT_Track_TPCW(myReaderTPCW, "t0CRTTrack");
-	TTreeReaderValue<float> t0_CRT_Hit_TPCW(myReaderTPCW, "t0CRTHit");
+	//TTreeReaderValue<float> t0_PFP_TPCW(myReaderTPCW, "t0PFP");
+	//TTreeReaderValue<float> t0_CRT_Track_TPCW(myReaderTPCW, "t0CRTTrack");
+	//TTreeReaderValue<float> t0_CRT_Hit_TPCW(myReaderTPCW, "t0CRTHit");
 
 	TTreeReaderValue<int>   truthG4W(myReaderTPCW, "truth.p.G4ID");
         	
@@ -773,7 +773,7 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
         	
     TTreeReaderValue<int> whicht0TPCE (myReaderTPCE, "whicht0");
     TTreeReaderValue<float>	lengthTPCE(myReaderTPCE, "length"),
-	    					t0TPCE(myReaderTPCE, "t0PFP"),
+	    					//t0TPCE(myReaderTPCE, "t0PFP"),
         					startxTPCE(myReaderTPCE, "start.x"),
         					startyTPCE(myReaderTPCE, "start.y"),
         					startzTPCE(myReaderTPCE, "start.z"),
@@ -783,9 +783,9 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
         				
     TTreeReaderValue<bool>	clear_cosmic_muonTPCE_0(myReaderTPCE, "clear_cosmic_muon");
 
-	TTreeReaderValue<float> t0_PFP_TPCE(myReaderTPCE, "t0PFP");
-	TTreeReaderValue<float> t0_CRT_Track_TPCE(myReaderTPCE, "t0CRTTrack");
-	TTreeReaderValue<float> t0_CRT_Hit_TPCE(myReaderTPCE, "t0CRTHit");
+	//TTreeReaderValue<float> t0_PFP_TPCE(myReaderTPCE, "t0PFP");
+	//TTreeReaderValue<float> t0_CRT_Track_TPCE(myReaderTPCE, "t0CRTTrack");
+	//TTreeReaderValue<float> t0_CRT_Hit_TPCE(myReaderTPCE, "t0CRTHit");
 
 	TTreeReaderValue<int>   truthG4E(myReaderTPCE, "truth.p.G4ID");
         	
@@ -890,7 +890,7 @@ while(myReaderTPCW.Next())
 	
 
 
-	if(*truthG4W == -1)continue; // --> MC in Overlays
+	//if(*truthG4W == -1)continue; // --> MC in Overlays
 	//if(*truthG4W != -1)continue; // --> DATA in Overlays
 
 	//muon length must be greater than 1 meter
@@ -1095,9 +1095,9 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
-			_t0PFP = *t0_PFP_TPCW;
-			_t0CRTTrack = *t0_CRT_Track_TPCW;
-			_t0CRTHit = *t0_CRT_Hit_TPCW;
+			//_t0PFP = *t0_PFP_TPCW;
+			//_t0CRTTrack = *t0_CRT_Track_TPCW;
+			//_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
 
@@ -1259,9 +1259,9 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
-			_t0PFP = *t0_PFP_TPCW;
-			_t0CRTTrack = *t0_CRT_Track_TPCW;
-			_t0CRTHit = *t0_CRT_Hit_TPCW;
+			//_t0PFP = *t0_PFP_TPCW;
+			//_t0CRTTrack = *t0_CRT_Track_TPCW;
+			//_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
 
@@ -1419,9 +1419,9 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
-			_t0PFP = *t0_PFP_TPCW;
-			_t0CRTTrack = *t0_CRT_Track_TPCW;
-			_t0CRTHit = *t0_CRT_Hit_TPCW;
+			//_t0PFP = *t0_PFP_TPCW;
+			//_t0CRTTrack = *t0_CRT_Track_TPCW;
+			//_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
 
@@ -1581,9 +1581,9 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
-			_t0PFP = *t0_PFP_TPCW;
-			_t0CRTTrack = *t0_CRT_Track_TPCW;
-			_t0CRTHit = *t0_CRT_Hit_TPCW;
+			//_t0PFP = *t0_PFP_TPCW;
+			//_t0CRTTrack = *t0_CRT_Track_TPCW;
+			//_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
 
@@ -1839,9 +1839,9 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 		    _which_t0 = *whicht0TPCW;
-			_t0PFP = *t0_PFP_TPCW;
-			_t0CRTTrack = *t0_CRT_Track_TPCW;
-			_t0CRTHit = *t0_CRT_Hit_TPCW;
+			//_t0PFP = *t0_PFP_TPCW;
+			//_t0CRTTrack = *t0_CRT_Track_TPCW;
+			//_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
 
@@ -2021,9 +2021,9 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
-			_t0PFP = *t0_PFP_TPCW;
-			_t0CRTTrack = *t0_CRT_Track_TPCW;
-			_t0CRTHit = *t0_CRT_Hit_TPCW;
+			//_t0PFP = *t0_PFP_TPCW;
+			//_t0CRTTrack = *t0_CRT_Track_TPCW;
+			//_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
 
@@ -2287,9 +2287,9 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
-			_t0PFP = *t0_PFP_TPCW;
-			_t0CRTTrack = *t0_CRT_Track_TPCW;
-			_t0CRTHit = *t0_CRT_Hit_TPCW;
+			//_t0PFP = *t0_PFP_TPCW;
+			//_t0CRTTrack = *t0_CRT_Track_TPCW;
+			//_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
 
@@ -2484,9 +2484,9 @@ while(myReaderTPCW.Next())
 			_trk_length = *lengthTPCW;
 			_max_buco = max_buco;
 			_which_t0 = *whicht0TPCW;
-			_t0PFP = *t0_PFP_TPCW;
-			_t0CRTTrack = *t0_CRT_Track_TPCW;
-			_t0CRTHit = *t0_CRT_Hit_TPCW;
+			//_t0PFP = *t0_PFP_TPCW;
+			//_t0CRTTrack = *t0_CRT_Track_TPCW;
+			//_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
 
@@ -2539,7 +2539,7 @@ myReaderTPCE.Restart();
 while(myReaderTPCE.Next()) 
 {	
 
-if(*truthG4E == -1)continue; //MC in Overlays
+//if(*truthG4E == -1)continue; //MC in Overlays
 //if(*truthG4E != -1)continue; // DATA in Overlays
 
 //muon length must be greater than 1 meter
@@ -2721,9 +2721,9 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
-		_t0PFP = *t0_PFP_TPCE;
-		_t0CRTTrack = *t0_CRT_Track_TPCE;
-		_t0CRTHit = *t0_CRT_Hit_TPCE;
+		//_t0PFP = *t0_PFP_TPCE;
+		//_t0CRTTrack = *t0_CRT_Track_TPCE;
+		//_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
@@ -2876,9 +2876,9 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
-		_t0PFP = *t0_PFP_TPCE;
-		_t0CRTTrack = *t0_CRT_Track_TPCE;
-		_t0CRTHit = *t0_CRT_Hit_TPCE;
+		//_t0PFP = *t0_PFP_TPCE;
+		//_t0CRTTrack = *t0_CRT_Track_TPCE;
+		//_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
@@ -3031,9 +3031,9 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
-		_t0PFP = *t0_PFP_TPCE;
-		_t0CRTTrack = *t0_CRT_Track_TPCE;
-		_t0CRTHit = *t0_CRT_Hit_TPCE;
+		//_t0PFP = *t0_PFP_TPCE;
+		//_t0CRTTrack = *t0_CRT_Track_TPCE;
+		//_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
@@ -3186,9 +3186,9 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
-		_t0PFP = *t0_PFP_TPCE;
-		_t0CRTTrack = *t0_CRT_Track_TPCE;
-		_t0CRTHit = *t0_CRT_Hit_TPCE;
+		//_t0PFP = *t0_PFP_TPCE;
+		//_t0CRTTrack = *t0_CRT_Track_TPCE;
+		//_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
@@ -3421,9 +3421,9 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
-		_t0PFP = *t0_PFP_TPCE;
-		_t0CRTTrack = *t0_CRT_Track_TPCE;
-		_t0CRTHit = *t0_CRT_Hit_TPCE;
+		//_t0PFP = *t0_PFP_TPCE;
+		//_t0CRTTrack = *t0_CRT_Track_TPCE;
+		//_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
@@ -3593,9 +3593,9 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
-		_t0PFP = *t0_PFP_TPCE;
-		_t0CRTTrack = *t0_CRT_Track_TPCE;
-		_t0CRTHit = *t0_CRT_Hit_TPCE;
+		//_t0PFP = *t0_PFP_TPCE;
+		//_t0CRTTrack = *t0_CRT_Track_TPCE;
+		//_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
@@ -3837,9 +3837,9 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
-		_t0PFP = *t0_PFP_TPCE;
-		_t0CRTTrack = *t0_CRT_Track_TPCE;
-		_t0CRTHit = *t0_CRT_Hit_TPCE;
+		//_t0PFP = *t0_PFP_TPCE;
+		//_t0CRTTrack = *t0_CRT_Track_TPCE;
+		//_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
@@ -4022,9 +4022,9 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_trk_length = *lengthTPCE;
 		_max_buco = max_buco;
 		_which_t0 = *whicht0TPCE;
-		_t0PFP = *t0_PFP_TPCE;
-		_t0CRTTrack = *t0_CRT_Track_TPCE;
-		_t0CRTHit = *t0_CRT_Hit_TPCE;
+		//_t0PFP = *t0_PFP_TPCE;
+		//_t0CRTTrack = *t0_CRT_Track_TPCE;
+		//_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
 
