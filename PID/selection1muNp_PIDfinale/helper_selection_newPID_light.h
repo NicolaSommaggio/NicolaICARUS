@@ -50,18 +50,18 @@ double DEP_E_P_RISING_CUT = 0.;
 using namespace ana;
 
 //CNAF
-//TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
-//auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
-//auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
-//auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
-//auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
-
-//FNAL
-TFile* file = TFile::Open("/exp/icarus/data/users/nsommagg/RefCurvesChi2.root");
+TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
 auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
 auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
 auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
 auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
+
+//FNAL
+//TFile* file = TFile::Open("/exp/icarus/data/users/nsommagg/RefCurvesChi2.root");
+//auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
+//auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
+//auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
+//auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
 
 const SpillCut kCRTPMTNeutrino([](const caf::SRSpillProxy* spill){
   return true;
@@ -1247,7 +1247,7 @@ const SpillMultiVar files_check([](const caf::SRSpillProxy* sr)-> std::vector<do
 */
 
 
-std::string file_sample = "DATA";
+std::string file_sample = "DATA1D";
 
 ofstream muon_candidates(Form("PIDSYST_CHI2_MUON_CANDIDATES_%s.txt",file_sample.c_str()));
 ofstream selected_muons(Form("PIDSYST_CHI2_SELECTED_MUON_%s.txt",file_sample.c_str()));
