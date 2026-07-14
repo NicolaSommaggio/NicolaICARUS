@@ -4,7 +4,7 @@ void ReadEffTree()
     // READING THE TREE
     //
 
-    TFile * infile = TFile::Open("tree_outfile.root","READ");
+    TFile * infile = TFile::Open("tree_outfile_complete_tree_overlays.root","READ");
 
     TTree * intree = (TTree*)infile -> Get("outree");
 
@@ -40,6 +40,9 @@ void ReadEffTree()
                                                   // _hit_mult_before_buco
                                                   // _hit_mult_after_buco
 
+    int g4id = -999;
+    float truth_fraction = -1;
+
     intree -> SetBranchAddress("run",&run);
 	intree -> SetBranchAddress("evt",&evt);
 	intree -> SetBranchAddress("cryo",&cryo);
@@ -60,6 +63,8 @@ void ReadEffTree()
     intree -> SetBranchAddress("t0CRTHit",&t0CRTHit);
 	intree -> SetBranchAddress("nholes",&nholes);
 	intree -> SetBranchAddress("wire_holes",&wire_holes);
+    intree -> SetBranchAddress("G4ID",&g4id);
+    intree -> SetBranchAddress("truth_fraction",&truth_fraction); 
 
     //
     // DEFINING THE HISTOS
@@ -78,7 +83,7 @@ void ReadEffTree()
     {
         intree->GetEntry(i);
 
-        if(true) 
+        if(false) 
         {
             cout << run << " " << evt << " " << nholes << " holes " << endl;
             for(const auto &hole : *wire_holes)
@@ -93,7 +98,9 @@ void ReadEffTree()
             cout << endl;
         }
 
-        if(tot_wires < 0){cout << "TOT_WIRES: " << tot_wires << " TPC: " << tpc << " PLANE: " << plane << " CRYO: " << cryo << " MIN_WIRE: " << min_wire << " MAX_WIRE: " << max_wire << endl;}
+        //if(tot_wires < 0){cout << "TOT_WIRES: " << tot_wires << " TPC: " << tpc << " PLANE: " << plane << " CRYO: " << cryo << " MIN_WIRE: " << min_wire << " MAX_WIRE: " << max_wire << endl;}
+
+        if(g4id == -1 || truth_fraction < 0.8)continue;
 
         if(plane == 0)
         {
@@ -109,7 +116,7 @@ void ReadEffTree()
         }
     }
 
-    TFile * histo_file = TFile::Open("all_histo.root","UPDATE");
+    TFile * histo_file = TFile::Open("all_histo.root","RECREATE");
     histo_file -> cd();
     prof_eff_vs_pitch_0->Write(0,TObject::kOverwrite);
     prof_eff_vs_pitch_1->Write(0,TObject::kOverwrite);

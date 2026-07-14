@@ -88,7 +88,7 @@ const std::string fdata= "/storage/gpfs_data/icarus/local/users/cfarnese/new_stu
 //const std::string fdata = "/pnfs/icarus/scratch/users/gputnam/Ar23+_iterE/ICARUSSpringMC/*/*flat.caf.root";
 
 //ICARUS Offbeam
-//const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_06_00_01p05_offbeambnbmajority_flatcaf_unblind";
+const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_06_00_01p05_offbeambnbmajority_flatcaf_unblind";
 
 //DATI
 //const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_2_v10_06_00_06p03_bnbmajority_flatcaf_prescaled";
@@ -118,12 +118,12 @@ const Binning kBinz = Binning::Simple(300,0,30);
 //Spectrum s1("", kBinz, loader, selection_newPID ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, DATAlikelihood ,kCRTPMTNeutrino );
 //Spectrum s1("", kBinz, loader, kStitch ,kNoSpillCut );
-//Spectrum s1("", kBinz, loader, selection ,kNoSpillCut );
+Spectrum s1("", kBinz, loader, selection ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fchi2dump ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fdebug1mu0p0pi ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fdump_pred_proba ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, files_check ,kNoSpillCut );
-Spectrum s1("", kBinz, loader, dump_BDT_vars ,kNoSpillCut );
+//Spectrum s1("", kBinz, loader, dump_BDT_vars ,kNoSpillCut );
 
 //muons.clear();
 //pions.clear();
@@ -290,7 +290,7 @@ outfile->Close();
 
 //counts how many 1muNp selected
 
-/* //HERE 
+/**/ //HERE 
 double selected_1muNp = 0;
 double selected_1muNp_correct = 0;
 
@@ -316,7 +316,7 @@ if(ismc)
     //cout << tot_1mu0p0pi_slices << " 1mu0p0pi slices " << tot_NON_protons_1mu0p0pi_slices << " with no protons" << endl;
     //cout << tot_NON_protons_1mu0p0pi_protons << " misclassified protons in 1mu0p0pi slices" << endl;
 }
-*/
+/**/
 
 //stitching only with daughters
 

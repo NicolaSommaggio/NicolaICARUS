@@ -986,13 +986,13 @@ std::string selection_1muNp_newPID ( const caf::SRSpillProxy* sr, const caf::Pro
   if(!(all_contained(islc)))return "bad_slice_CONTAINMENT";
 
   // test without light -->
-  double bar_flash_z = bar_flash(sr,islc); 
-	double bar_falsh_x = bar_flash_x(sr,islc);
-  double delta=fabs(bar_flash(sr,islc)-islc.charge_center.z);
+//  double bar_flash_z = bar_flash(sr,islc); 
+//	double bar_falsh_x = bar_flash_x(sr,islc);
+//  double delta=fabs(bar_flash(sr,islc)-islc.charge_center.z);
 
-  if(bar_falsh_x*islc.vertex.x <= 0)return "bad_slice_CRT_PMT";
-  if(bar_flash_z <= -10000)return "bad_slice_BARYCENTER";
-  if(delta <= 0 || delta >= cut_baryc) return "bad_slice_BARYCENTER";
+//  if(bar_falsh_x*islc.vertex.x <= 0)return "bad_slice_CRT_PMT_and_SAME_CRYO";
+//  if(bar_flash_z <= -10000)return "bad_slice_BARYCENTER";
+//  if(delta <= 0 || delta >= cut_baryc) return "bad_slice_BARYCENTER";
   // <--
 
   int ipfp_mu = -1;
@@ -1143,7 +1143,7 @@ double T3D_angle_mup ( const caf::Proxy<caf::SRSlice>& islc, int ipfp_mu, int ip
 ///////////////////////////////////////////////////////////////////////////////////
 
 
-/*
+
 std::vector<std::string> slices_reco_class;
 std::vector<std::string> slices_true_class;
 int tot_1muNp = 0;
@@ -1152,7 +1152,7 @@ int tot_1muNp = 0;
 
 bool ismc;
 
-ofstream dump_reco_class("NEW_MC_dump_selezione_finale_WITH_LIGHT_MC.txt");
+ofstream dump_reco_class("DUMP_selection_NO_LIGHT_NO_CRT_OFFBEAM.txt");
 
 const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
@@ -1188,7 +1188,6 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
       }
       slices_true_class.push_back(slice_class_true);
 
-      //std::string slice_class = selection_1muNp_newPID_mod(sr,islc,10,100,-1,-1,-1);
       std::string slice_class = selection_1muNp_newPID(sr,islc,10,100,-1,-1,-1);
       slices_reco_class.push_back(slice_class);
 
@@ -1218,13 +1217,13 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
 
       if(sr->hdr.ismc)
       {
-        dump_reco_class << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << nuE << " " << slice_class << " " << slice_class_true << " " << mu_pro_angle << " " << length_leading_proton << " " << muon_length << endl;
+        dump_reco_class << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << nuE << " " << slice_class << " " << slice_class_true << " " << mu_pro_angle << " " << length_leading_proton << " " << muon_length << " " << islc.nu_score << endl;
       }
       else
       {
         if(is1muNp(slice_class))
         {
-          dump_reco_class << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << nuE << " " << slice_class << " " << slice_class_true << " " << mu_pro_angle << " " << length_leading_proton << " " << muon_length << endl;
+          dump_reco_class << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << nuE << " " << slice_class << " " << slice_class_true << " " << mu_pro_angle << " " << length_leading_proton << " " << muon_length << " " << islc.nu_score << endl;
         }
       }
 
@@ -1233,7 +1232,7 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
   return vector_active;
 });
 
-*/
+
 
 
 /*
@@ -1246,8 +1245,8 @@ const SpillMultiVar files_check([](const caf::SRSpillProxy* sr)-> std::vector<do
 });
 */
 
-
-std::string file_sample = "DATA1D";
+/*
+std::string file_sample = "DATA";
 
 ofstream muon_candidates(Form("PIDSYST_CHI2_MUON_CANDIDATES_%s.txt",file_sample.c_str()));
 ofstream selected_muons(Form("PIDSYST_CHI2_SELECTED_MUON_%s.txt",file_sample.c_str()));
@@ -1590,4 +1589,4 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
     return vector_active;
 });
 
-
+*/

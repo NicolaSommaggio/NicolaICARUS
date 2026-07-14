@@ -77,7 +77,7 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
 	bool PRINT_EAST_IND1_TPC1 = false;
 	bool PRINT_EAST_IND1_TPC2 = false;
 	bool PRINT_EAST_IND1_TPC3 = false;
-	bool PRINT_EAST_IND2_TPC01 = true;
+	bool PRINT_EAST_IND2_TPC01 = false;
 	bool PRINT_EAST_IND2_TPC23 = false;
 	bool PRINT_EAST_COLL_TPC01 = false;
 	bool PRINT_EAST_COLL_TPC23 = false;
@@ -173,6 +173,9 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
 												  // _hit_mult_before_buco
 												  // _hit_mult_after_buco
 
+	int _G4ID = -999;
+	float _truth_fraction = -1;
+
 	TFile * tree_outfile = new TFile(Form("tree_outfile_%s.root",sample_name.c_str()),"RECREATE");
 	tree_outfile -> cd();
 	TTree * outree = new TTree("outree","outree");
@@ -196,6 +199,8 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
 	outree -> Branch("t0CRTHit", &_t0CRTHit);
 	outree -> Branch("nholes",&_nholes);
 	outree -> Branch("wire_holes",&_wire_holes);
+	outree -> Branch("G4ID",&_G4ID);
+	outree -> Branch("truth_fraction",&_truth_fraction);
 
 //		//
 //		//	DEFINE VARIABLES NEEDED FOR EFFICIENCY vs AVERAGE PITCH HISTOGRAMS
@@ -875,23 +880,56 @@ void efficiency(string file_list, int file_number, std::string sample_name) {
 myReaderTPCW.Restart();
 while(myReaderTPCW.Next())
 {	
-
-	//cout << "NEW TRACK" << endl << endl;;
-	//for(int hit = 0; hit < h2_truth_ne_W.GetSize(); hit++)
-	//{
-	//	cout << h2_truth_ne_W[hit] << " ";
-	//}
-	//cout << endl;
-	//for(int hit = 0; hit < h2_truth_e_W.GetSize(); hit++)
-	//{
-	//	cout << h2_truth_e_W[hit] << " ";
-	//}
-	//cout << endl << endl;
-	
-
-
-	if(*truthG4W == -1)continue; // --> MC in Overlays
+	//if(*truthG4W == -1)continue; // --> MC in Overlays --> HERE
 	//if(*truthG4W != -1)continue; // --> DATA in Overlays
+
+	int bestplane = -1;
+	std::array<float,3> nhit = {0,0,0};
+	std::array<float,3> n_valid_hit = {0,0,0};
+	float truth_fraction = 0;
+
+	for(int hit = 0; hit < tpcTPCW_0.GetSize(); hit++)
+	{
+		nhit[0] ++;
+		if(h0_truth_ne_W[hit] > 0 && h0_truth_e_W[hit] > 0){n_valid_hit[0]++;}
+	}
+	for(int hit = 0; hit < tpcTPCW_1.GetSize(); hit++)
+	{
+		nhit[1] ++;
+		if(h1_truth_ne_W[hit] > 0 && h1_truth_e_W[hit] > 0){n_valid_hit[1]++;}
+	}
+	for(int hit = 0; hit < tpcTPCW_2.GetSize(); hit++)
+	{
+		nhit[2] ++;
+		if(h2_truth_ne_W[hit] > 0 && h2_truth_e_W[hit] > 0){n_valid_hit[2]++;}
+	}
+
+	bestplane = 0;
+	for (int i = 1; i < 3; ++i) 
+	{
+    	if (nhit[i] > nhit[bestplane])
+        bestplane = i;
+	}
+
+	if (nhit[bestplane] > 0){truth_fraction = n_valid_hit[bestplane] / nhit[bestplane];}
+
+	//if(truth_fraction < 0.8)continue; --> HERE
+
+	if(false)
+	{
+		cout << "WEST *** NEW TRACK, G4ID: " << *truthG4W << ", TRUTH FRACTION: " << truth_fraction << endl << endl;
+		cout << "plane0 " << tpcTPCW_0.GetSize() << " " << nhit[0] << " | plane1 " << tpcTPCW_1.GetSize() << " " << nhit[1] << " | plane2 " << tpcTPCW_2.GetSize() << " " << nhit[2] << " " << endl << endl;
+		for(int hit = 0; hit < h2_truth_ne_W.GetSize(); hit++)
+		{
+			cout << h2_truth_ne_W[hit] << " ";
+		}
+		cout << endl;
+		for(int hit = 0; hit < h2_truth_e_W.GetSize(); hit++)
+		{
+			cout << h2_truth_e_W[hit] << " ";
+		}
+		cout << endl << endl;
+	}
 
 	//muon length must be greater than 1 meter
 	if(*lengthTPCW > 100 && ( (*whicht0TPCW)==0 || (*whicht0TPCW)==2 )) 
@@ -1100,6 +1138,8 @@ while(myReaderTPCW.Next())
 			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+			_G4ID = *truthG4W;
+			_truth_fraction = truth_fraction;
 
 			//cout << _start.X() << " " << _start.Y() << " " << _start.Z() << " " << _end.X() << " " << _end.Y() << " " << _end.Z() << " | " << " " << _nholes << " holes: ";
 			if(PRINT_WEST_IND1_TPC0)
@@ -1264,6 +1304,8 @@ while(myReaderTPCW.Next())
 			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+			_G4ID = *truthG4W;
+			_truth_fraction = truth_fraction;
 
 			if(PRINT_WEST_IND1_TPC1)
 			{
@@ -1424,6 +1466,8 @@ while(myReaderTPCW.Next())
 			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+			_G4ID = *truthG4W;
+			_truth_fraction = truth_fraction;
 
 			if(PRINT_WEST_IND1_TPC2)
 			{
@@ -1586,6 +1630,8 @@ while(myReaderTPCW.Next())
 			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+			_G4ID = *truthG4W;
+			_truth_fraction = truth_fraction;
 
 			if(PRINT_WEST_IND1_TPC3)
 			{
@@ -1844,6 +1890,8 @@ while(myReaderTPCW.Next())
 			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+			_G4ID = *truthG4W;
+			_truth_fraction = truth_fraction;
 
 			if(PRINT_WEST_IND2_TPC01)
 			{
@@ -2026,6 +2074,8 @@ while(myReaderTPCW.Next())
 			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+			_G4ID = *truthG4W;
+			_truth_fraction = truth_fraction;
 
 			if(PRINT_WEST_IND2_TPC23)
 			{
@@ -2292,6 +2342,8 @@ while(myReaderTPCW.Next())
 			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+			_G4ID = *truthG4W;
+			_truth_fraction = truth_fraction;
 
 			if(PRINT_WEST_COLL_TPC01)
 			{
@@ -2489,6 +2541,8 @@ while(myReaderTPCW.Next())
 			_t0CRTHit = *t0_CRT_Hit_TPCW;
 			_nholes = holes_temp.size();
 			_wire_holes = holes_temp;
+			_G4ID = *truthG4W;
+			_truth_fraction = truth_fraction;
 
 			if(PRINT_WEST_COLL_TPC23)
 			{
@@ -2539,8 +2593,58 @@ myReaderTPCE.Restart();
 while(myReaderTPCE.Next()) 
 {	
 
-if(*truthG4E == -1)continue; //MC in Overlays
-//if(*truthG4E != -1)continue; // DATA in Overlays
+	//if(*truthG4E == -1)continue; //MC in Overlays
+	//if(*truthG4E != -1)continue; // DATA in Overlays
+
+	//if(*truthG4E == -1)continue; // --> MC in Overlays // --> HERE
+
+	int bestplane = -1;
+	std::array<float,3> nhit = {0,0,0};
+	std::array<float,3> n_valid_hit = {0,0,0};
+	float truth_fraction = 0;
+
+	for(int hit = 0; hit < tpcTPCE_0.GetSize(); hit++)
+	{
+		nhit[0] ++;
+		if(h0_truth_ne_E[hit] > 0 && h0_truth_e_E[hit] > 0){n_valid_hit[0]++;}
+	}
+	for(int hit = 0; hit < tpcTPCE_1.GetSize(); hit++)
+	{
+		nhit[1] ++;
+		if(h1_truth_ne_E[hit] > 0 && h1_truth_e_E[hit] > 0){n_valid_hit[1]++;}
+	}
+	for(int hit = 0; hit < tpcTPCE_2.GetSize(); hit++)
+	{
+		nhit[2] ++;
+		if(h2_truth_ne_E[hit] > 0 && h2_truth_e_E[hit] > 0){n_valid_hit[2]++;}
+	}
+
+	bestplane = 0;
+	for (int i = 1; i < 3; ++i) 
+	{
+    	if (nhit[i] > nhit[bestplane])
+        bestplane = i;
+	}
+
+	if (nhit[bestplane] > 0){truth_fraction = n_valid_hit[bestplane] / nhit[bestplane];}
+
+	//if(truth_fraction < 0.8)continue; // --> HERE
+
+	if(false)
+	{
+		cout << "EAST *** NEW TRACK, G4ID: " << *truthG4E << ", TRUTH FRACTION: " << truth_fraction << endl << endl;
+		cout << "plane0 " << tpcTPCE_0.GetSize() << " " << nhit[0] << " | plane1 " << tpcTPCE_1.GetSize() << " " << nhit[1] << " | plane2 " << tpcTPCE_2.GetSize() << " " << nhit[2] << " " << endl << endl;
+		for(int hit = 0; hit < h2_truth_ne_E.GetSize(); hit++)
+		{
+			cout << h2_truth_ne_E[hit] << " ";
+		}
+		cout << endl;
+		for(int hit = 0; hit < h2_truth_e_E.GetSize(); hit++)
+		{
+			cout << h2_truth_e_E[hit] << " ";
+		}
+		cout << endl << endl;
+	}
 
 //muon length must be greater than 1 meter
 if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2)) 
@@ -2726,6 +2830,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
+		_G4ID = *truthG4E;
+		_truth_fraction = truth_fraction;
 
 		if(PRINT_EAST_IND1_TPC0)
 		{
@@ -2881,6 +2987,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
+		_G4ID = *truthG4E;
+		_truth_fraction = truth_fraction;
 
 		if(PRINT_EAST_IND1_TPC1)
 		{
@@ -3036,6 +3144,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
+		_G4ID = *truthG4E;
+		_truth_fraction = truth_fraction;
 
 		if(PRINT_EAST_IND1_TPC2)
 		{
@@ -3191,6 +3301,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
+		_G4ID = *truthG4E;
+		_truth_fraction = truth_fraction;
 
 		if(PRINT_EAST_IND1_TPC3)
 		{
@@ -3426,6 +3538,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
+		_G4ID = *truthG4E;
+		_truth_fraction = truth_fraction;
 
 		if(PRINT_EAST_IND2_TPC01)
 		{
@@ -3598,6 +3712,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
+		_G4ID = *truthG4E;
+		_truth_fraction = truth_fraction;
 
 		if(PRINT_EAST_IND2_TPC23)
 		{
@@ -3842,6 +3958,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
+		_G4ID = *truthG4E;
+		_truth_fraction = truth_fraction;
 
 		if(PRINT_EAST_COLL_TPC01)
 		{
@@ -4027,6 +4145,8 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 		_t0CRTHit = *t0_CRT_Hit_TPCE;
 		_nholes = holes_temp.size();
 		_wire_holes = holes_temp;
+		_G4ID = *truthG4E;
+		_truth_fraction = truth_fraction;
 
 		if(PRINT_EAST_COLL_TPC23)
 		{
@@ -4134,6 +4254,7 @@ if(*lengthTPCE > 100  && ( (*whicht0TPCE)==0 || (*whicht0TPCE)==2))
 	*/
 
 	TFile *outoutfilefile=new TFile(Form("all_histo_%s.root",sample_name.c_str()),"RECREATE");
+	outoutfilefile -> cd();
 
 	h_eff_vs_pitch_0->Write();
 	h_eff_vs_pitch_1->Write();
