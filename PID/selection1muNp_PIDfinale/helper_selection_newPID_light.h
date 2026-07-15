@@ -45,7 +45,7 @@
 
 double PROTON_KINETIC_E = 50.;
 double CONTAINMENT_CUT = 10.;
-double DEP_E_P_RISING_CUT = 0.;
+double DEP_E_P_RISING_CUT = 25.;
 
 using namespace ana;
 
@@ -1035,12 +1035,12 @@ std::string selection_1muNp_newPID ( const caf::SRSpillProxy* sr, const caf::Pro
   return returned_string;
 }
 
-std::vector<int> get_protons_pfp ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc)
+std::vector<int> get_protons_pfp ( const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, int ipfp_mu)
 {
   std::vector<int> v_ipfp_pro;
 
-  int ipfp_mu = -1;
-  ipfp_mu = find_muon_newPID(islc,10,-1,-1,-1);
+  //int ipfp_mu = -1;
+  //ipfp_mu = find_muon_newPID(islc,10,-1,-1,-1);
 
   for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
   {
@@ -1202,9 +1202,12 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
 
         double maxL = 0;
         int ipfp_maxL = -1;
-        std::vector<int> v_ipfp_pro = get_protons_pfp(sr,islc);
+        std::vector<int> v_ipfp_pro = get_protons_pfp(sr,islc,ipfp_mu);
         for(const auto &ipfp_pro : v_ipfp_pro)
         {
+            //int bestplane_temp = find_best_plane(islc,ipfp);
+            //double depE_temp = compute_depE(islc,ipfp,bestplane_temp);
+
             if(islc.reco.pfp[ipfp_pro].trk.len > maxL)
             {
                 maxL = islc.reco.pfp[ipfp_pro].trk.len;
