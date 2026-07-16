@@ -498,20 +498,20 @@ GBDTModel model = load_model(path_BDT_model.c_str());
 //PID model NEW MC ------------------------------------------------------------------
 
 //FNAL
-//TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_COLL_NEW_MC.root", "READ");
-//TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_IND1_NEW_MC.root", "READ");
-//TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_IND2_NEW_MC.root", "READ");
+TFile * f_prob_densities_coll = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_COLL_NEW_MC.root", "READ");
+TFile * f_prob_densities_ind1 = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_IND1_NEW_MC.root", "READ");
+TFile * f_prob_densities_ind2 = TFile::Open("/exp/icarus/data/users/nsommagg/PDF_IND2_NEW_MC.root", "READ");
 
 //CNAF
-TFile * f_prob_densities_coll = TFile::Open("PDF_COLL_NEW_MC.root", "READ");
-TFile * f_prob_densities_ind1 = TFile::Open("PDF_IND1_NEW_MC.root", "READ");
-TFile * f_prob_densities_ind2 = TFile::Open("PDF_IND2_NEW_MC.root", "READ");
+//TFile * f_prob_densities_coll = TFile::Open("PDF_COLL_NEW_MC.root", "READ");
+//TFile * f_prob_densities_ind1 = TFile::Open("PDF_IND1_NEW_MC.root", "READ");
+//TFile * f_prob_densities_ind2 = TFile::Open("PDF_IND2_NEW_MC.root", "READ");
 
 //FNAL
-//std::string path_BDT_model =  "/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/TEST_BDT_NEW_MC/GBDT_MODEL_NEW_MC_EXPORT.txt";
+std::string path_BDT_model =  "/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection_newPID/TEST_BDT_NEW_MC/GBDT_MODEL_NEW_MC_EXPORT.txt";
 
 //CNAF
-std::string path_BDT_model =  "GBDT_MODEL_NEW_MC_EXPORT.txt";
+//std::string path_BDT_model =  "GBDT_MODEL_NEW_MC_EXPORT.txt";
 
 GBDTModel model = load_model(path_BDT_model.c_str());
 //-----------------------------------------------------------------------------------

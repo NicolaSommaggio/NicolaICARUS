@@ -56,7 +56,7 @@ void macro_selection_newPID(){
 //const std::string fdata = "/storage/gpfs_data/icarus/local/users/cfarnese/new_studies_Large_Prod_CNAF/Complete_MC_final/*run*.concatflat.caf.root";
 
 //path 10 % data 1d
-const std::string fdata= "/storage/gpfs_data/icarus/local/users/cfarnese/new_studies_Large_Prod_CNAF/Prescaled_DATA_bnbmaj/*flat.caf.root";
+//const std::string fdata= "/storage/gpfs_data/icarus/local/users/cfarnese/new_studies_Large_Prod_CNAF/Prescaled_DATA_bnbmaj/*flat.caf.root";
 
 //POT OFFBEAM = 2.11e+20
 //POT MC CLASSIC = 1.5342e+20 
@@ -82,13 +82,13 @@ const std::string fdata= "/storage/gpfs_data/icarus/local/users/cfarnese/new_stu
 
 
 //SELECTION FOLDER 
-//const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
+const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
 
 //ICARUS MC
 //const std::string fdata = "/pnfs/icarus/scratch/users/gputnam/Ar23+_iterE/ICARUSSpringMC/*/*flat.caf.root";
 
 //ICARUS Offbeam
-const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_06_00_01p05_offbeambnbmajority_flatcaf_unblind";
+//const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_06_00_01p05_offbeambnbmajority_flatcaf_unblind";
 
 //DATI
 //const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_2_v10_06_00_06p03_bnbmajority_flatcaf_prescaled";
@@ -97,18 +97,18 @@ const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_0
 //const std::string fdata = "/pnfs/sbn/scratch/users/sungbino/sbnd/v10_06_00_09/mc_1e20";
 
 //CNAF
-TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
-auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
-auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
-auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
-auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
-
-//FNAL
-//TFile* file = TFile::Open("/exp/icarus/data/users/nsommagg/RefCurvesChi2.root");
+//TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
 //auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
 //auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
 //auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
 //auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
+
+//FNAL
+TFile* file = TFile::Open("/exp/icarus/data/users/nsommagg/RefCurvesChi2.root");
+auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
+auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
+auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
+auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
 
 
 SpectrumLoader loader(fdata);         
