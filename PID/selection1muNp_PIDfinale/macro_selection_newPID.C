@@ -135,6 +135,23 @@ double factor = s1.POT();
 
 TH1D* h1 = s1.ToTH1(factor);
 
+TFile *tree_outfile = new TFile("tree_outfile.root","RECREATE");
+TTree * tree = new TTree("tree");
+
+_slice thislice;
+tree -> Branch("slice",&thislice);
+
+for(const auto &slc : _slices)
+{
+    thislice = slc;
+    tree -> Fill();
+}
+
+tree_outfile -> cd();
+tree -> Write(0,TObject::kOverwrite);
+tree_outfile -> Close();
+
+
 /*
 cout << nmuons << " " << npions << " " << nprotons << endl;
 

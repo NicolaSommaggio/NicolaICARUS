@@ -45,7 +45,7 @@
 
 double PROTON_KINETIC_E = 50.;
 double CONTAINMENT_CUT = 10.;
-double DEP_E_P_RISING_CUT = 25.;
+double DEP_E_P_RISING_CUT = 0.;
 
 using namespace ana;
 
@@ -986,13 +986,13 @@ std::string selection_1muNp_newPID ( const caf::SRSpillProxy* sr, const caf::Pro
   if(!(all_contained(islc)))return "bad_slice_CONTAINMENT";
 
   // test without light -->
-//  double bar_flash_z = bar_flash(sr,islc); 
-//	double bar_falsh_x = bar_flash_x(sr,islc);
-//  double delta=fabs(bar_flash(sr,islc)-islc.charge_center.z);
+  //  double bar_flash_z = bar_flash(sr,islc); 
+  //	double bar_falsh_x = bar_flash_x(sr,islc);
+  //  double delta=fabs(bar_flash(sr,islc)-islc.charge_center.z);
 
-//  if(bar_falsh_x*islc.vertex.x <= 0)return "bad_slice_CRT_PMT_and_SAME_CRYO";
-//  if(bar_flash_z <= -10000)return "bad_slice_BARYCENTER";
-//  if(delta <= 0 || delta >= cut_baryc) return "bad_slice_BARYCENTER";
+  //  if(bar_falsh_x*islc.vertex.x <= 0)return "bad_slice_CRT_PMT_and_SAME_CRYO";
+  //  if(bar_flash_z <= -10000)return "bad_slice_BARYCENTER";
+  //  if(delta <= 0 || delta >= cut_baryc) return "bad_slice_BARYCENTER";
   // <--
 
   int ipfp_mu = -1;
@@ -1152,7 +1152,41 @@ int tot_1muNp = 0;
 
 bool ismc;
 
-ofstream dump_reco_class("DUMP_selection_NO_LIGHT_NO_CRT_depE_CUT.txt");
+struct _pfp
+{
+  std::vector<double> _lr;
+  double _depE = -999;
+  std::vector<double> _KE;
+  double _length = -999;
+  double _daughter_vars;
+  std::vector<double> _dedx;
+  std::vector<double> _rr;
+  double _theta_xw = -999;
+};
+
+struct _slice
+{
+  int _run = -999;
+  int _evt = -999;
+  int _slice_counter = -999;
+  std::vector<_pfp> _protons;
+  _pfp _mu;
+  std::string _reco_class = "N/D";
+  std::string _true_class = "N/D";
+  double _nuE = -999;
+  double _mu_pro_angle = -999;
+  double _nu_score = -999;
+
+  double _crlongtrkdiry = -999;
+  double _bar_flash = -999;
+  double bar_flash_x = -999;
+};
+
+std::vector<_slice> _slices;
+
+
+
+//ofstream dump_reco_class("DUMP_selection_NO_LIGHT_NO_CRT_depE_CUT.txt");
 
 const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
@@ -1180,10 +1214,10 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
       slice_counter ++;
 
       std::string slice_class_true = "N/D";
-      double nuE = -1;
+      //double nuE = -999;
       if (sr->hdr.ismc)
       {
-        nuE = islc.truth.E;
+        //nuE = islc.truth.E;
         slice_class_true = classification_type_generic(sr,islc);
       }
       slices_true_class.push_back(slice_class_true);
@@ -1191,44 +1225,106 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
       std::string slice_class = selection_1muNp_newPID(sr,islc,10,100,-1,-1,-1);
       slices_reco_class.push_back(slice_class);
 
-      double muon_length = -1;
-      double mu_pro_angle = -1;
-      double length_leading_proton = -1;
+      //double muon_length = -999;
+      //double mu_pro_angle = -999;
+      //double length_leading_proton = -999;
+
+      _slice slice;
+
+      slice._run = sr->hdr.run;
+      slice._evt = sr->hdr.evt;
+      slice._slice_counter = slice_counter;
+      slice._true_class = slice_class_true;
+      slice._reco_class = slice_class;
+      slice._nuE = islc.truth.E;
+      slice._nu_score = islc.nu_score;
+      slice._bar_flash = bar_flash(sr,islc);
+      slice._bar_flash_x = bar_flash_x(sr,islc);
+      slice._crlongtrkdiry = islc.nuid.crlongtrkdiry;
+
+      _pfp muone;
+      std::vector<_pfp> protoni;
 
       if(is1muNp(slice_class))
       {
         int ipfp_mu = find_muon_newPID(islc,10,-1,-1,-1);
-        if(ipfp_mu != -1){muon_length = islc.reco.pfp[ipfp_mu].trk.len;}
+
+        //muon_length = islc.reco.pfp[ipfp_mu].trk.len;
+
+        int mu_bestplane = find_best_plane(islc,ipfp_mu);
+        muone._length = islc.reco.pfp[ipfp_mu].trk.len;
+        muone._daughter_vars = compute_daughter_vars(islc,ipfp_mu);
+        muone._KE = compute_ke(islc,ipfp_mu,mu_bestplane);
+        muone._lr = likelihood(islc,ipfp_mu, prob_d_coll, prob_d_ind1, prob_d_ind2);
+        muone._depE = compute_depE(islc, ipfp_mu, mu_bestplane);
+        
+        double pitch_temp_mu = 0;
+        for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[mu_bestplane].points.size(); ++ihit )
+        {
+          muone._rr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[mu_bestplane].points[ihit].rr);
+          muone._dedx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[mu_bestplane].points[ihit].dedx);
+          pitch_temp_mu += islc.reco.pfp[ipfp_mu].trk.calo[mu_bestplane].points[ihit].pitch;
+        } 
+        double avg_pitch_mu = pitch_temp_mu / islc.reco.pfp[ipfp_mu].trk.calo[mu_bestplane].points.size();
+
+        muone._theta_xw = std::atan( islc.reco.pfp[ipfp_mu].trk.dir.x * avg_pitch_mu / 0.3 );
 
         double maxL = 0;
         int ipfp_maxL = -1;
         std::vector<int> v_ipfp_pro = get_protons_pfp(sr,islc,ipfp_mu);
         for(const auto &ipfp_pro : v_ipfp_pro)
         {
-            //int bestplane_temp = find_best_plane(islc,ipfp);
-            //double depE_temp = compute_depE(islc,ipfp,bestplane_temp);
+          _pfp protone;
 
-            if(islc.reco.pfp[ipfp_pro].trk.len > maxL)
-            {
-                maxL = islc.reco.pfp[ipfp_pro].trk.len;
-                ipfp_maxL = ipfp_pro;
-            }
+          int pro_bestplane = find_best_plane(islc,ipfp_pro);
+          protone._length = islc.reco.pfp[ipfp_pro].trk.len;
+          protone._daughter_vars = compute_daughter_vars(islc,ipfp_pro);
+          protone._KE = compute_ke(islc,ipfp_pro,pro_bestplane);
+          protone._lr = likelihood(islc,ipfp_pro, prob_d_coll, prob_d_ind1, prob_d_ind2);
+          protone._depE = compute_depE(islc, ipfp_pro, pro_bestplane);
+        
+          double pitch_temp_pro = 0;
+          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_pro].trk.calo[pro_bestplane].points.size(); ++ihit )
+          {
+            protone._rr.push_back(islc.reco.pfp[ipfp_pro].trk.calo[pro_bestplane].points[ihit].rr);
+            protone._dedx.push_back(islc.reco.pfp[ipfp_pro].trk.calo[pro_bestplane].points[ihit].dedx);
+            pitch_temp_pro += islc.reco.pfp[ipfp_pro].trk.calo[pro_bestplane].points[ihit].pitch;
+          } 
+          double avg_pitch_pro = pitch_temp_pro / islc.reco.pfp[ipfp_pro].trk.calo[pro_bestplane].points.size();
+
+          protone._theta_xw = std::atan( islc.reco.pfp[ipfp_pro].trk.dir.x * avg_pitch_pro / 0.3 );
+
+          protoni.push_back(protone);
+
+          if(islc.reco.pfp[ipfp_pro].trk.len > maxL)
+          {
+            maxL = islc.reco.pfp[ipfp_pro].trk.len;
+            ipfp_maxL = ipfp_pro;
+          }
         }
-        mu_pro_angle = T3D_angle_mup(islc,ipfp_mu,ipfp_maxL);
-        length_leading_proton = maxL;
+
+
+        //mu_pro_angle = T3D_angle_mup(islc,ipfp_mu,ipfp_maxL);
+        slice._mu_pro_angle = T3D_angle_mup(islc,ipfp_mu,ipfp_maxL);
+        //length_leading_proton = maxL;
+
+        slice._mu = muone;
+        slice._protons = protoni;
+
+        _slices.push_back(slice);
       }
 
-      if(sr->hdr.ismc)
-      {
-        dump_reco_class << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << nuE << " " << slice_class << " " << slice_class_true << " " << mu_pro_angle << " " << length_leading_proton << " " << muon_length << " " << islc.nu_score << endl;
-      }
-      else
-      {
-        if(is1muNp(slice_class))
-        {
-          dump_reco_class << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << nuE << " " << slice_class << " " << slice_class_true << " " << mu_pro_angle << " " << length_leading_proton << " " << muon_length << " " << islc.nu_score << endl;
-        }
-      }
+      //if(sr->hdr.ismc)
+      //{
+        //dump_reco_class << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << nuE << " " << slice_class << " " << slice_class_true << " " << mu_pro_angle << " " << length_leading_proton << " " << muon_length << " " << islc.nu_score << endl;
+      //}
+      //else
+      //{
+        //if(is1muNp(slice_class))
+        //{
+          //dump_reco_class << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " " << nuE << " " << slice_class << " " << slice_class_true << " " << mu_pro_angle << " " << length_leading_proton << " " << muon_length << " " << islc.nu_score << endl;
+        //}
+      //}
 
     }//loop over all slices
 
