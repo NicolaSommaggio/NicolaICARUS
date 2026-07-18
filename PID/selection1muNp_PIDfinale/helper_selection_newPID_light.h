@@ -42,6 +42,7 @@
 #include "sbnanaobj/StandardRecord/SRVector3D.h"
 #include "TrackMomentumCalculator.h"
 #include "helper_newPID.h"
+#include "slice_struct.h"
 
 double PROTON_KINETIC_E = 50.;
 double CONTAINMENT_CUT = 10.;
@@ -1152,6 +1153,7 @@ int tot_1muNp = 0;
 
 bool ismc;
 
+/*
 struct _pfp
 {
   std::vector<double> _lr;
@@ -1181,6 +1183,7 @@ struct _slice
   double _bar_flash = -999;
   double bar_flash_x = -999;
 };
+*/
 
 std::vector<_slice> _slices;
 

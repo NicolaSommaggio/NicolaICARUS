@@ -10,7 +10,7 @@ public:
     double _depE = -999;
     std::vector<double> _KE;
     double _length = -999;
-    double _daughter_vars;
+    std::vector<double> _daughter_vars;
     std::vector<double> _dedx;
     std::vector<double> _rr;
     double _theta_xw = -999;
@@ -37,7 +37,7 @@ public:
   
     double _crlongtrkdiry = -999;
     double _bar_flash = -999;
-    double bar_flash_x = -999;
+    double _bar_flash_x = -999;
     
     _slice() {}
     virtual ~_slice() {}
