@@ -257,7 +257,7 @@ namespace ROOT {
       vector<double> *ptr = nullptr;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(vector<double>));
       static ::ROOT::TGenericClassInfo 
-         instance("vector<double>", -2, "vector", 423,
+         instance("vector<double>", -2, "vector", 387,
                   typeid(vector<double>), ::ROOT::Internal::DefineBehavior(ptr, ptr),
                   &vectorlEdoublegR_Dictionary, isa_proxy, 0,
                   sizeof(vector<double>) );
@@ -268,7 +268,7 @@ namespace ROOT {
       instance.SetDestructor(&destruct_vectorlEdoublegR);
       instance.AdoptCollectionProxyInfo(TCollectionProxyInfo::Generate(TCollectionProxyInfo::Pushback< vector<double> >()));
 
-      instance.AdoptAlternate(::ROOT::AddClassAlternate("vector<double>","std::vector<double, std::allocator<double> >"));
+      instance.AdoptAlternate(::ROOT::AddClassAlternate("vector<double>","std::__1::vector<double, std::__1::allocator<double>>"));
       return &instance;
    }
    // Static variable to force the class initialization
@@ -289,10 +289,10 @@ namespace ROOT {
 namespace ROOT {
    // Wrappers around operator new
    static void *new_vectorlEdoublegR(void *p) {
-      return  p ? ::new((::ROOT::Internal::TOperatorNewHelper*)p) vector<double> : new vector<double>;
+      return  p ? ::new(static_cast<::ROOT::Internal::TOperatorNewHelper*>(p)) vector<double> : new vector<double>;
    }
    static void *newArray_vectorlEdoublegR(Long_t nElements, void *p) {
-      return p ? ::new((::ROOT::Internal::TOperatorNewHelper*)p) vector<double>[nElements] : new vector<double>[nElements];
+      return p ? ::new(static_cast<::ROOT::Internal::TOperatorNewHelper*>(p)) vector<double>[nElements] : new vector<double>[nElements];
    }
    // Wrapper around operator delete
    static void delete_vectorlEdoublegR(void *p) {
@@ -322,7 +322,7 @@ namespace ROOT {
       vector<_slice> *ptr = nullptr;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(vector<_slice>));
       static ::ROOT::TGenericClassInfo 
-         instance("vector<_slice>", -2, "vector", 423,
+         instance("vector<_slice>", -2, "vector", 387,
                   typeid(vector<_slice>), ::ROOT::Internal::DefineBehavior(ptr, ptr),
                   &vectorlE_slicegR_Dictionary, isa_proxy, 4,
                   sizeof(vector<_slice>) );
@@ -333,7 +333,7 @@ namespace ROOT {
       instance.SetDestructor(&destruct_vectorlE_slicegR);
       instance.AdoptCollectionProxyInfo(TCollectionProxyInfo::Generate(TCollectionProxyInfo::Pushback< vector<_slice> >()));
 
-      instance.AdoptAlternate(::ROOT::AddClassAlternate("vector<_slice>","std::vector<_slice, std::allocator<_slice> >"));
+      instance.AdoptAlternate(::ROOT::AddClassAlternate("vector<_slice>","std::__1::vector<_slice, std::__1::allocator<_slice>>"));
       return &instance;
    }
    // Static variable to force the class initialization
@@ -354,10 +354,10 @@ namespace ROOT {
 namespace ROOT {
    // Wrappers around operator new
    static void *new_vectorlE_slicegR(void *p) {
-      return  p ? ::new((::ROOT::Internal::TOperatorNewHelper*)p) vector<_slice> : new vector<_slice>;
+      return  p ? ::new(static_cast<::ROOT::Internal::TOperatorNewHelper*>(p)) vector<_slice> : new vector<_slice>;
    }
    static void *newArray_vectorlE_slicegR(Long_t nElements, void *p) {
-      return p ? ::new((::ROOT::Internal::TOperatorNewHelper*)p) vector<_slice>[nElements] : new vector<_slice>[nElements];
+      return p ? ::new(static_cast<::ROOT::Internal::TOperatorNewHelper*>(p)) vector<_slice>[nElements] : new vector<_slice>[nElements];
    }
    // Wrapper around operator delete
    static void delete_vectorlE_slicegR(void *p) {
@@ -387,7 +387,7 @@ namespace ROOT {
       vector<_pfp> *ptr = nullptr;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(vector<_pfp>));
       static ::ROOT::TGenericClassInfo 
-         instance("vector<_pfp>", -2, "vector", 423,
+         instance("vector<_pfp>", -2, "vector", 387,
                   typeid(vector<_pfp>), ::ROOT::Internal::DefineBehavior(ptr, ptr),
                   &vectorlE_pfpgR_Dictionary, isa_proxy, 4,
                   sizeof(vector<_pfp>) );
@@ -398,7 +398,7 @@ namespace ROOT {
       instance.SetDestructor(&destruct_vectorlE_pfpgR);
       instance.AdoptCollectionProxyInfo(TCollectionProxyInfo::Generate(TCollectionProxyInfo::Pushback< vector<_pfp> >()));
 
-      instance.AdoptAlternate(::ROOT::AddClassAlternate("vector<_pfp>","std::vector<_pfp, std::allocator<_pfp> >"));
+      instance.AdoptAlternate(::ROOT::AddClassAlternate("vector<_pfp>","std::__1::vector<_pfp, std::__1::allocator<_pfp>>"));
       return &instance;
    }
    // Static variable to force the class initialization
@@ -419,10 +419,10 @@ namespace ROOT {
 namespace ROOT {
    // Wrappers around operator new
    static void *new_vectorlE_pfpgR(void *p) {
-      return  p ? ::new((::ROOT::Internal::TOperatorNewHelper*)p) vector<_pfp> : new vector<_pfp>;
+      return  p ? ::new(static_cast<::ROOT::Internal::TOperatorNewHelper*>(p)) vector<_pfp> : new vector<_pfp>;
    }
    static void *newArray_vectorlE_pfpgR(Long_t nElements, void *p) {
-      return p ? ::new((::ROOT::Internal::TOperatorNewHelper*)p) vector<_pfp>[nElements] : new vector<_pfp>[nElements];
+      return p ? ::new(static_cast<::ROOT::Internal::TOperatorNewHelper*>(p)) vector<_pfp>[nElements] : new vector<_pfp>[nElements];
    }
    // Wrapper around operator delete
    static void delete_vectorlE_pfpgR(void *p) {
@@ -437,6 +437,13 @@ namespace ROOT {
    }
 } // end of namespace ROOT for class vector<_pfp>
 
+namespace ROOT {
+   // Registration Schema evolution read functions
+   int RecordReadRules_SliceStructDict() {
+      return 0;
+   }
+   static int _R__UNIQUE_DICT_(ReadRules_SliceStructDict) = RecordReadRules_SliceStructDict();R__UseDummy(_R__UNIQUE_DICT_(ReadRules_SliceStructDict));
+} // namespace ROOT
 namespace {
   void TriggerDictionaryInitialization_SliceStructDict_Impl() {
     static const char* headers[] = {
@@ -444,8 +451,8 @@ namespace {
 nullptr
     };
     static const char* includePaths[] = {
-"/cvmfs/larsoft.opensciencegrid.org/products/root/v6_28_12/Linux64bit+3.10-2.17-e26-p3915-prof/include/",
-"/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/",
+"/Users/nicolasommaggio/miniforge3/envs/root_env/include/",
+"/Users/nicolasommaggio/Desktop/NicolaICARUS/PID/selection1muNp_PIDfinale/",
 nullptr
     };
     static const char* fwdDeclCode = R"DICTFWDDCLS(
@@ -455,8 +462,8 @@ nullptr
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 extern int __Cling_AutoLoading_Map;
 class __attribute__((annotate("$clingAutoload$slice_struct.h")))  _pfp;
-namespace std{template <typename _Tp> class __attribute__((annotate("$clingAutoload$bits/allocator.h")))  __attribute__((annotate("$clingAutoload$string")))  allocator;
-}
+namespace std{inline namespace __1{template <class _Tp> class __attribute__((annotate("$clingAutoload$__memory/allocator.h")))  __attribute__((annotate("$clingAutoload$string")))  allocator;
+}}
 class __attribute__((annotate("$clingAutoload$slice_struct.h")))  _slice;
 )DICTFWDDCLS";
     static const char* payloadCode = R"DICTPAYLOAD(
