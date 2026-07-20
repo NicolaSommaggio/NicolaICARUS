@@ -1254,6 +1254,8 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
 
         //muon_length = islc.reco.pfp[ipfp_mu].trk.len;
 
+        muone._proba = PIDproba(islc,ipfp_mu);
+
         int mu_bestplane = find_best_plane(islc,ipfp_mu);
         muone._length = islc.reco.pfp[ipfp_mu].trk.len;
         muone._daughter_vars = compute_daughter_vars(islc,ipfp_mu);
@@ -1278,6 +1280,8 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
         for(const auto &ipfp_pro : v_ipfp_pro)
         {
           _pfp protone;
+
+          protone._proba = PIDproba(islc,ipfp_pro);
 
           int pro_bestplane = find_best_plane(islc,ipfp_pro);
           protone._length = islc.reco.pfp[ipfp_pro].trk.len;

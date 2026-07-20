@@ -7,6 +7,7 @@
 class _pfp : public TObject {
 public:
     std::vector<double> _lr;
+    std::vector<double> _proba;
     double _depE = -999;
     std::vector<double> _KE;
     double _length = -999;
