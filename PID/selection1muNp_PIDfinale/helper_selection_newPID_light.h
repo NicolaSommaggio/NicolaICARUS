@@ -1528,11 +1528,12 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         double average_pitch = 0;
         double track_dir_x;
 
+        const double thisphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp_mu].trk.dir.x)); 
         for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points.size(); ++ihit )
         {
           temp_rr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].rr);
           //temp_dedx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx);
-          temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx,phi,Detector::ICARUS,MODE,SIGMA));
+          temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
 
           average_pitch = average_pitch + islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].pitch;
         }
@@ -1545,7 +1546,7 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         double depE = compute_depE_var(islc,ipfp_mu,bestplane,MODE,SIGMA);
 
         muone._length = islc.reco.pfp[ipfp_mu].trk.len;
-        muone._depE = depE
+        muone._depE = depE;
         muone._dedx = temp_dedx;
         muone._rr = temp_rr;
         muone._theta_xw = thetaXW;
@@ -1558,7 +1559,7 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
       {
         if((int)ipfp == ipfp_mu)continue;
 
-        int id_pfp = id_pfp_chi2(islc,ipfp,MODE,SIGMA);
+        int id_pfp = id_pfp_chi2(islc,ipfp,10,MODE,SIGMA);
 
         if(id_pfp == 1)
         {
@@ -1571,11 +1572,12 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
           double average_pitch = 0;
           double track_dir_x;
 
+          const double thisphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x)); 
           for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit )
           {
             temp_rr.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr);
             //temp_dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx);
-            temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx,phi,Detector::ICARUS,MODE,SIGMA));
+            temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
 
             average_pitch = average_pitch + islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch;
           }
@@ -1589,7 +1591,7 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
 
           _pfp protone;
           protone._length = islc.reco.pfp[ipfp].trk.len;
-          protone._depE = depE
+          protone._depE = depE;
           protone._dedx = temp_dedx;
           protone._rr = temp_rr;
           protone._theta_xw = thetaXW;

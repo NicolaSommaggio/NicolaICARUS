@@ -121,12 +121,13 @@ const Binning kBinz = Binning::Simple(300,0,30);
 //Spectrum s1("", kBinz, loader, selection_newPID ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, DATAlikelihood ,kCRTPMTNeutrino );
 //Spectrum s1("", kBinz, loader, kStitch ,kNoSpillCut );
-Spectrum s1("", kBinz, loader, selection ,kNoSpillCut );
+//Spectrum s1("", kBinz, loader, selection ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fchi2dump ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fdebug1mu0p0pi ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, fdump_pred_proba ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, files_check ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, dump_BDT_vars ,kNoSpillCut );
+Spectrum s1("", kBinz, loader, dedx_var ,kNoSpillCut );
 
 //muons.clear();
 //pions.clear();
