@@ -96,6 +96,8 @@ void CHECK_SELECTION()
                     TH1D *h_theta_xw_true1muNp = new TH1D(Form("h_theta_xw_true1muNp_%s",s.c_str()),"",100,0,90);
                     TH2D *h_theta_xw_vs_length = new TH2D(Form("h_theta_xw_vs_length_%s",s.c_str()),"",100,0,90,100,0,100);
                     TH2D *h_theta_xw_vs_length_true1muNp = new TH2D(Form("h_theta_xw_vs_length_true1muNp_%s",s.c_str()),"",100,0,90,100,0,100);
+                    TH1D *h_length = new TH1D(Form("h_length_%s",s.c_str()),"",100,0,100);
+                    TH1D *h_length_true1muNp = new TH1D(Form("h_length_true1muNp_%s",s.c_str()),"",100,0,100);
 
                     int tot_selected = 0;
                     int tot_selected_true = 0;
@@ -124,6 +126,8 @@ void CHECK_SELECTION()
                             h_theta_xw -> Fill(std::abs(pro._theta_xw)*180/M_PI);
 
                             h_theta_xw_vs_length -> Fill(std::abs(pro._theta_xw)*180/M_PI,pro._length);
+
+                            h_length -> Fill(pro._length);
 
                             double best_p_proba = (pro._proba[2] > pro._proba[3]) ? pro._proba[2] : pro._proba[3];
 
@@ -155,6 +159,8 @@ void CHECK_SELECTION()
                                 h_depE_true1muNp -> Fill(pro._depE);
 
                                 h_theta_xw_true1muNp -> Fill(std::abs(pro._theta_xw)*180/M_PI);
+
+                                h_length_true1muNp -> Fill(pro._length);
 
                                 h_theta_xw_vs_length_true1muNp -> Fill(std::abs(pro._theta_xw)*180/M_PI,pro._length);
 
@@ -202,6 +208,8 @@ void CHECK_SELECTION()
                     h_crlongtrkdiry -> Scale(1./h_crlongtrkdiry->Integral());
                     h_theta_xw -> Scale(1./h_theta_xw->Integral());
                     h_theta_xw_true1muNp -> Scale(1./h_theta_xw_true1muNp->Integral());
+                    h_length -> Scale(1./h_length->Integral());
+                    h_length_true1muNp -> Scale(1./h_length_true1muNp->Integral());
 
                     h_mu_pro_angle -> Write();
                     h_mu_pro_angle_cut -> Write();
@@ -216,6 +224,8 @@ void CHECK_SELECTION()
                     h_theta_xw_true1muNp -> Write();
                     h_theta_xw_vs_length_true1muNp -> Write();
                     h_theta_xw_vs_length -> Write();
+                    h_length -> Write();
+                    h_length_true1muNp -> Write();
 
                 }
 
