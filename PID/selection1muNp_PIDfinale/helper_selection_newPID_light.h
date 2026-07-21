@@ -1472,6 +1472,14 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
 
       if(bar_falsh_x*islc.vertex.x <= 0)continue;
 
+      _slice slice;
+      slice._run = sr->hdr.run;
+      slice._evt = sr->hdr.evt;
+      slice._slice_counter = slice_counter;
+
+      _pfp muone;
+      std::vector<_pfp> protoni;
+
       // MUON SEARCH
 
       int ipfp_mu = -1;
@@ -1536,6 +1544,12 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
 
         double depE = compute_depE_var(islc,ipfp_mu,bestplane,MODE,SIGMA);
 
+        muone._length = islc.reco.pfp[ipfp_mu].trk.len;
+        muone._depE = depE
+        muone._dedx = temp_dedx;
+        muone._rr = temp_rr;
+        muone._theta_xw = thetaXW;
+
       }
 
       //PROTON FOUND
@@ -1572,8 +1586,20 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
           double thetaXW = std::atan(track_dir_x * average_pitch/0.3);
 
           double depE = compute_depE_var(islc,ipfp,bestplane,MODE,SIGMA);
+
+          _pfp protone;
+          protone._length = islc.reco.pfp[ipfp].trk.len;
+          protone._depE = depE
+          protone._dedx = temp_dedx;
+          protone._rr = temp_rr;
+          protone._theta_xw = thetaXW;
+
+          protoni.push_back(protone);
+
         }
       }
+
+      _slices.push_back(slice);
 
     }//loop on slices
 
