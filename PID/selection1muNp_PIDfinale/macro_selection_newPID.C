@@ -138,7 +138,7 @@ double factor = s1.POT();
 
 TH1D* h1 = s1.ToTH1(factor);
 
-TFile *tree_outfile = new TFile("tree_outfile_MC_temp.root","RECREATE");
+TFile *tree_outfile = new TFile("varMC_STANDARD.root","RECREATE");
 TTree * tree = new TTree("tree","tree");
 
 _slice thislice;
@@ -310,7 +310,7 @@ outfile->Close();
 
 //counts how many 1muNp selected
 
-/**/ //HERE 
+/* //HERE 
 double selected_1muNp = 0;
 double selected_1muNp_correct = 0;
 
@@ -336,7 +336,7 @@ if(ismc)
     //cout << tot_1mu0p0pi_slices << " 1mu0p0pi slices " << tot_NON_protons_1mu0p0pi_slices << " with no protons" << endl;
     //cout << tot_NON_protons_1mu0p0pi_protons << " misclassified protons in 1mu0p0pi slices" << endl;
 }
-/**/
+*/
 
 //stitching only with daughters
 

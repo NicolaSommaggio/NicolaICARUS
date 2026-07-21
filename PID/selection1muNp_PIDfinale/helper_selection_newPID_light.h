@@ -73,6 +73,98 @@ constexpr double PION_MASS            = 139.570; // MeV
 constexpr double PROTON_MASS          = 938.3;   // MeV
 constexpr double MUON_MASS            = 105.658; // MeV
 
+
+///////////////////////////////////////
+//////       DEDX VARIATION       /////
+///////////////////////////////////////
+
+  const     double kRho_Ar_icarus    = 1.390;                  // ~1.390 g/cm^3
+  constexpr double kEfield_icarus    = 0.4938;                 // kV/cm
+   
+  const     double kRho_Ar_sbnd    = 1.38434;                  // ~1.390 g/cm^3
+  constexpr double kEfield_sbnd    = 0.5;
+  
+  constexpr double kWion   = 23.6e-6;                          // MeV/e- (cancels in shift)
+
+  constexpr double kAlpha0 = 0.904, kBeta90_0 = 0.204, kR0 = 1.25;         // nominal
+  constexpr double kCcalErr = 0.02, kAlphaErr = 0.008, kBetaErr = 0.008, kRErr = 0.02;
+
+  // optional residual-range cut for chi2 [cm]; large => disabled (matches stored chi2)
+  constexpr double kRRMaxCutChi2 = 1.e9;                       // set 26. to match chi2pid.py
+
+  // Scoped enums: no leakage into the enclosing scope, so they cannot collide
+  // with ROOT's global kProton / kMuon etc. Reference as Mode::Gain, Species::Proton.
+  enum class Mode    { Standard, Gain=1, Alpha, Beta, R };               // (template mode not reproduced)
+  enum class Species { Proton, Muon, Pion };
+  enum class Detector {SBND, ICARUS};
+
+  inline double EllipsoidBeta(double phi, double B90, double R)
+  {
+    const double s = std::sin(phi), c = std::cos(phi);
+    return B90 / std::sqrt(s*s + c*c/(R*R));
+  }
+
+  // dQ/dx [e-/cm] -> dE/dx [MeV/cm]
+  inline double RecombCor(double dQdx, double phi, Detector detector, double A, double B90, double R)
+  {
+    double rho_E = 0;
+      
+    switch(detector)
+    {
+      case Detector::SBND: rho_E = kRho_Ar_sbnd * kEfield_sbnd; break;
+      case Detector::ICARUS: rho_E = kRho_Ar_icarus * kEfield_icarus; break;
+    }
+      
+    const double beta = EllipsoidBeta(phi,B90,R) /(rho_E);
+    return (std::exp(dQdx*kWion*beta) - A) / beta;
+  }
+
+  // dE/dx [MeV/cm] -> dQ/dx [e-/cm]  (inverse of RecombCor)
+  inline double Recomb(double dEdx, double phi, Detector detector, double A, double B90, double R)
+  {
+    double rho_E = 0;
+      
+    switch(detector)
+    {
+      case Detector::SBND: rho_E = kRho_Ar_sbnd * kEfield_sbnd;
+      case Detector::ICARUS: rho_E = kRho_Ar_icarus * kEfield_icarus;
+    }
+      
+    const double beta = EllipsoidBeta(phi,B90,R) / (rho_E);
+    return std::log(A + dEdx*beta) / (kWion*beta);
+  }
+  
+  // shift one hit's dE/dx by 'sigma' for the chosen recombination mode
+  inline double ShiftedDedx(double dedx, double phi, Detector detector, Mode mode, double sigma)
+  {
+    const double dQdx = Recomb(dedx, phi, detector, kAlpha0, kBeta90_0, kR0);
+    switch(mode)
+    {
+      case Mode::Standard:  return RecombCor(dQdx, phi, detector, kAlpha0, kBeta90_0, kR0);
+      case Mode::Gain:  return RecombCor(dQdx/(1.+sigma*kCcalErr), phi, detector, kAlpha0, kBeta90_0, kR0);
+      case Mode::Alpha: return RecombCor(dQdx, phi, detector, kAlpha0+sigma*kAlphaErr, kBeta90_0, kR0);
+      case Mode::Beta:  return RecombCor(dQdx, phi, detector, kAlpha0, kBeta90_0+sigma*kBetaErr, kR0);
+      case Mode::R:     return RecombCor(dQdx, phi, detector, kAlpha0, kBeta90_0, kR0+sigma*kRErr);
+      default:          return dedx;
+    }
+  }
+
+
+double compute_depE_var(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp, int plane, Mode mode = Mode::Standard, double sigma = 0.)
+{
+    double dep_E = 0;
+    const double phi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x));
+
+    for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit )
+    {
+        if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr <= 5.)
+        {   
+            dep_E = dep_E + ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx,phi,Detector::ICARUS,mode,sigma) * islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch;
+        }
+    }
+    return dep_E;
+}
+
 std::vector<double> chi2_ALG(std::vector<double> &dEdx,std::vector<double> &RR, double rr_min, double rr_max)
 {
     //The output is chi2s
@@ -177,18 +269,23 @@ std::vector<double> chi2_ALG(std::vector<double> &dEdx,std::vector<double> &RR, 
 
 std::vector<double> compute_chi2(const caf::Proxy<caf::SRSlice>& islc,
                                   std::size_t ipfp,
-                                  int plane)
+                                  int plane,
+                                  Mode mode = Mode::Standard,
+                                  double sigma = 0.
+                                )
 {
     std::vector<double> dedx, rr;
 
     const auto& calo = islc.reco.pfp[ipfp].trk.calo[plane].points;
+    const double phi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x)); 
     if (calo.empty()) return {};
 
     dedx.reserve(calo.size());
     rr.reserve(calo.size());
 
     for (const auto& pt : calo) {
-        dedx.push_back(pt.dedx);
+        //dedx.push_back(pt.dedx);
+        dedx.push_back(ShiftedDedx(pt.dedx,phi,Detector::ICARUS,mode,sigma));
         rr.push_back(pt.rr);
     }
 
@@ -203,7 +300,9 @@ inline double kinetic_energy(double mass, double momentum_GeV)
 
 int id_pfp_chi2(const caf::Proxy<caf::SRSlice>& islc,
              int ipfp,
-             double dist_cut = 10.)
+             double dist_cut = 10.,
+            Mode mode = Mode::Standard,
+          double sigma = 0.)
 {
     // =========================================================
     // Particle ID strategy:
@@ -251,7 +350,7 @@ int id_pfp_chi2(const caf::Proxy<caf::SRSlice>& islc,
         {MyFile << "No calo check - Unknown" << endl; return PFPID::Unknown;}
     }*/
 
-    std::vector<double> chi2 = compute_chi2(islc, ipfp, 2);
+    std::vector<double> chi2 = compute_chi2(islc, ipfp, 2, mode, sigma);
     if (chi2.size() < 2) {return 9;}
 
     const double chi2_proton = chi2[1];
@@ -853,6 +952,9 @@ bool is_good_truth_matching(const caf::Proxy<caf::SRSlice>& islc)
     return false;
 }
 
+
+
+
 ////////////////////////////////////////
 ////// HELPER FUNCTIONS NEW PID   /////
 ///////////////////////////////////////
@@ -1149,13 +1251,11 @@ double T3D_angle_mup ( const caf::Proxy<caf::SRSlice>& islc, int ipfp_mu, int ip
 
 
 
-std::vector<std::string> slices_reco_class;
-std::vector<std::string> slices_true_class;
-int tot_1muNp = 0;
+
 
 //ofstream dumpNuE("NEW_MC_dumpNuE_CONTAINMENT_10CM.txt");
 
-bool ismc;
+//bool ismc;
 
 /*
 struct _pfp
@@ -1189,12 +1289,17 @@ struct _slice
 };
 */
 
+/*
 std::vector<_slice> _slices;
 
 
 
 //ofstream dump_reco_class("DUMP_selection_NO_LIGHT_NO_CRT_depE_CUT.txt");
 
+
+std::vector<std::string> slices_reco_class;
+std::vector<std::string> slices_true_class;
+int tot_1muNp = 0;
 const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
   ismc = sr->hdr.ismc;
@@ -1341,7 +1446,139 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
 
   return vector_active;
 });
+*/
 
+std::vector<_slice> _slices;
+
+Mode MODE = Mode::Standard;
+double SIGMA = 0.;
+
+const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<double>
+{
+    std::vector<double> vector_active;
+
+    int slice_counter = -1;
+    for(const auto &islc : sr->slc)
+    { 
+      slice_counter ++;
+
+      if(std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z))continue;
+
+      if(!isInFV(islc.vertex.x,islc.vertex.y,islc.vertex.z))continue;
+
+      if(!(all_contained(islc)))continue;
+
+	    double bar_falsh_x = bar_flash_x(sr,islc);
+
+      if(bar_falsh_x*islc.vertex.x <= 0)continue;
+
+      // MUON SEARCH
+
+      int ipfp_mu = -1;
+
+      TVector3 RecoVtx;
+      RecoVtx.SetXYZ(islc.vertex.x, islc.vertex.y, islc.vertex.z);
+      TVector3 RecoStart;
+
+      double max_track_length = -1;
+
+      for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
+      {
+
+        if(std::isnan(islc.reco.pfp[ipfp].trk.start.x) || std::isnan(islc.reco.pfp[ipfp].trk.len)) continue;
+        
+        RecoStart.SetXYZ(islc.reco.pfp[ipfp].trk.start.x,islc.reco.pfp[ipfp].trk.start.y,islc.reco.pfp[ipfp].trk.start.z);
+        
+        bool is_primary = islc.reco.pfp[ipfp].parent_is_primary;
+
+        if(islc.reco.pfp[ipfp].trackScore<0.5)continue;
+        if((RecoVtx-RecoStart).Mag() >= 10)continue;
+        if(islc.reco.pfp[ipfp].trk.len <= 50 )continue;
+        if(!(isInContained(islc.reco.pfp[ipfp].trk.end.x,islc.reco.pfp[ipfp].trk.end.y,islc.reco.pfp[ipfp].trk.end.z,CONTAINMENT_CUT)))continue;
+        if((islc.reco.pfp[ipfp].trk.end.x*islc.vertex.x) <= 0)continue;
+        if(!is_primary)continue;
+
+        // --> at this point it is a muon candidate!
+
+        std::vector<double> output_chi2 = compute_chi2(islc,ipfp,2,MODE,SIGMA);
+
+        if(output_chi2.size() > 1 && islc.reco.pfp[ipfp].trk.len > max_track_length && output_chi2[0] < 30. && output_chi2[1] > 60.)
+        {
+          ipfp_mu = ipfp;
+          max_track_length = islc.reco.pfp[ipfp].trk.len;
+        }
+
+      }//loop of pfp to find muon
+
+      if(ipfp_mu != -1)
+      {
+        int bestplane = 2;
+
+        std::vector<double> temp_dedx;
+        std::vector<double> temp_rr;
+
+        double average_pitch = 0;
+        double track_dir_x;
+
+        for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points.size(); ++ihit )
+        {
+          temp_rr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].rr);
+          //temp_dedx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx);
+          temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx,phi,Detector::ICARUS,MODE,SIGMA));
+
+          average_pitch = average_pitch + islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].pitch;
+        }
+
+        average_pitch = average_pitch / islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points.size();
+        track_dir_x = islc.reco.pfp[ipfp_mu].trk.dir.x;
+
+        double thetaXW = std::atan(track_dir_x * average_pitch/0.3);
+
+        double depE = compute_depE_var(islc,ipfp_mu,bestplane,MODE,SIGMA);
+
+      }
+
+      //PROTON FOUND
+
+      for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
+      {
+        if((int)ipfp == ipfp_mu)continue;
+
+        int id_pfp = id_pfp_chi2(islc,ipfp,MODE,SIGMA);
+
+        if(id_pfp == 1)
+        {
+
+          int bestplane = 2;
+
+          std::vector<double> temp_dedx;
+          std::vector<double> temp_rr;
+
+          double average_pitch = 0;
+          double track_dir_x;
+
+          for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit )
+          {
+            temp_rr.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr);
+            //temp_dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx);
+            temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx,phi,Detector::ICARUS,MODE,SIGMA));
+
+            average_pitch = average_pitch + islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch;
+          }
+
+          average_pitch = average_pitch / islc.reco.pfp[ipfp].trk.calo[bestplane].points.size();
+          track_dir_x = islc.reco.pfp[ipfp].trk.dir.x;
+
+          double thetaXW = std::atan(track_dir_x * average_pitch/0.3);
+
+          double depE = compute_depE_var(islc,ipfp,bestplane,MODE,SIGMA);
+        }
+      }
+
+    }//loop on slices
+
+    return vector_active;
+});
 
 
 
@@ -1355,12 +1592,14 @@ const SpillMultiVar files_check([](const caf::SRSpillProxy* sr)-> std::vector<do
 });
 */
 
+
 /*
+
 std::string file_sample = "DATA";
 
 ofstream muon_candidates(Form("PIDSYST_CHI2_MUON_CANDIDATES_%s.txt",file_sample.c_str()));
-ofstream selected_muons(Form("PIDSYST_CHI2_SELECTED_MUON_%s.txt",file_sample.c_str()));
-ofstream selected_protons(Form("PIDSYST_CHI2_SELECTED_PROTONS_%s.txt",file_sample.c_str()));
+ofstream selected_muons(Form("VARIED_PIDSYST_CHI2_SELECTED_MUON_%s.txt",file_sample.c_str()));
+ofstream selected_protons(Form("VARIED_PIDSYST_CHI2_SELECTED_PROTONS_%s.txt",file_sample.c_str()));
 ofstream selected_pions(Form("PIDSYST_CHI2_SELECTED_PIONS_%s.txt",file_sample.c_str()));
 
 const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<double>
@@ -1450,6 +1689,8 @@ const SpillMultiVar dump_BDT_vars([](const caf::SRSpillProxy* sr)-> std::vector<
         double depE = compute_depE(islc,ipfp,bestplane);
         // --> std::vector<double> dvars = compute_daughter_vars(islc,ipfp);
 
+
+        
         muon_candidates << sr->hdr.run << " " << sr->hdr.evt << " " << slice_counter << " ";
         //for(const auto &l : lr){muon_candidates << l << " ";}
         //muon_candidates << depE << " " << dvars[0] << " " << dvars[1] << " ";
