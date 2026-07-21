@@ -47,6 +47,7 @@
 double PROTON_KINETIC_E = 50.;
 double CONTAINMENT_CUT = 10.;
 double DEP_E_P_RISING_CUT = 0.;
+double BEST_P_PROBA = 0.7;
 
 using namespace ana;
 
@@ -1018,12 +1019,15 @@ std::string selection_1muNp_newPID ( const caf::SRSpillProxy* sr, const caf::Pro
       //modification to suppress cosmic background -->
       int bestplane_temp = find_best_plane(islc,ipfp);
       double depE_temp = compute_depE(islc,ipfp,bestplane_temp);
-      int class_temp = PIDclass(islc,ipfp);  
-      if(class_temp == 2)
-      { 
-        if(depE_temp > DEP_E_P_RISING_CUT){num_protons+=1;}
-      }
-      else{num_protons+=1;}
+      int class_temp = PIDclass(islc,ipfp); 
+      std::vector<double> pred_proba_temp = PIDproba(islc,ipfp);
+      double best_p_prob = (pred_proba_temp[2] > pred_proba_temp[3]) ? pred_proba_temp[2] : pred_proba_temp[3];
+      //if(class_temp == 2)
+      //{ 
+      //  if(depE_temp > DEP_E_P_RISING_CUT){num_protons+=1;}
+      //}
+      //else{num_protons+=1;}
+      if(best_p_prob > BEST_P_PROBA){num_protons+=1;}
       //<--
     }
     if(pfp_id==2){num_pions+=1; }
