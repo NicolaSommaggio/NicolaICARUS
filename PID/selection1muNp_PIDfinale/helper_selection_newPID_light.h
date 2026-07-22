@@ -1448,6 +1448,23 @@ const SpillMultiVar selection([](const caf::SRSpillProxy* sr)-> std::vector<doub
 });
 */
 
+
+/*
+inline double ShiftedDedx(double dedx, double phi, Detector detector, Mode mode, double sigma)
+  {
+    const double dQdx = Recomb(dedx, phi, detector, kAlpha0, kBeta90_0, kR0);
+    switch(mode)
+    {
+      case Mode::Standard:  return RecombCor(dQdx, phi, detector, kAlpha0, kBeta90_0, kR0);
+      case Mode::Gain:  return RecombCor(dQdx/(1.+sigma*kCcalErr), phi, detector, kAlpha0, kBeta90_0, kR0);
+      case Mode::Alpha: return RecombCor(dQdx, phi, detector, kAlpha0+sigma*kAlphaErr, kBeta90_0, kR0);
+      case Mode::Beta:  return RecombCor(dQdx, phi, detector, kAlpha0, kBeta90_0+sigma*kBetaErr, kR0);
+      case Mode::R:     return RecombCor(dQdx, phi, detector, kAlpha0, kBeta90_0, kR0+sigma*kRErr);
+      default:          return dedx;
+    }
+  }
+*/
+
 std::vector<_slice> _slices;
 
 Mode MODE = Mode::Standard;
@@ -1601,6 +1618,8 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         }
       }
 
+      slice._mu = muone;
+      slice._protons = protoni;
       _slices.push_back(slice);
 
     }//loop on slices

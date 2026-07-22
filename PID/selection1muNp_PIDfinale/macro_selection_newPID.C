@@ -20,7 +20,6 @@
 #include <numeric>
 #include <algorithm>
 
-
 using namespace ana;
 
 void macro_selection_newPID(){
@@ -80,6 +79,10 @@ void macro_selection_newPID(){
 //1.90381e+19 POT from hdr differs from 1.91916e+19 POT from the TotalPOT histogram!
 //1.90381e+19 POT over 5111954 readouts
 
+//WIREMOD CAFS
+
+//const std::string fdata = "aurora_mc_2026A_ICARUS_Run2_ReCAF_WM_v10_06_00_14_caf";
+const std::string fdata = "/pnfs/sbn/scratch/users/twester/Run2_WM_ReCAF2026/flatcaf/*/*/*.root";
 
 //SELECTION FOLDER 
 //const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
@@ -94,7 +97,7 @@ void macro_selection_newPID(){
 //const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_06_00_01p05_offbeambnbmajority_flatcaf_unblind";
 
 //DATI
-const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_2_v10_06_00_06p03_bnbmajority_flatcaf_prescaled";
+//const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_2_v10_06_00_06p03_bnbmajority_flatcaf_prescaled";
 
 //MC per SBND
 //const std::string fdata = "/pnfs/sbn/scratch/users/sungbino/sbnd/v10_06_00_09/mc_1e20";
@@ -139,7 +142,7 @@ double factor = s1.POT();
 
 TH1D* h1 = s1.ToTH1(factor);
 
-TFile *tree_outfile = new TFile("varMC_DATA.root","RECREATE");
+TFile *tree_outfile = new TFile("varMC_WIREMOD.root","RECREATE");
 TTree * tree = new TTree("tree","tree");
 
 _slice thislice;
