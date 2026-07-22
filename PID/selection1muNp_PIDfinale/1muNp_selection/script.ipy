@@ -1,0 +1,80 @@
+import numpy as np
+
+a = np.genfromtxt(
+    'slices.txt',
+    dtype=[
+        ('run',int),
+        ('evt',int),
+        ('slice_number',int),
+        ('nuE',float),
+        ('reco_class','U20'),
+        ('true_class','U20')],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+b = np.genfromtxt(
+    'dump_reco_class.txt',
+    dtype=[
+        ('run',int),
+        ('evt',int),
+        ('slice_number',int),
+        ('nuE',float),
+        ('reco_class','U20'),
+        ('true_class','U20')],
+    encoding = 'utf-8',
+    delimiter = None
+)
+
+ss = np.genfromtxt(
+    'dump_stitching_AMR_chi2.txt',
+    dtype=[
+	('run',int),
+	('evt',int),
+	('sliceID',int),
+	('G4ID1',int),
+	('pdg1',int),
+	('G4ID2',int),
+	('pdg2',int),
+	('len_i',float),
+	('len_f',float),
+	('len_true',float)],
+  encoding = 'utf-8',
+  delimiter = None
+)
+
+"""
+for i in range(len(a)):
+   
+    if a['run'][i] != b['run'][i] or a['evt'][i] != b['evt'][i] or a['slice_number'][i] != b['slice_number'][i] or a['reco_class'][i] != b['reco_class'][i] or a['true_class'][i] != b['true_class'][i]:
+        print('not match at line ',i)
+"""
+
+def is1muNp_reco(reco_class) :
+    if reco_class.startswith('bad_slice') : return False
+    else:
+        reco = [int(char) for char in reco_class]
+        if reco[0] == 1 and reco[1] >= 1 and reco[2] == 0 and reco[3] == 0 : return True
+    return False
+
+def is1muNp_true(true_class) :
+    if true_class == 'bad_slice' or true_class == 'not_in_FV' or true_class == 'not_in_Active' or true_class == 'not_contained' or true_class == "cosmic" or true_class =='reco_vertex_isNAN' or true_class =='true_vertex_isNAN' or true_class =='not_numu' : return False
+    else:
+        true = [int(char) for char in true_class]
+        if true[0] == 1 and true[1] >= 1 and true[2] == 0 and true[3] == 0 and true[4]==0: return True
+    return False
+
+potential_new_events = 0
+
+s = ss[(ss['G4ID1']==ss['G4ID2']) & (np.abs(ss['pdg1'])==13) & (np.abs(ss['pdg2']==13))]
+
+for i in range(len(s)):
+    
+    event = b[ (b['run']==s['run'][i]) & (b['evt']==s['evt'][i]) & (b['slice_number']==s['sliceID'][i])]
+    candidate = False
+    if(is1muNp_reco(event['reco_class'][0]) == False and is1muNp_true(event['true_class'][0]) == True) :
+        potential_new_events = potential_new_events + 1
+        candidate = True
+    print(event['reco_class'][0],event['true_class'][0], candidate)
+
+print('\n\n',potential_new_events,'potential new events')
