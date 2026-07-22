@@ -47,7 +47,7 @@
 double PROTON_KINETIC_E = 50.;
 double CONTAINMENT_CUT = 10.;
 double DEP_E_P_RISING_CUT = 0.;
-double BEST_P_PROBA = 0.7;
+double BEST_P_PROBA = 0.;
 
 using namespace ana;
 

@@ -82,7 +82,7 @@ void macro_selection_newPID(){
 
 
 //SELECTION FOLDER 
-const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
+//const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
 
 // 1 file SELECTION FOLDER
 //const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/84005943_0_out1.flat.caf.root";
@@ -94,7 +94,7 @@ const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.ro
 //const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_06_00_01p05_offbeambnbmajority_flatcaf_unblind";
 
 //DATI
-//const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_2_v10_06_00_06p03_bnbmajority_flatcaf_prescaled";
+const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_2_v10_06_00_06p03_bnbmajority_flatcaf_prescaled";
 
 //MC per SBND
 //const std::string fdata = "/pnfs/sbn/scratch/users/sungbino/sbnd/v10_06_00_09/mc_1e20";
@@ -139,7 +139,7 @@ double factor = s1.POT();
 
 TH1D* h1 = s1.ToTH1(factor);
 
-TFile *tree_outfile = new TFile("varMC_STANDARD.root","RECREATE");
+TFile *tree_outfile = new TFile("varMC_DATA.root","RECREATE");
 TTree * tree = new TTree("tree","tree");
 
 _slice thislice;
