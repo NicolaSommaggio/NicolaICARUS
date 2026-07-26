@@ -82,10 +82,16 @@ void macro_selection_newPID(){
 //WIREMOD CAFS
 
 //const std::string fdata = "aurora_mc_2026A_ICARUS_Run2_ReCAF_WM_v10_06_00_14_caf";
-const std::string fdata = "/pnfs/sbn/scratch/users/twester/Run2_WM_ReCAF2026/flatcaf/*/*/*.root";
+//const std::string fdata = "/pnfs/sbn/scratch/users/twester/Run2_WM_ReCAF2026/flatcaf/*/*/*.root";
+
+// DIVISIONE IN 4 FILES
+//const std::string fdata = "/pnfs/sbn/scratch/users/twester/Run2_WM_ReCAF2026/flatcaf/00000*/*/*.root";
+//const std::string fdata = "/pnfs/sbn/scratch/users/twester/Run2_WM_ReCAF2026/flatcaf/00001*/*/*.root";
+//const std::string fdata = "/pnfs/sbn/scratch/users/twester/Run2_WM_ReCAF2026/flatcaf/00002*/*/*.root";
+//const std::string fdata = "/pnfs/sbn/scratch/users/twester/Run2_WM_ReCAF2026/flatcaf/00003*/*/*.root";
 
 //SELECTION FOLDER 
-//const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
+const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
 
 // 1 file SELECTION FOLDER
 //const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/84005943_0_out1.flat.caf.root";
@@ -94,10 +100,12 @@ const std::string fdata = "/pnfs/sbn/scratch/users/twester/Run2_WM_ReCAF2026/fla
 //const std::string fdata = "/pnfs/icarus/scratch/users/gputnam/Ar23+_iterE/ICARUSSpringMC/*/*flat.caf.root";
 
 //ICARUS Offbeam
-//const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_06_00_01p05_offbeambnbmajority_flatcaf_unblind";
+//const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_v10_06_00_01p05_offbeambnbmajority_flatcaf_unblind"; //->OLD
+//const std::string fdata = "production_data_2026A_ICARUS_BNB_RUN2_reCAF_offbeambnbmajority_UNBLIND_Run2_v10_06_00_12_flatcaf";
 
 //DATI
 //const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_2_v10_06_00_06p03_bnbmajority_flatcaf_prescaled";
+//const std::string fdata = "production_data_2026A_ICARUS_BNB_RUN2_reCAF_bnbmajority_10p_UNBLIND_Run2_v10_06_00_12_flatcaf";
 
 //MC per SBND
 //const std::string fdata = "/pnfs/sbn/scratch/users/sungbino/sbnd/v10_06_00_09/mc_1e20";
@@ -130,7 +138,8 @@ const Binning kBinz = Binning::Simple(300,0,30);
 //Spectrum s1("", kBinz, loader, fdump_pred_proba ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, files_check ,kNoSpillCut );
 //Spectrum s1("", kBinz, loader, dump_BDT_vars ,kNoSpillCut );
-Spectrum s1("", kBinz, loader, dedx_var ,kNoSpillCut );
+//Spectrum s1("", kBinz, loader, dedx_var ,kNoSpillCut );
+Spectrum s1("", kBinz, loader, check_variations ,kNoSpillCut );
 
 //muons.clear();
 //pions.clear();
@@ -142,7 +151,8 @@ double factor = s1.POT();
 
 TH1D* h1 = s1.ToTH1(factor);
 
-TFile *tree_outfile = new TFile("varMC_WIREMOD.root","RECREATE");
+/*
+TFile *tree_outfile = new TFile("varMC_STANDARD_PHI_CORR.root","RECREATE");
 TTree * tree = new TTree("tree","tree");
 
 _slice thislice;
@@ -157,7 +167,7 @@ for(const auto &slc : _slices)
 tree_outfile -> cd();
 tree -> Write(0,TObject::kOverwrite);
 tree_outfile -> Close();
-
+*/
 
 /*
 cout << nmuons << " " << npions << " " << nprotons << endl;

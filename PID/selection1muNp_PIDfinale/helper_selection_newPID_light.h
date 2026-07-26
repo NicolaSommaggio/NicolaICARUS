@@ -149,14 +149,37 @@ constexpr double MUON_MASS            = 105.658; // MeV
     }
   }
 
+namespace wiremod 
+{
+  static constexpr float kWireSpacing = 0.3f;
+
+  static constexpr float kIntegral_A =  1.35696f;
+  static constexpr float kIntegral_B =  0.0786976f;
+  static constexpr float kIntegral_C = -24.1874f;
+
+  inline bool WireModHitCut(float phi, float pitch, float integral, int plane)
+  {
+    if (pitch <= 0.f || plane < 0 || plane > 2) return true;
+
+    const float cosG      = kWireSpacing / pitch;
+    const float thetaXW   = std::abs(std::atan(std::cos(phi) / cosG));
+    const float thetaDeg  = thetaXW * (180.f / M_PI);
+
+    const float thr_integral = kIntegral_A * std::exp(kIntegral_B * thetaDeg) + kIntegral_C;
+    if (integral <= thr_integral) return true;
+
+    return false;
+  }
+}
 
 double compute_depE_var(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp, int plane, Mode mode = Mode::Standard, double sigma = 0.)
 {
     double dep_E = 0;
-    const double phi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x));
+    //const double phi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x));
 
     for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit )
     {
+        const double phi = islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi;
         if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr <= 5.)
         {   
             dep_E = dep_E + ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx,phi,Detector::ICARUS,mode,sigma) * islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch;
@@ -277,7 +300,7 @@ std::vector<double> compute_chi2(const caf::Proxy<caf::SRSlice>& islc,
     std::vector<double> dedx, rr;
 
     const auto& calo = islc.reco.pfp[ipfp].trk.calo[plane].points;
-    const double phi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x)); 
+    //const double phi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x)); 
     if (calo.empty()) return {};
 
     dedx.reserve(calo.size());
@@ -285,6 +308,10 @@ std::vector<double> compute_chi2(const caf::Proxy<caf::SRSlice>& islc,
 
     for (const auto& pt : calo) {
         //dedx.push_back(pt.dedx);
+
+        //if( wiremod::WireModHitCut(pt.phi, pt.pitch, pt.integral, plane) )continue;
+
+        const double phi = pt.phi;
         dedx.push_back(ShiftedDedx(pt.dedx,phi,Detector::ICARUS,mode,sigma));
         rr.push_back(pt.rr);
     }
@@ -1465,6 +1492,8 @@ inline double ShiftedDedx(double dedx, double phi, Detector detector, Mode mode,
   }
 */
 
+
+
 std::vector<_slice> _slices;
 
 Mode MODE = Mode::Standard;
@@ -1545,9 +1574,12 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         double average_pitch = 0;
         double track_dir_x;
 
-        const double thisphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp_mu].trk.dir.x)); 
+        //const double thisphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp_mu].trk.dir.x)); 
         for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points.size(); ++ihit )
         {
+          //if( wiremod::WireModHitCut(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].integral, bestplane))continue;
+          const double thisphi = islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].phi;
+
           temp_rr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].rr);
           //temp_dedx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx);
           temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
@@ -1567,6 +1599,8 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         muone._dedx = temp_dedx;
         muone._rr = temp_rr;
         muone._theta_xw = thetaXW;
+        //muone._theta_xw_hit = ...;
+        //muone._chi2 = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA);
 
       }
 
@@ -1589,9 +1623,13 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
           double average_pitch = 0;
           double track_dir_x;
 
-          const double thisphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x)); 
+          //const double thisphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x)); 
           for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit )
           {
+            //if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, bestplane))continue;
+
+            const double thisphi = islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi;
+
             temp_rr.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr);
             //temp_dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx);
             temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
@@ -1612,6 +1650,8 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
           protone._dedx = temp_dedx;
           protone._rr = temp_rr;
           protone._theta_xw = thetaXW;
+          //protone._theta_xw_hit = ...;
+          //protone._chi2 = compute_chi2(islc,ipfp,2,MODE,SIGMA);
 
           protoni.push_back(protone);
 
@@ -1630,6 +1670,42 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
 
 
 /*
+Mode MODE = Mode::Standard;
+double SIGMA = 0.;
+
+const SpillMultiVar check_variations([](const caf::SRSpillProxy* sr)-> std::vector<double>
+{
+    std::vector<double> vector_active;
+
+    for(const auto &islc : sr->slc)
+    { 
+      if(! is_good_truth_matching(islc))continue;
+
+      for ( std::size_t ipfp(0); ipfp < islc.reco.npfp ; ++ipfp )
+      {
+        int plane = 2;
+        const double trackphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x)); 
+        for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit )
+          {
+            //if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, bestplane))continue;
+
+            const double thisphi = islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi; 
+
+            cout << islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr << " | ";
+            cout << islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx << " ";
+            cout << ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA) << " ";
+            cout << ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx,thisphi*180./M_PI,Detector::ICARUS,MODE,SIGMA) << " | ";
+            cout << islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi*180./M_PI << " " << trackphi << endl;
+
+          }
+      }
+    }
+
+    return vector_active;
+});
+*/
+
+/*
 
 const SpillMultiVar files_check([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
@@ -1637,8 +1713,8 @@ const SpillMultiVar files_check([](const caf::SRSpillProxy* sr)-> std::vector<do
 
     return vector_active;
 });
-*/
 
+*/
 
 /*
 
