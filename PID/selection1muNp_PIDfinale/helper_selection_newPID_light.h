@@ -1570,6 +1570,10 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
 
         std::vector<double> temp_dedx;
         std::vector<double> temp_rr;
+        std::vector<double> temp_mult;
+        std::vector<double> temp_dqdx;
+        std::vector<double> temp_pitch;
+        std::vector<double> temp_phi;
 
         double average_pitch = 0;
         double track_dir_x;
@@ -1583,6 +1587,11 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
           temp_rr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].rr);
           //temp_dedx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx);
           temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
+
+          temp_mult.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].mult);
+          temp_dqdx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dqdx);
+          temp_pitch.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].pitch);
+          temp_phi.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].phi);
 
           average_pitch = average_pitch + islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].pitch;
         }
@@ -1599,8 +1608,13 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         muone._dedx = temp_dedx;
         muone._rr = temp_rr;
         muone._theta_xw = thetaXW;
-        //muone._theta_xw_hit = ...;
-        //muone._chi2 = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA);
+
+        muone._mult = temp_mult;
+        muone._dqdx = temp_dqdx;
+        muone._pitch = temp_pitch;
+        muone._phi = temp_phi;
+
+        muone._chi2 = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA);
 
       }
 
@@ -1619,6 +1633,10 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
 
           std::vector<double> temp_dedx;
           std::vector<double> temp_rr;
+          std::vector<double> temp_mult;
+          std::vector<double> temp_dqdx;
+          std::vector<double> temp_pitch;
+          std::vector<double> temp_phi;
 
           double average_pitch = 0;
           double track_dir_x;
@@ -1633,6 +1651,11 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
             temp_rr.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr);
             //temp_dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx);
             temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
+
+            temp_mult.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].mult);
+            temp_dqdx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dqdx);
+            temp_pitch.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch);
+            temp_phi.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi);
 
             average_pitch = average_pitch + islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch;
           }
@@ -1650,8 +1673,13 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
           protone._dedx = temp_dedx;
           protone._rr = temp_rr;
           protone._theta_xw = thetaXW;
-          //protone._theta_xw_hit = ...;
-          //protone._chi2 = compute_chi2(islc,ipfp,2,MODE,SIGMA);
+
+          protone._mult = temp_mult;
+          protone._dqdx = temp_dqdx;
+          protone._pitch = temp_pitch;
+          protone._phi = temp_phi;
+
+          protone._chi2 = compute_chi2(islc,ipfp,2,MODE,SIGMA);
 
           protoni.push_back(protone);
 
