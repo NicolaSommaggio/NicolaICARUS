@@ -15,11 +15,12 @@ public:
     std::vector<double> _dedx;
     std::vector<double> _rr;
     double _theta_xw = -999;
-    std::vector<double> _pitch; //<--
-    std::vector<double> _mult; //<--
-    std::vector<double> _dqdx; //<--
-    std::vector<double> _phi; //<--
-    std::vector<double> _chi2; //<--
+    std::vector<double> _pitch; 
+    std::vector<double> _mult; 
+    std::vector<double> _dqdx;
+    std::vector<double> _phi; 
+    double _chi2_as_mu = -999; 
+    double _chi2_as_pro = -999;
 
     _pfp() {}
     virtual ~_pfp() {}

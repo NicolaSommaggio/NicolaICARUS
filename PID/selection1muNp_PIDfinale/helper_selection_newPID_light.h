@@ -49,6 +49,9 @@ double CONTAINMENT_CUT = 10.;
 double DEP_E_P_RISING_CUT = 0.;
 double BEST_P_PROBA = 0.;
 
+bool DEDX_CORRECTION = false;
+bool THETA_XW_LOCAL_CUT = true;
+
 using namespace ana;
 
 //CNAF
@@ -64,6 +67,9 @@ auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
 auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
 auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
 auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
+
+TFile *spline_file = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/spline_file.root");
+TSpline3* spline =  (TSpline3*)spline_file->Get("Spline3");
 
 const SpillCut kCRTPMTNeutrino([](const caf::SRSpillProxy* spill){
   return true;
@@ -182,8 +188,29 @@ double compute_depE_var(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp, 
         const double phi = islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi;
         if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr <= 5.)
         {   
-            dep_E = dep_E + ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx,phi,Detector::ICARUS,mode,sigma) * islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch;
-        }
+            
+            if(THETA_XW_LOCAL_CUT)
+            {
+              if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].integral, plane))return -1; 
+            }
+
+            double dedx_val;
+            if(DEDX_CORRECTION)
+            {
+              dedx_val = islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx / spline->Eval(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);
+            }
+            else
+            {
+              dedx_val = islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx;
+            }
+
+            //if(dedx_val < 5.){dedx_val = dedx_val / 1.035;}
+            //if(dedx_val >= 5 && dedx_val < 10){dedx_val = dedx_val / 1.05;}
+            //if(dedx_val >= 10){dedx_val = dedx_val / 1.07;}
+            //dep_E = dep_E + ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx,phi,Detector::ICARUS,mode,sigma) * islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch;
+            
+            dep_E = dep_E + dedx_val * islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch;
+          }
     }
     return dep_E;
 }
@@ -306,14 +333,33 @@ std::vector<double> compute_chi2(const caf::Proxy<caf::SRSlice>& islc,
     dedx.reserve(calo.size());
     rr.reserve(calo.size());
 
-    for (const auto& pt : calo) {
+    for (const auto& pt : calo) 
+    {
         //dedx.push_back(pt.dedx);
 
-        //if( wiremod::WireModHitCut(pt.phi, pt.pitch, pt.integral, plane) )continue;
+        if(THETA_XW_LOCAL_CUT)
+        {
+          if( wiremod::WireModHitCut(pt.phi, pt.pitch, pt.integral, plane) )continue; 
+        }
+
+        double dedx_val; 
+        if(DEDX_CORRECTION)
+        {
+          dedx_val = pt.dedx / spline->Eval(pt.dedx);
+        }
+        else
+        {
+          dedx_val = pt.dedx;
+        }
+
+        //if(dedx_val < 5.){dedx_val = dedx_val / 1.035;}
+        //if(dedx_val >= 5 && dedx_val < 10){dedx_val = dedx_val / 1.05;}
+        //if(dedx_val >= 10){dedx_val = dedx_val / 1.07;}
 
         const double phi = pt.phi;
-        dedx.push_back(ShiftedDedx(pt.dedx,phi,Detector::ICARUS,mode,sigma));
-        rr.push_back(pt.rr);
+        //dedx.push_back(ShiftedDedx(pt.dedx,phi,Detector::ICARUS,mode,sigma));
+        dedx.push_back(ShiftedDedx(dedx_val,phi,Detector::ICARUS,mode,sigma));
+	      rr.push_back(pt.rr);
     }
 
     return chi2_ALG(dedx, rr, 0, 25);
@@ -1581,12 +1627,33 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         //const double thisphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp_mu].trk.dir.x)); 
         for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points.size(); ++ihit )
         {
-          //if( wiremod::WireModHitCut(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].integral, bestplane))continue;
+          double dedx_val; 
+          
+          if(DEDX_CORRECTION)
+          {
+            dedx_val = islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx / spline -> Eval(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx);
+          }
+          else
+          {
+            dedx_val = islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx;
+          }
+          
+          //if(dedx_val < 5.){dedx_val = dedx_val / 1.035;}
+          //if(dedx_val >= 5 && dedx_val < 10){dedx_val = dedx_val / 1.05;}
+          //if(dedx_val >= 10){dedx_val = dedx_val / 1.07;}
+
+
+          if(THETA_XW_LOCAL_CUT)
+          {
+            if( wiremod::WireModHitCut(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].integral, bestplane))continue;
+          }
+          
           const double thisphi = islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].phi;
 
           temp_rr.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].rr);
           //temp_dedx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx);
-          temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
+          //temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
+          temp_dedx.push_back(dedx_val);
 
           temp_mult.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].mult);
           temp_dqdx.push_back(islc.reco.pfp[ipfp_mu].trk.calo[bestplane].points[ihit].dqdx);
@@ -1609,12 +1676,15 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         muone._rr = temp_rr;
         muone._theta_xw = thetaXW;
 
+        muone._KE = compute_ke(islc,ipfp_mu,bestplane);
+
         muone._mult = temp_mult;
         muone._dqdx = temp_dqdx;
         muone._pitch = temp_pitch;
         muone._phi = temp_phi;
 
-        muone._chi2 = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA);
+        muone._chi2_as_mu = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA)[0];
+        muone._chi2_as_pro = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA)[1];
 
       }
 
@@ -1644,13 +1714,32 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
           //const double thisphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x)); 
           for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit )
           {
-            //if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, bestplane))continue;
+            if(THETA_XW_LOCAL_CUT)
+            {
+              if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, bestplane))continue; 
+            }
+
+            double dedx_val;
+            
+            if(DEDX_CORRECTION)
+            {
+              dedx_val = islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx / spline -> Eval(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx);
+            }
+            else
+            {
+              dedx_val = islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx;
+            }
+            
+            //if(dedx_val < 5.){dedx_val = dedx_val / 1.035;}
+            //if(dedx_val >= 5 && dedx_val < 10){dedx_val = dedx_val / 1.05;}
+            //if(dedx_val >= 10){dedx_val = dedx_val / 1.07;}
 
             const double thisphi = islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi;
 
             temp_rr.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr);
             //temp_dedx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx);
-            temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
+            //temp_dedx.push_back(ShiftedDedx(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx,thisphi,Detector::ICARUS,MODE,SIGMA));
+            temp_dedx.push_back(dedx_val);
 
             temp_mult.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].mult);
             temp_dqdx.push_back(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dqdx);
@@ -1674,12 +1763,15 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
           protone._rr = temp_rr;
           protone._theta_xw = thetaXW;
 
+          protone._KE = compute_ke(islc,ipfp,bestplane);
+
           protone._mult = temp_mult;
           protone._dqdx = temp_dqdx;
           protone._pitch = temp_pitch;
           protone._phi = temp_phi;
 
-          protone._chi2 = compute_chi2(islc,ipfp,2,MODE,SIGMA);
+          protone._chi2_as_mu = compute_chi2(islc,ipfp,2,MODE,SIGMA)[0];
+          protone._chi2_as_pro = compute_chi2(islc,ipfp,2,MODE,SIGMA)[1];
 
           protoni.push_back(protone);
 
