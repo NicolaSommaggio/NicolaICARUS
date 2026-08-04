@@ -330,7 +330,7 @@ void PLOT_VARIATIONS()
 
 void create_spline()
 {
-    ifstream spline_table("spline_table.txt");
+    ifstream spline_table("spline_table_new.txt");
 
     TGraph *spline_points = new TGraph();
 
@@ -352,7 +352,7 @@ void create_spline()
     spline->Draw("same");
     c->Draw();
 
-    TFile *outfile = new TFile("spline_file.root","RECREATE");
+    TFile *outfile = new TFile("spline_file_new.root","RECREATE");
     outfile -> cd();
     spline -> Write();
 }
