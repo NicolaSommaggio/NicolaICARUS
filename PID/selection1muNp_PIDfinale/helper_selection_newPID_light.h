@@ -50,7 +50,7 @@ double DEP_E_P_RISING_CUT = 0.;
 double BEST_P_PROBA = 0.;
 
 bool DEDX_CORRECTION = false;
-bool THETA_XW_LOCAL_CUT = true;
+bool THETA_XW_LOCAL_CUT = false;
 
 using namespace ana;
 
@@ -68,7 +68,7 @@ auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
 auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
 auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
 
-TFile *spline_file = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/spline_file.root");
+TFile *spline_file = TFile::Open("/exp/icarus/app/users/nsommagg/NicolaICARUS/PID/selection1muNp_PIDfinale/spline_file_new.root");
 TSpline3* spline =  (TSpline3*)spline_file->Get("Spline3");
 
 const SpillCut kCRTPMTNeutrino([](const caf::SRSpillProxy* spill){
@@ -176,6 +176,25 @@ namespace wiremod
 
     return false;
   }
+}
+
+double medianDedxRRcut(const std::vector<double>& dedx, const std::vector<double>& rr, double rr_cut = 5.0)
+{
+    std::vector<double> selected;
+    selected.reserve(dedx.size());
+
+    for (size_t i = 0; i < dedx.size(); ++i)
+    { 
+        if (rr[i] < rr_cut)selected.push_back(dedx[i]);
+    }
+
+    if (selected.empty())return -999;
+
+    std::sort(selected.begin(), selected.end());
+
+    size_t n = selected.size();
+    if(n % 2 == 0){return 0.5 * (selected[n/2 - 1] + selected[n/2]);}
+    else{return selected[n/2];}
 }
 
 double compute_depE_var(const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp, int plane, Mode mode = Mode::Standard, double sigma = 0.)
@@ -1686,6 +1705,9 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         muone._chi2_as_mu = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA)[0];
         muone._chi2_as_pro = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA)[1];
 
+        muone._mediana = medianDedxRRcut(temp_dedx,temp_rr,5.);
+        muone._pdg = islc.reco.pfp[ipfp_mu].trk.truth.p.pdg;
+
       }
 
       //PROTON FOUND
@@ -1711,6 +1733,8 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
           double average_pitch = 0;
           double track_dir_x;
 
+          //cout << "NEW PROTON" << endl << endl;
+
           //const double thisphi = std::acos(std::fabs((double)islc.reco.pfp[ipfp].trk.dir.x)); 
           for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit )
           {
@@ -1729,6 +1753,8 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
             {
               dedx_val = islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx;
             }
+
+            //cout << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr << " " << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx << " " << spline -> Eval(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx) << " " << islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx / spline -> Eval(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx) << endl;
             
             //if(dedx_val < 5.){dedx_val = dedx_val / 1.035;}
             //if(dedx_val >= 5 && dedx_val < 10){dedx_val = dedx_val / 1.05;}
@@ -1748,6 +1774,8 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
 
             average_pitch = average_pitch + islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch;
           }
+
+          //cout << endl;
 
           average_pitch = average_pitch / islc.reco.pfp[ipfp].trk.calo[bestplane].points.size();
           track_dir_x = islc.reco.pfp[ipfp].trk.dir.x;
@@ -1772,6 +1800,9 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
 
           protone._chi2_as_mu = compute_chi2(islc,ipfp,2,MODE,SIGMA)[0];
           protone._chi2_as_pro = compute_chi2(islc,ipfp,2,MODE,SIGMA)[1];
+
+          protone._mediana = medianDedxRRcut(temp_dedx,temp_rr,5.);
+          protone._pdg = islc.reco.pfp[ipfp].trk.truth.p.pdg;
 
           protoni.push_back(protone);
 

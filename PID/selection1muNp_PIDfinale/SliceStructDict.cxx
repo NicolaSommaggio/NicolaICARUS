@@ -87,7 +87,7 @@ namespace ROOT {
       ::_slice *ptr = nullptr;
       static ::TVirtualIsAProxy* isa_proxy = new ::TInstrumentedIsAProxy< ::_slice >(nullptr);
       static ::ROOT::TGenericClassInfo 
-         instance("_slice", ::_slice::Class_Version(), "slice_struct.h", 31,
+         instance("_slice", ::_slice::Class_Version(), "slice_struct.h", 33,
                   typeid(::_slice), ::ROOT::Internal::DefineBehavior(ptr, ptr),
                   &::_slice::Dictionary, isa_proxy, 4,
                   sizeof(::_slice) );
