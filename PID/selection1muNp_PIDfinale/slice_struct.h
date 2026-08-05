@@ -23,6 +23,8 @@ public:
     double _chi2_as_pro = -999;
     double _mediana = -999;
     double _pdg = -999;
+    double _chi2_as_mu_05 = -999;
+    double _chi2_as_pro_05 = -999;
 
     _pfp() {}
     virtual ~_pfp() {}

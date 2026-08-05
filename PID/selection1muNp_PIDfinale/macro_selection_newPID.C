@@ -159,7 +159,7 @@ double factor = s1.POT();
 TH1D* h1 = s1.ToTH1(factor);
 
 
-TFile *tree_outfile = new TFile("varMC_STANDARD_RUN2_CUT_MOREINFO.root","RECREATE");
+TFile *tree_outfile = new TFile("varMC_STANDARD_RUN2_CUT_CHI2EXPLORATION.root","RECREATE");
 TTree * tree = new TTree("tree","tree");
 
 _slice thislice;

@@ -50,7 +50,7 @@ double DEP_E_P_RISING_CUT = 0.;
 double BEST_P_PROBA = 0.;
 
 bool DEDX_CORRECTION = false;
-bool THETA_XW_LOCAL_CUT = false;
+bool THETA_XW_LOCAL_CUT = true;
 
 using namespace ana;
 
@@ -340,7 +340,9 @@ std::vector<double> compute_chi2(const caf::Proxy<caf::SRSlice>& islc,
                                   std::size_t ipfp,
                                   int plane,
                                   Mode mode = Mode::Standard,
-                                  double sigma = 0.
+                                  double sigma = 0.,
+                                  double rr_min = 0.,
+                                  double rr_max = 25.
                                 )
 {
     std::vector<double> dedx, rr;
@@ -381,7 +383,7 @@ std::vector<double> compute_chi2(const caf::Proxy<caf::SRSlice>& islc,
 	      rr.push_back(pt.rr);
     }
 
-    return chi2_ALG(dedx, rr, 0, 25);
+    return chi2_ALG(dedx, rr, rr_min, rr_max);
 }
 
 inline double kinetic_energy(double mass, double momentum_GeV)
@@ -1705,6 +1707,9 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
         muone._chi2_as_mu = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA)[0];
         muone._chi2_as_pro = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA)[1];
 
+        muone._chi2_as_mu_05 = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA,0.5,25.)[0];
+        muone._chi2_as_pro_05 = compute_chi2(islc,ipfp_mu,2,MODE,SIGMA,0.5,25.)[1];
+
         muone._mediana = medianDedxRRcut(temp_dedx,temp_rr,5.);
         muone._pdg = islc.reco.pfp[ipfp_mu].trk.truth.p.pdg;
 
@@ -1800,6 +1805,9 @@ const SpillMultiVar dedx_var([](const caf::SRSpillProxy* sr)-> std::vector<doubl
 
           protone._chi2_as_mu = compute_chi2(islc,ipfp,2,MODE,SIGMA)[0];
           protone._chi2_as_pro = compute_chi2(islc,ipfp,2,MODE,SIGMA)[1];
+
+          protone._chi2_as_mu_05 = compute_chi2(islc,ipfp,2,MODE,SIGMA,0.,25.)[0];
+          protone._chi2_as_pro_05 = compute_chi2(islc,ipfp,2,MODE,SIGMA,0.,25.)[1];
 
           protone._mediana = medianDedxRRcut(temp_dedx,temp_rr,5.);
           protone._pdg = islc.reco.pfp[ipfp].trk.truth.p.pdg;
