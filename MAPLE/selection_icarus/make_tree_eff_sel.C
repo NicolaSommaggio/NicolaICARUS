@@ -89,9 +89,10 @@ void make_tree_eff_sel()
 //MC Overlays run4
   const std::string fdata_MCrun4 = "/pnfs/sbn/scratch/users/twester/Run4_ReCAF2026/flatcaf/*/*/*.flat.caf.root";
 
+//MAPLE-GUMP-STUDIES
+  const std::string fdata_maple_gump = "/pnfs/sbn/scratch/users/twester/Run2_ReCAF2026/flatcaf/000000/00000*/*.flat.caf.root";
 
-
- SpectrumLoader data(fMC_run2);
+ SpectrumLoader data(fdata_maple_gump);
 
 
     const SpillMultiVar True_Enu = kTrue_Enu;
@@ -203,7 +204,7 @@ void make_tree_eff_sel()
 //  TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_dirt_nocrt.root", "RECREATE");
   //TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_nocrt_nolight_MC_vars_dirt.root", "RECREATE");
   //TFile fout("selected_icarus_standard_eff_sel_MC_tmatch05_nocrt_nolight_MC_vars_offbeam_nuscore.root", "RECREATE");
-  TFile fout("selected_icarus_samecryo_crtveto_run2_MC_pt5_9.root", "RECREATE");
+  TFile fout("PROVA_SBRUCE_TREE_MAPLE_NICOLA.root", "RECREATE");
 
 //  TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_dirt.root", "RECREATE");
 
