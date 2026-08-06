@@ -204,9 +204,18 @@ constexpr double PRIMARY_TRACK_SCORE  = 0.5;
 constexpr double SECONDARY_TRACK_LOW  = 0.4;
 constexpr double VTX_MAX_DIST         = 50.0; // cm
 
-constexpr double MIN_MUON_LENGTH   = 50.0; // cm
-constexpr double MAX_CHI2_MUON     = 30.0;
-constexpr double MIN_CHI2_PROTON   = 60.0;
+//constexpr double MIN_MUON_LENGTH   = 50.0; // cm
+constexpr double MIN_MUON_LENGTH   = 40.0; //GUMP
+
+//constexpr double MAX_CHI2_MUON     = 30.0;
+constexpr double MAX_CHI2_MUON     = 111.0; //GUMP
+
+//constexpr double MIN_CHI2_PROTON   = 60.0;
+constexpr double MIN_CHI2_PROTON   = 74.0; //GUMP
+
+//constexpr double CHI2_PROTON_PION = 100.0;
+constexpr double CHI2_PROTON_PION = 92.0; //GUMP
+
 constexpr double CONTAINMENT_CUT   = 10.0;  // cm
 //constexpr double CONTAINMENT_CUT   = 5.0;  // cm
 
@@ -214,8 +223,10 @@ constexpr double CONTAINMENT_CUT   = 10.0;  // cm
 constexpr double CALO_RR_MIN          = 0.0;
 constexpr double CALO_RR_MAX          = 25.0;
 
-constexpr double PION_KE_MIN          = 25.0; // MeV
-constexpr double PROTON_KE_MIN        = 50.0; // MeV
+//constexpr double PION_KE_MIN          = 25.0; // MeV
+constexpr double PION_KE_MIN          = 0.0; //GUMP
+//constexpr double PROTON_KE_MIN        = 50.0; // MeV
+constexpr double PROTON_KE_MIN        = 40.0; //GUMP
 
 constexpr double PION_MASS            = 139.570; // MeV
 constexpr double PROTON_MASS          = 938.3;   // MeV
@@ -234,6 +245,7 @@ struct ParticleCounts {
     int protons  = 0;
     int pions    = 0;
     int showers  = 0;
+    int other_near_vertex = 0;
 };
 
 enum class PFPID {
@@ -241,6 +253,7 @@ enum class PFPID {
     Proton  = 1,
     Pion    = 2,
     Shower  = 3, 
+    Other_near_vertex = 4
 };
 
 
@@ -868,10 +881,10 @@ PFPID id_pfp(const caf::Proxy<caf::SRSlice>& islc,
     // =========================================================
     // CUT 3 — good track-like objects
     // =========================================================
-    if (pfp.trackScore >= PRIMARY_TRACK_SCORE) {
+    //if (pfp.trackScore >= PRIMARY_TRACK_SCORE) {
 
         // ---------- pion hypothesis ----------
-        if (chi2_proton >= 100.0) {
+        if (chi2_proton >= CHI2_PROTON_PION) {
 
             TVector3 p_pi(pfp.trk.dir.x * pfp.trk.rangeP.p_pion,
               pfp.trk.dir.y * pfp.trk.rangeP.p_pion,
@@ -882,9 +895,10 @@ PFPID id_pfp(const caf::Proxy<caf::SRSlice>& islc,
             if ((reco_vtx - start).Mag() < dist_cut && ke >= PION_KE_MIN)
                 {return PFPID::Pion;}
         }
+        
 
         // ---------- proton hypothesis ----------
-        if (chi2_proton < 100.0) {
+        if (chi2_proton < CHI2_PROTON_PION) {
 
             TVector3 p_pr(pfp.trk.dir.x * pfp.trk.rangeP.p_proton,
               pfp.trk.dir.y * pfp.trk.rangeP.p_proton,
@@ -895,14 +909,15 @@ PFPID id_pfp(const caf::Proxy<caf::SRSlice>& islc,
             if ((reco_vtx - start).Mag() < dist_cut && ke >= PROTON_KE_MIN)
                 {return PFPID::Proton;}
         }
-    }
+    //}
 
     // =========================================================
     // CUT 4 — marginal tracks (proton recovery)
     // =========================================================
+    /*
     if (pfp.trackScore >= SECONDARY_TRACK_LOW &&
         pfp.trackScore <  PRIMARY_TRACK_SCORE &&
-        chi2_proton < 100.0) {
+        chi2_proton < CHI2_PROTON_PION) {
 
         TVector3 p_pr(pfp.trk.dir.x * pfp.trk.rangeP.p_proton,
               pfp.trk.dir.y * pfp.trk.rangeP.p_proton,
@@ -913,13 +928,14 @@ PFPID id_pfp(const caf::Proxy<caf::SRSlice>& islc,
         if ((reco_vtx - start).Mag() < dist_cut && ke >= PROTON_KE_MIN)
             {return PFPID::Proton;}
     }
+    */
 
     // =========================================================
     // CUT 5 — shower-like objects
     // =========================================================
-    if (!(pfp.trackScore >= SECONDARY_TRACK_LOW &&
-        pfp.trackScore <  PRIMARY_TRACK_SCORE &&
-        chi2_proton < 100.0) && pfp.trackScore < PRIMARY_TRACK_SCORE){
+    //if (!(pfp.trackScore >= SECONDARY_TRACK_LOW &&
+    //    pfp.trackScore <  PRIMARY_TRACK_SCORE &&
+    //    chi2_proton < CHI2_PROTON_PION) && pfp.trackScore < PRIMARY_TRACK_SCORE){
     //if (pfp.trackScore < PRIMARY_TRACK_SCORE) {
 
         //if (pfp.shw.plane[DEFAULT_PLANE].nHits <= 2){MyFile << "Shw no calo - Unknown" << endl; return PFPID::Unknown;}
@@ -929,9 +945,10 @@ PFPID id_pfp(const caf::Proxy<caf::SRSlice>& islc,
 
         if (E > PION_KE_MIN)
             {return PFPID::Shower;}
-    }
+    //}
 
-    return PFPID::Unknown;
+    //return PFPID::Unknown;
+    return PFPID::Other_near_vertex;
 }
 
 
@@ -953,6 +970,7 @@ ParticleCounts count_particles(const caf::Proxy<caf::SRSlice>& islc,
             case PFPID::Proton:  ++counts.protons;  break;
             case PFPID::Pion:    ++counts.pions;    break;
             case PFPID::Shower:  ++counts.showers;  break;
+            case PFPID::Other_near_vertex ++counts.other_near_vertex; break;
             default: break;
         }
     }
@@ -1131,7 +1149,8 @@ bool automatic_selection_1muNp_new(const caf::SRSpillProxy* sr,
     // cout << " Protons " << counts.protons << " pions " << counts.pions << " showers " << counts.showers << endl;
     return (counts.protons > 0 &&
             counts.pions   == 0 &&
-            counts.showers == 0);
+            counts.showers == 0 &&
+            counts.other_near_vertex == 0);
 }
 
 
@@ -1574,13 +1593,13 @@ const SpillMultiVar kReco_class([](const caf::SRSpillProxy* sr)-> std::vector<do
             case TruthClass::kCosmic:    vector_active.push_back(3); break;
             default:
                 // none of the above → check other conditions
-                if (!isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z)) {
+                if (!isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z)) { //OOFV
                     vector_active.push_back(4);
                 }
                 else if (std::abs(islc.truth.pdg) == 12) {  //nue
                     vector_active.push_back(5);
                 }   
-                else if (islc.truth.isnc) {
+                else if (islc.truth.isnc) { //NC
                     vector_active.push_back(6);
                 }             
                 else if (islc.truth.iscc && islc.truth.genie_mode == 0) {   //QE

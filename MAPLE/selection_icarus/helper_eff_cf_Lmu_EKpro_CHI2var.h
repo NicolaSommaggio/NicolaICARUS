@@ -204,9 +204,18 @@ constexpr double PRIMARY_TRACK_SCORE  = 0.5;
 constexpr double SECONDARY_TRACK_LOW  = 0.4;
 constexpr double VTX_MAX_DIST         = 50.0; // cm
 
-constexpr double MIN_MUON_LENGTH   = 50.0; // cm
-constexpr double MAX_CHI2_MUON     = 30.0;
-constexpr double MIN_CHI2_PROTON   = 60.0;
+//constexpr double MIN_MUON_LENGTH   = 50.0; // cm
+constexpr double MIN_MUON_LENGTH   = 40.0; //GUMP
+
+//constexpr double MAX_CHI2_MUON     = 30.0;
+constexpr double MAX_CHI2_MUON     = 111.0; //GUMP
+
+//constexpr double MIN_CHI2_PROTON   = 60.0;
+constexpr double MIN_CHI2_PROTON   = 74.0; //GUMP
+
+//constexpr double CHI2_PROTON_PION = 100.0;
+constexpr double CHI2_PROTON_PION = 92.0; //GUMP
+
 constexpr double CONTAINMENT_CUT   = 10.0;  // cm
 //constexpr double CONTAINMENT_CUT   = 5.0;  // cm
 
@@ -215,7 +224,9 @@ constexpr double CALO_RR_MIN          = 0.0;
 constexpr double CALO_RR_MAX          = 25.0;
 
 constexpr double PION_KE_MIN          = 25.0; // MeV
-constexpr double PROTON_KE_MIN        = 50.0; // MeV
+//constexpr double PION_KE_MIN          = 0.0; //GUMP
+//constexpr double PROTON_KE_MIN        = 50.0; // MeV
+constexpr double PROTON_KE_MIN        = 40.0; //GUMP
 
 constexpr double PION_MASS            = 139.570; // MeV
 constexpr double PROTON_MASS          = 938.3;   // MeV
@@ -871,7 +882,7 @@ PFPID id_pfp(const caf::Proxy<caf::SRSlice>& islc,
     if (pfp.trackScore >= PRIMARY_TRACK_SCORE) {
 
         // ---------- pion hypothesis ----------
-        if (chi2_proton >= 100.0) {
+        if (chi2_proton >= CHI2_PROTON_PION) {
 
             TVector3 p_pi(pfp.trk.dir.x * pfp.trk.rangeP.p_pion,
               pfp.trk.dir.y * pfp.trk.rangeP.p_pion,
@@ -882,9 +893,10 @@ PFPID id_pfp(const caf::Proxy<caf::SRSlice>& islc,
             if ((reco_vtx - start).Mag() < dist_cut && ke >= PION_KE_MIN)
                 {return PFPID::Pion;}
         }
+        
 
         // ---------- proton hypothesis ----------
-        if (chi2_proton < 100.0) {
+        if (chi2_proton < CHI2_PROTON_PION) {
 
             TVector3 p_pr(pfp.trk.dir.x * pfp.trk.rangeP.p_proton,
               pfp.trk.dir.y * pfp.trk.rangeP.p_proton,
@@ -900,9 +912,10 @@ PFPID id_pfp(const caf::Proxy<caf::SRSlice>& islc,
     // =========================================================
     // CUT 4 — marginal tracks (proton recovery)
     // =========================================================
+    
     if (pfp.trackScore >= SECONDARY_TRACK_LOW &&
         pfp.trackScore <  PRIMARY_TRACK_SCORE &&
-        chi2_proton < 100.0) {
+        chi2_proton < CHI2_PROTON_PION) {
 
         TVector3 p_pr(pfp.trk.dir.x * pfp.trk.rangeP.p_proton,
               pfp.trk.dir.y * pfp.trk.rangeP.p_proton,
@@ -919,7 +932,7 @@ PFPID id_pfp(const caf::Proxy<caf::SRSlice>& islc,
     // =========================================================
     if (!(pfp.trackScore >= SECONDARY_TRACK_LOW &&
         pfp.trackScore <  PRIMARY_TRACK_SCORE &&
-        chi2_proton < 100.0) && pfp.trackScore < PRIMARY_TRACK_SCORE){
+        chi2_proton < CHI2_PROTON_PION) && pfp.trackScore < PRIMARY_TRACK_SCORE){
     //if (pfp.trackScore < PRIMARY_TRACK_SCORE) {
 
         //if (pfp.shw.plane[DEFAULT_PLANE].nHits <= 2){MyFile << "Shw no calo - Unknown" << endl; return PFPID::Unknown;}
@@ -1574,13 +1587,13 @@ const SpillMultiVar kReco_class([](const caf::SRSpillProxy* sr)-> std::vector<do
             case TruthClass::kCosmic:    vector_active.push_back(3); break;
             default:
                 // none of the above → check other conditions
-                if (!isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z)) {
+                if (!isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z)) { //OOFV
                     vector_active.push_back(4);
                 }
                 else if (std::abs(islc.truth.pdg) == 12) {  //nue
                     vector_active.push_back(5);
                 }   
-                else if (islc.truth.isnc) {
+                else if (islc.truth.isnc) { //NC
                     vector_active.push_back(6);
                 }             
                 else if (islc.truth.iscc && islc.truth.genie_mode == 0) {   //QE
