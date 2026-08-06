@@ -45,6 +45,8 @@ using namespace ana;
 TFile* file = TFile::Open("/exp/icarus/app/users/marterop/dev_areas/dEdxrestemplates.root");
 
 //TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
+
+//TFile* file = TFile::Open("/storage/gpfs_data/icarus/local/users/marterop/sbnana_v09_78_06/mc_test/dEdxrestemplates.root");
 auto dedx_range_pro = (TProfile*)file->Get("dedx_range_pro");
 auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
 auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
@@ -1415,10 +1417,16 @@ CutResults automatic_selection_1muNp_new_cutflow(const caf::SRSpillProxy* sr,
 
     res.pionID = true; 
 
-    if (counts.showers != 0) {
-        //cout << " NO SHOWER FALSE " << std::endl; 
+    //if (counts.showers != 0) {
+    //    //cout << " NO SHOWER FALSE " << std::endl; 
+    //    return res;
+    //}
+
+    if (counts.showers != 0 ||  counts.other_near_vertex != 0) {
+        //cout << " NO SHOWER FALSE " << std::endl;
         return res;
     }
+
         //cout << " NO SHOWER TRUE " << std::endl;
 
     res.showerID = true;  
