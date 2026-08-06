@@ -89,10 +89,16 @@ void make_tree_eff_sel()
 //MC Overlays run4
   const std::string fdata_MCrun4 = "/pnfs/sbn/scratch/users/twester/Run4_ReCAF2026/flatcaf/*/*/*.flat.caf.root";
 
-//MAPLE-GUMP-STUDIES
-  const std::string fdata_maple_gump = "/pnfs/sbn/scratch/users/twester/Run2_ReCAF2026/flatcaf/000000/00000*/*.flat.caf.root";
+//MAPLE-GUMP-STUDIES RUN2
+  const std::string fdata_maple_gump_RUN2 = "/pnfs/sbn/scratch/users/twester/Run2_ReCAF2026/flatcaf/000000/00000*/*.flat.caf.root";
 
- SpectrumLoader data(fdata_maple_gump);
+//MAPLE-GUMP-STUDIES RUN4
+  const std::string fdata_maple_gump_RUN4 = "/pnfs/sbn/scratch/users/twester/Run4_ReCAF2026/flatcaf/00007*/*/*.flat.caf.root";
+
+//MAPLE-GUMP-STUDIES RUN4 SMALLER
+  const std::string fdata_maple_gump_RUN4_smaller = "/pnfs/sbn/scratch/users/twester/Run4_ReCAF2026/flatcaf/000071/*/*.flat.caf.root";
+
+ SpectrumLoader data(fdata_maple_gump_RUN4_smaller);
 
 
     const SpillMultiVar True_Enu = kTrue_Enu;
@@ -183,11 +189,103 @@ void make_tree_eff_sel()
 
     const SpillCut kSpillSelection = kNoSpillCut;
 
-    Tree nutree("selectedNu", {"true_Enu","True_visible_Enu", "Genie_mode","Pass_cut","Eff_raster_angle","True_protons","Eff_raster_nuscore","Eff_cryosel"}, data, {True_Enu,True_visible_Enu,Genie_mode,Eff_cuts,Eff_raster_angle,True_protons,Eff_raster_nuscore,Eff_cryosel}, kSpillSelection, true);
+    Tree nutree(
+      "selectedNu", 
+      {
+        "true_Enu",
+        "True_visible_Enu", 
+        "Genie_mode",
+        "Pass_cut",
+        "Eff_raster_angle",
+        "True_protons",
+        "Eff_raster_nuscore",
+        "Eff_cryosel"
+      }, 
+      data, 
+      {
+        True_Enu,
+        True_visible_Enu,
+        Genie_mode,
+        Eff_cuts,
+        Eff_raster_angle,
+        True_protons,
+        Eff_raster_nuscore,
+        Eff_cryosel
+      }, 
+      kSpillSelection, 
+      true
+    );
     //Tree nutree_reco("selectedReco", {"recoE","Reco_class","T3D_angle_mup","Muon_endx","Muon_endy","Muon_endz","Proton_endx","Proton_endy","Proton_endz"}, data, {Reco_energy,Reco_class,T3D_angle_mup,Muon_endx,Muon_endy,Muon_endz,Proton_endx,Proton_endy,Proton_endz}, kSpillSelection, true);
     //Tree counttree("selectedReco2", {"Count_entries"}, data, {Count_entries}, kSpillSelection, true);
 
-    Tree nutree_reco("selectedReco", {"recoE","Reco_class","Muon_length","Proton_length_leading","Proton_kinetic_leading","Proton_chi2mu","Proton_chi2pro","Muon_chi2mu","Muon_chi2pro","Vertex_x","Vertex_y","Vertex_z","Muon_endx","Muon_endy","Muon_endz","Proton_endx","Proton_endy","Proton_endz","Transverse_angle","T3D_angle_mup","deltaPt","Transverse_mom_reco_mu","Transverse_mom_reco_pro","Number_protons","Barycenter_delta","Muon_trackScore","Proton_trackScore","Nu_score","CryoSel"}, data, {Reco_energy,Reco_class,Muon_length,Proton_length_leading,Proton_kinetic_leading,Proton_chi2mu,Proton_chi2pro,Muon_chi2mu,Muon_chi2pro,Vertex_x,Vertex_y,Vertex_z,Muon_endx,Muon_endy,Muon_endz,Proton_endx,Proton_endy,Proton_endz,Transverse_angle,T3D_angle_mup,Transverse_mom_reco,Transverse_mom_reco_mu,Transverse_mom_reco_pro,Number_protons,Barycenter_delta,Muon_trackScore,Proton_trackScore,Nu_score,CryoSel}, kSpillSelection, true);
+    Tree nutree_reco(
+      "selectedReco", 
+      {
+        "recoE",
+        "Reco_class",
+        "Muon_length",
+        "Proton_length_leading",
+        "Proton_kinetic_leading",
+        "Proton_chi2mu",
+        "Proton_chi2pro",
+        "Muon_chi2mu",
+        "Muon_chi2pro",
+        "Vertex_x",
+        "Vertex_y",
+        "Vertex_z",
+        "Muon_endx",
+        "Muon_endy",
+        "Muon_endz",
+        "Proton_endx",
+        "Proton_endy",
+        "Proton_endz",
+        "Transverse_angle",
+        "T3D_angle_mup",
+        "deltaPt",
+        "Transverse_mom_reco_mu",
+        "Transverse_mom_reco_pro",
+        "Number_protons",
+        "Barycenter_delta",
+        "Muon_trackScore",
+        "Proton_trackScore",
+        "Nu_score",
+        "CryoSel"
+      }, 
+      data, 
+      {
+        Reco_energy,
+        Reco_class,
+        Muon_length,
+        Proton_length_leading,
+        Proton_kinetic_leading,
+        Proton_chi2mu,
+        Proton_chi2pro,
+        Muon_chi2mu,
+        Muon_chi2pro,
+        Vertex_x,
+        Vertex_y,
+        Vertex_z,
+        Muon_endx,
+        Muon_endy,
+        Muon_endz,
+        Proton_endx,
+        Proton_endy,
+        Proton_endz,
+        Transverse_angle,
+        T3D_angle_mup,
+        Transverse_mom_reco,
+        Transverse_mom_reco_mu,
+        Transverse_mom_reco_pro,
+        Number_protons,
+        Barycenter_delta,
+        Muon_trackScore,
+        Proton_trackScore,
+        Nu_score,
+        CryoSel
+      }, 
+      kSpillSelection, 
+      true
+    );
 
 
 
@@ -204,7 +302,10 @@ void make_tree_eff_sel()
 //  TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_dirt_nocrt.root", "RECREATE");
   //TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_nocrt_nolight_MC_vars_dirt.root", "RECREATE");
   //TFile fout("selected_icarus_standard_eff_sel_MC_tmatch05_nocrt_nolight_MC_vars_offbeam_nuscore.root", "RECREATE");
-  TFile fout("PROVA_SBRUCE_TREE_MAPLE_NICOLA.root", "RECREATE");
+  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR_VISIBLE_VAR.root", "RECREATE");
+  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR.root", "RECREATE");
+  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR.root", "RECREATE");
+  TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_2.root", "RECREATE");
 
 //  TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_dirt.root", "RECREATE");
 
