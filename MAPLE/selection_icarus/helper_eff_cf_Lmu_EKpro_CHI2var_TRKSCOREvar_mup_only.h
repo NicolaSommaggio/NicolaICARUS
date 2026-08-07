@@ -207,7 +207,7 @@ constexpr double SECONDARY_TRACK_LOW  = 0.4;
 constexpr double VTX_MAX_DIST         = 50.0; // cm
 
 //constexpr double MIN_MUON_LENGTH   = 50.0; // cm
-constexpr double MIN_MUON_LENGTH   = 40.0; //GUMP
+constexpr double MIN_MUON_LENGTH   = 50.0; //GUMP
 
 //constexpr double MAX_CHI2_MUON     = 30.0;
 constexpr double MAX_CHI2_MUON     = 111.0; //GUMP
@@ -228,7 +228,7 @@ constexpr double CALO_RR_MAX          = 25.0;
 //constexpr double PION_KE_MIN          = 25.0; // MeV
 constexpr double PION_KE_MIN          = 0.0; //GUMP
 //constexpr double PROTON_KE_MIN        = 50.0; // MeV
-constexpr double PROTON_KE_MIN        = 40.0; //GUMP
+constexpr double PROTON_KE_MIN        = 50.0; //GUMP
 
 constexpr double PION_MASS            = 139.570; // MeV
 constexpr double PROTON_MASS          = 938.3;   // MeV
@@ -972,7 +972,7 @@ ParticleCounts count_particles(const caf::Proxy<caf::SRSlice>& islc,
             case PFPID::Proton:  ++counts.protons;  break;
             case PFPID::Pion:    ++counts.pions;    break;
             case PFPID::Shower:  ++counts.showers;  break;
-            case PFPID::Other_near_vertex ++counts.other_near_vertex; break;
+            case PFPID::Other_near_vertex: ++counts.other_near_vertex; break;
             default: break;
         }
     }

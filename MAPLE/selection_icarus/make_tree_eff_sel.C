@@ -104,7 +104,14 @@ void make_tree_eff_sel()
 //MAPLE-GUMP-STUDIES RUN4 CNAF OFFBEAM
   const std::string fdata_maple_gump_RUN4_cnaf_offbeam = "/storage/gpfs_data/icarus/local/users/cfarnese/files_test_Nicola_RUN4_offbeam/offbeam_4.flat.caf.root";
 
- SpectrumLoader data(fdata_maple_gump_RUN4_cnaf);
+//MAPLE-GUMP-STUDIES RUN4 CONCAT
+  const std::string fdata_maple_gump_RUN4_concat = "/pnfs/icarus/persistent/users/cfarnese/for_Nicola/file*.flat.caf.root";
+
+//MAPLE-GUMP-STUDIES RUN4 CONCAT OFFBEAM 
+  const std::string fdata_maple_gump_RUN4_concat_offbeam = "/pnfs/icarus/persistent/users/cfarnese/for_Nicola/offbeam_4.flat.caf.root";
+
+
+ SpectrumLoader data(fdata_maple_gump_RUN4_concat);
 
 
     const SpillMultiVar True_Enu = kTrue_Enu;
@@ -308,10 +315,12 @@ void make_tree_eff_sel()
 //  TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_dirt_nocrt.root", "RECREATE");
   //TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_nocrt_nolight_MC_vars_dirt.root", "RECREATE");
   //TFile fout("selected_icarus_standard_eff_sel_MC_tmatch05_nocrt_nolight_MC_vars_offbeam_nuscore.root", "RECREATE");
-  TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR_VISIBLE_VAR_CNAF.root", "RECREATE");
-  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR.root", "RECREATE");
-  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR.root", "RECREATE");
-  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40.root", "RECREATE");
+  TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_50_PRO_KE_50_CHI2_VAR_TRACKSCORE_VAR_VISIBLE_VAR_CONCAT.root", "RECREATE");
+  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR_VISIBLE_VAR_CONCAT.root", "RECREATE");
+  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR_CONCAT.root", "RECREATE");
+  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_CONCAT.root", "RECREATE");
+  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CONCAT.root", "RECREATE");
+  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_CONCAT.root", "RECREATE");
 
 //  TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_dirt.root", "RECREATE");
 
