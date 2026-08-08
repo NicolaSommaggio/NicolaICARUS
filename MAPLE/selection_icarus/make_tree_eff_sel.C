@@ -111,7 +111,26 @@ void make_tree_eff_sel()
   const std::string fdata_maple_gump_RUN4_concat_offbeam = "/pnfs/icarus/persistent/users/cfarnese/for_Nicola/offbeam_4.flat.caf.root";
 
 
- SpectrumLoader data(fdata_maple_gump_RUN4_concat_offbeam);
+/*
+  SpectrumLoader loader(fdata_maple_gump_RUN4_concat);         
+
+  const Binning kBinz = Binning::Simple(300,0,30);
+
+  Spectrum s1("", kBinz, loader, kPrint_selection ,kNoSpillCut );
+  //Spectrum s1("", kBinz, loader, check_variations ,kNoSpillCut );
+
+  loader.Go();
+
+  double factor = s1.POT();  
+
+  TH1D* h1 = s1.ToTH1(factor);  
+*/
+
+
+
+ SpectrumLoader data(fdata_maple_gump_RUN4_concat);
+
+    const SpillMultiVar true_class_custom_returned = kPrint_selection;
 
 
     const SpillMultiVar True_Enu = kTrue_Enu;
@@ -127,10 +146,10 @@ void make_tree_eff_sel()
     const SpillMultiVar True_protons = kTrue_protons;
 
 
-/*
-    const SpillMultiVar True_Enu_allnumuCC = kTrue_Enu_allnumuCC;
-    const SpillMultiVar Eff_cuts_allnumuCC = kEff_cuts_allnumuCC;
-*/
+
+    //const SpillMultiVar True_Enu_allnumuCC = kTrue_Enu_allnumuCC;
+    //const SpillMultiVar Eff_cuts_allnumuCC = kEff_cuts_allnumuCC;
+
 
     
     
@@ -187,17 +206,21 @@ void make_tree_eff_sel()
     const SpillMultiVar Nu_score = kNu_score;
     const SpillMultiVar CryoSel = kCryoSel;
 
+    const SpillMultiVar E_nu_true = k_E_nu_true;
+    const SpillMultiVar slice_index = k_slice_indedx;
+    const SpillMultiVar flashPE = k_pe;
+
   
-  /*  const SpillMultiVar Reco_energy_resolution = kReco_energy_resolution;
-    const SpillMultiVar Reco_tmatch_eff = kReco_tmatch_eff;
+    //const SpillMultiVar Reco_energy_resolution = kReco_energy_resolution;
+    //const SpillMultiVar Reco_tmatch_eff = kReco_tmatch_eff;
 
-    const SpillMultiVar Barycenter_delta = kBarycenter_delta;
-    const SpillMultiVar True_visible_Enu_reco = kTrue_visible_Enu_reco;
-
-    */
+    //const SpillMultiVar Barycenter_delta = kBarycenter_delta;
+    //const SpillMultiVar True_visible_Enu_reco = kTrue_visible_Enu_reco;
 
     
-    //const SpillCut kSpillSelection = kSelectRun_M == 9435 /*&& kSelectEvt_2d*/;
+
+    
+    //const SpillCut kSpillSelection = kSelectRun_M == 9435 && kSelectEvt_2d;
 
 
     const SpillCut kSpillSelection = kNoSpillCut;
@@ -262,7 +285,10 @@ void make_tree_eff_sel()
         "Muon_trackScore",
         "Proton_trackScore",
         "Nu_score",
-        "CryoSel"
+        "CryoSel",
+        "E_nu_true",
+        "Slice_index",
+        "FlashPE"
       }, 
       data, 
       {
@@ -294,7 +320,10 @@ void make_tree_eff_sel()
         Muon_trackScore,
         Proton_trackScore,
         Nu_score,
-        CryoSel
+        CryoSel,
+        E_nu_true,
+        slice_index,
+        flashPE
       }, 
       kSpillSelection, 
       true
@@ -302,10 +331,9 @@ void make_tree_eff_sel()
 
 
 
-/*
-    const Binning kBinPot     = Binning::Simple(1000,0,1.);
-    Spectrum spot("Pot",kBinPot,data,gate_delta, kNoSpillCut);
-*/
+    //const Binning kBinPot     = Binning::Simple(1000,0,1.);
+    //Spectrum spot("Pot",kBinPot,data,gate_delta, kNoSpillCut);
+
   data.Go();
 
 //MyFile << " Gate_delta " << final_gate_delta << " Livetime " << final_livetime << endl;
@@ -315,12 +343,14 @@ void make_tree_eff_sel()
 //  TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_dirt_nocrt.root", "RECREATE");
   //TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_nocrt_nolight_MC_vars_dirt.root", "RECREATE");
   //TFile fout("selected_icarus_standard_eff_sel_MC_tmatch05_nocrt_nolight_MC_vars_offbeam_nuscore.root", "RECREATE");
-  TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_50_PRO_KE_50_CHI2_VAR_TRACKSCORE_VAR_VISIBLE_VAR_CONCAT_OFFBEAM.root", "RECREATE");
-  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR_VISIBLE_VAR_CONCAT.root", "RECREATE");
-  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR_CONCAT.root", "RECREATE");
-  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_CONCAT.root", "RECREATE");
-  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CONCAT.root", "RECREATE");
-  //TFile fout("SBRUCE_TREE_MAPLE_NICOLA_RUN4_CONCAT.root", "RECREATE");
+
+
+  //TFile fout("../sbruce_trees/SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR_VISIBLE_VAR_CRTveto.root", "RECREATE");
+  TFile fout("../sbruce_trees/SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR_VISIBLE_VAR_newvars.root", "RECREATE");
+  //TFile fout("../sbruce_trees/SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR_TRACKSCORE_VAR.root", "RECREATE");
+  //TFile fout("../sbruce_trees/SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40_CHI2_VAR.root", "RECREATE");
+  //TFile fout("../sbruce_trees/SBRUCE_TREE_MAPLE_NICOLA_RUN4_MU_L_40_PRO_KE_40.root", "RECREATE");
+  //TFile fout("../sbruce_trees/SBRUCE_TREE_MAPLE_NICOLA_RUN4.root", "RECREATE");
 
 //  TFile fout("/exp/sbnd/data/users/marterop/sel_dirt/selected_icarus_standard_eff_sel_MC_tmatch05_dirt.root", "RECREATE");
 
@@ -328,8 +358,6 @@ void make_tree_eff_sel()
   nutree.SaveTo(dir); 
   nutree_reco.SaveTo(dir); 
   //counttree.SaveTo(dir); 
-
-
 
 
 }

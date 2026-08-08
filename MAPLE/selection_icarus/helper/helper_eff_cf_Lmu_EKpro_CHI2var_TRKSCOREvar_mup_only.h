@@ -171,13 +171,13 @@ bool isInContained (double x, double y, double z, double dist)
 {
   if ( std::isnan(x) || std::isnan(y) || std::isnan(z) ) return false;
 
-//remove triangle regions -- corners 
+    //remove triangle regions -- corners 
   if( y<(1.732007*z-1687.5114))return false;
   if( y>(-1.732007*z+1640.6114))return false;
   if( y>(1.732007*z+1640.6114))return false;
   if( y<(-1.732007*z-1687.5114))return false;
 
-//5 cm containment for Y in both cryo
+    //5 cm containment for Y in both cryo
   return (( ( x < -61.94 - dist && x > -358.49 + dist ) ||
 			( x >  61.94 + dist && x <  358.49 - dist )) &&
 		  //( ( y > -181.86 + (dist+1) && y < 134.96 - (dist+1) ) &&
@@ -207,7 +207,7 @@ constexpr double SECONDARY_TRACK_LOW  = 0.4;
 constexpr double VTX_MAX_DIST         = 50.0; // cm
 
 //constexpr double MIN_MUON_LENGTH   = 50.0; // cm
-constexpr double MIN_MUON_LENGTH   = 50.0; //GUMP
+constexpr double MIN_MUON_LENGTH   = 40.0; //GUMP
 
 //constexpr double MAX_CHI2_MUON     = 30.0;
 constexpr double MAX_CHI2_MUON     = 111.0; //GUMP
@@ -228,7 +228,7 @@ constexpr double CALO_RR_MAX          = 25.0;
 //constexpr double PION_KE_MIN          = 25.0; // MeV
 constexpr double PION_KE_MIN          = 0.0; //GUMP
 //constexpr double PROTON_KE_MIN        = 50.0; // MeV
-constexpr double PROTON_KE_MIN        = 50.0; //GUMP
+constexpr double PROTON_KE_MIN        = 40.0; //GUMP
 
 constexpr double PION_MASS            = 139.570; // MeV
 constexpr double PROTON_MASS          = 938.3;   // MeV
@@ -447,10 +447,12 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
     // ----------------- Sanity -----------------
     if(islc.truth.index<0){        
      //   MyFile_truth << "FAIL: Cosmic\n";
+        cout << "truth_index < 0" << endl;
         return TruthClass::kCosmic;}
 
     if (std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)) {
      //   MyFile_truth << "FAIL: reco vertex is NaN\n";
+        cout << "nan reco vertex" << endl;
         return TruthClass::kInvalid;
     }
 
@@ -458,6 +460,7 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
         std::isnan(islc.truth.position.y) ||
         std::isnan(islc.truth.position.z)) {
       //  MyFile_truth << "FAIL: truth vertex is NaN\n";
+      cout << "nan true vertex" << endl;
         return TruthClass::kInvalid;
     }
 
@@ -465,6 +468,7 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
     if (std::abs(islc.truth.pdg) != 14 || !islc.truth.iscc) {
      //   MyFile_truth << "FAIL: not numu CC (pdg=" << islc.truth.pdg
      //       << ", iscc=" << islc.truth.iscc << ")\n";
+        cout << "no numu or no CC" << endl;
         return TruthClass::kOther;
     }
 
@@ -472,6 +476,7 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
                     islc.truth.position.y,
                     islc.truth.position.z)) {
       //  MyFile_truth << "FAIL: interaction not in active volume\n";
+        cout << "not in active" << endl;
         return TruthClass::kOther;
     }
 
@@ -479,6 +484,7 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
                 islc.truth.position.y,
                 islc.truth.position.z)) {
       //  MyFile_truth << "FAIL: interaction not in fiducial volume\n";
+        cout << "not in FV" << endl;
         return TruthClass::kOther;
     }
 
@@ -511,6 +517,7 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
         // -------- Charged pions --------
         if (pid == TruthPID::ChargedPion && depE > PION_KE_MIN) {
           //  MyFile_truth << "FAIL: charged pion above " << PION_KE_MIN << " MeV\n";
+            cout << "charged pion found, depE: " << depE << endl;
             return TruthClass::kOther;
         }
 
@@ -525,6 +532,8 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
 
                     if (eg > PION_KE_MIN) {
                      //   MyFile_truth << "FAIL: pi0 gamma above " << PION_KE_MIN << " MeV\n";
+
+                        cout << "neutral pion found, foton with E: " << eg << endl;
                         return TruthClass::kOther;
                     }
                 }
@@ -541,6 +550,8 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
 
             if (depE > PION_KE_MIN) {
                // MyFile_truth << "FAIL: photon above " << PION_KE_MIN << " MeV\n";
+
+                cout << "found photon, depE: " << depE << endl;
                 return TruthClass::kOther;
             }
         }
@@ -557,12 +568,19 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
                 ++n_protons_above;
               //  MyFile_truth << "  -> proton above threshold\n";
             }
+            else{
+                cout << "proton sotto soglia, depE: " << depE << endl;
+                return TruthClass::kOther;
+            }
+
         }
     }
 
     // ----------------- Containment -----------------
     if (!all_contained_truth(sr, islc)) {
       //  MyFile_truth << "FAIL: not all contained\n";
+        cout << "not contained" << endl;
+        
         return TruthClass::kOther;
     }
 
@@ -682,6 +700,7 @@ TruthClass classification_type_MC(const caf::SRSpillProxy* sr,
                 if (depE > PROTON_KE_MIN) {
                     ++n_protons_above;
                 }
+                else{return TruthClass::kOther;}
             
         }
     }
@@ -1060,7 +1079,6 @@ int find_muon(const caf::Proxy<caf::SRSlice>& islc, double dist_mucut)
 }
 
 
-
 bool automatic_selection_1muNp_new(const caf::SRSpillProxy* sr,
                               const caf::Proxy<caf::SRSlice>& islc,
                               int dist_cut,
@@ -1155,9 +1173,119 @@ bool automatic_selection_1muNp_new(const caf::SRSpillProxy* sr,
             counts.other_near_vertex == 0);
 }
 
+/*
+//PRINT SELECTION
 
+int true_class_custom(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc)
+{
+    int ipfp_mu = -1;
 
+    TruthClass cls = classification_type_debug(sr, islc);
+        ipfp_mu = find_muon(islc, 10);
+        if(ipfp_mu!=-1){
 
+        switch (cls) {
+            case TruthClass::kOneMuOneP: return 1; break;
+            case TruthClass::kOneMuNp:   return 2; break;
+            case TruthClass::kCosmic:    return 3; break;
+            default:
+                // none of the above → check other conditions
+                if (!isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z)) { //OOFV
+                    return 4;
+                }
+                else if (std::abs(islc.truth.pdg) == 12) {  //nue
+                    return 5;
+                }   
+                else if (islc.truth.isnc) { //NC
+                    return 6;
+                }             
+                else if (islc.truth.iscc && islc.truth.genie_mode == 0) {   //QE
+                    return 7;
+                }                 
+                else if (islc.truth.iscc && islc.truth.genie_mode == 1) {   //RES
+                    return 8;
+                }                     
+                else if (islc.truth.iscc && islc.truth.genie_mode == 2) {   //DIS
+                    return 9;
+                }        
+                else if (islc.truth.iscc && (islc.truth.genie_mode == 3 || islc.truth.genie_mode == 4)) {   //COH
+                    return 10;
+                } 
+                else if (islc.truth.iscc && islc.truth.genie_mode == 10) {   //MEC
+                    return 11;
+                }  
+                else {
+                    // optional fallback
+                    return 12;
+                }
+                break;
+
+        }
+ }
+
+ return -999;
+}
+
+const SpillMultiVar kPrint_selection([](const caf::SRSpillProxy* sr)-> std::vector<double>
+{
+    std::vector<double> vector_active;
+
+    for (auto const& islc : sr->slc)
+    {
+        int ipfp_mu = -1;    
+
+        const TVector3 reco_vtx(islc.vertex.x,
+                            islc.vertex.y,
+                            islc.vertex.z);
+
+        if(automatic_selection_1muNp_new(sr, islc,10,100 ))
+        {
+            cout << "\n\n";
+
+            int true_class = true_class_custom(sr,islc);
+
+            vector_active.push_back(true_class);
+
+            ipfp_mu = find_muon(islc, 10);
+
+            
+            cout << "SELECTED SLICE, true_class: " << true_class << endl;
+            for (std::size_t ipfp = 0; ipfp < islc.reco.npfp; ++ipfp) 
+            {
+                const auto& pfp = islc.reco.pfp[ipfp];
+                std::vector<double> chi2 = compute_chi2(islc, ipfp, 2);
+
+                const TVector3 reco_start(pfp.trk.start.x,
+                                  pfp.trk.start.y,
+                                  pfp.trk.start.z);
+
+                PFPID pid = static_cast<PFPID>(id_pfp(islc, ipfp, 10));
+                
+                cout << "\n";
+                cout << "PFP:" << endl;
+                cout << "len: " << pfp.trk.len << endl;
+                if(chi2.size()>1){cout << "chi2_mu: " << chi2[0] << " chi2_pro: " << chi2[1] << endl;}
+                else{cout << "chi2 size < 2" << endl;}
+                cout << "trkScore: " << pfp.trackScore << endl;
+                cout << "distance from vertex: " << (reco_vtx - reco_start).Mag() << endl;
+                cout << "is primary: " << pfp.parent_is_primary << endl;
+                if(int(ipfp) == ipfp_mu){cout << "PPFID: MU" << endl;}
+                else{cout << "PPFID: " << static_cast<int>(pid) << endl;}
+                cout << "pdg: " << pfp.trk.truth.p.pdg << endl;
+                cout << "true particles in the slice: ";
+                for (const auto& ipart : islc.truth.prim) {cout << ipart.pdg << " ";}
+                cout << endl;
+  
+            }
+        
+        }//selected by the automatic selection
+    
+    }//loop over slices
+
+ 	return vector_active;
+});
+
+*/
 
 double Neutrino_energy_reco_Np(const caf::Proxy<caf::SRSlice>& islc,
                                int ipfp_mu,

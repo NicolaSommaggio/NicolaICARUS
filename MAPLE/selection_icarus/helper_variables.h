@@ -1,5 +1,6 @@
 //#include "helper_eff_cf.h"
-#include "helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only.h"
+//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto.h"
+#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only.h"
 //#include "helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar.h"
 //#include "helper_eff_cf_Lmu_EKpro_CHI2var.h"
 //#include "helper_eff_cf_Lmu_EKpro.h"
@@ -1098,4 +1099,63 @@ const SpillMultiVar kEff_cryosel([](const caf::SRSpillProxy* sr) -> std::vector<
     } // loop over nu
 
     return vector_active;
+});
+
+
+
+
+const SpillMultiVar k_E_nu_true([](const caf::SRSpillProxy* sr)-> std::vector<double>
+{
+    std::vector<double> vector_active;
+
+    for (auto const& islc : sr->slc)
+    {   
+        if(automatic_selection_1muNp_new(sr, islc,10,100 ))
+        {    
+            vector_active.push_back(islc.truth.E);
+        }//selected by the automatic selection
+    }//loop over slices
+
+ 	return vector_active;
+});
+
+const SpillMultiVar k_pe([](const caf::SRSpillProxy* sr)-> std::vector<double>
+{
+    std::vector<double> vector_active;
+    constexpr double kMinTime = -0.6;
+    constexpr double kMaxTime = 1.8;
+
+    for (auto const& islc : sr->slc)
+    {   
+        if(automatic_selection_1muNp_new(sr, islc,10,100 ))
+        {    
+            double max_pe = 0;
+            for (const auto& match : sr->crtpmt_matches)
+            {
+                if (match.flashGateTime <= kMinTime || match.flashGateTime >= kMaxTime)continue;
+
+                if(match.flashPE > max_pe){max_pe = match.flashPE;}
+            }
+            vector_active.push_back(max_pe);
+        }//selected by the automatic selection
+    }//loop over slices
+
+ 	return vector_active;
+});
+
+const SpillMultiVar k_slice_indedx([](const caf::SRSpillProxy* sr)-> std::vector<double>
+{
+    std::vector<int> vector_active;
+
+    int slice_index = -1;
+    for (auto const& islc : sr->slc)
+    {   
+        slice_index ++;
+        if(automatic_selection_1muNp_new(sr, islc,10,100 ))
+        {    
+            vector_active.push_back(slice_index);
+        }//selected by the automatic selection
+    }//loop over slices
+
+ 	return vector_active;
 });
