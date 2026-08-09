@@ -209,6 +209,8 @@ constexpr double VTX_MAX_DIST         = 50.0; // cm
 //constexpr double MIN_MUON_LENGTH   = 50.0; // cm
 constexpr double MIN_MUON_LENGTH   = 40.0; //GUMP
 
+constexpr double MAX_MUON_LENGHT = 400.0; //GUMP
+
 //constexpr double MAX_CHI2_MUON     = 30.0;
 constexpr double MAX_CHI2_MUON     = 111.0; //GUMP
 
@@ -436,181 +438,6 @@ bool all_contained_mc(const caf::SRSpillProxy* sr,
     return true;
 }
 
-//VERBOSE VERSION
-/*
-TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
-                                      const caf::Proxy<caf::SRSlice>& islc)
-{
-   // MyFile_truth << "\n================ NEW EVENT ================\n";
-   // MyFile_truth << "RUN EVT " << sr->hdr.run << " " << sr->hdr.evt << endl; 
-
-
-    // ----------------- Sanity -----------------
-    if(islc.truth.index<0){        
-     //   MyFile_truth << "FAIL: Cosmic\n";
-        cout << "truth_index < 0" << endl;
-        return TruthClass::kCosmic;}
-
-    if (std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)) {
-     //   MyFile_truth << "FAIL: reco vertex is NaN\n";
-        cout << "nan reco vertex" << endl;
-        return TruthClass::kInvalid;
-    }
-
-    if (std::isnan(islc.truth.position.x) ||
-        std::isnan(islc.truth.position.y) ||
-        std::isnan(islc.truth.position.z)) {
-      //  MyFile_truth << "FAIL: truth vertex is NaN\n";
-      cout << "nan true vertex" << endl;
-        return TruthClass::kInvalid;
-    }
-
-    // ----------------- Neutrino + volume -----------------
-    if (std::abs(islc.truth.pdg) != 14 || !islc.truth.iscc) {
-     //   MyFile_truth << "FAIL: not numu CC (pdg=" << islc.truth.pdg
-     //       << ", iscc=" << islc.truth.iscc << ")\n";
-        cout << "no numu or no CC" << endl;
-        return TruthClass::kOther;
-    }
-
-    if (!isInActive(islc.truth.position.x,
-                    islc.truth.position.y,
-                    islc.truth.position.z)) {
-      //  MyFile_truth << "FAIL: interaction not in active volume\n";
-        cout << "not in active" << endl;
-        return TruthClass::kOther;
-    }
-
-    if (!isInFV(islc.truth.position.x,
-                islc.truth.position.y,
-                islc.truth.position.z)) {
-      //  MyFile_truth << "FAIL: interaction not in fiducial volume\n";
-        cout << "not in FV" << endl;
-        return TruthClass::kOther;
-    }
-
-    // ----------------- Counters -----------------
-    int    n_muons = 0;
-    int    n_protons_above = 0;
-    double muon_length = 0.0;
-
-    const int use_plane = DEFAULT_PLANE;
-
-    // ----------------- Primary loop -----------------
-    for (const auto& ipart : islc.truth.prim) {
-
-        if (ipart.G4ID < 0 || ipart.cryostat < 0) continue;
-
-        TruthPID pid = classify_truth_pid(ipart.pdg); 
-        double depE = ipart.plane[ipart.cryostat][use_plane].visE * 1000.0;
-    
-        //MyFile_truth << "Primary G4ID=" << ipart.G4ID
-        //    << " PDG=" << ipart.pdg
-        //    << " depE=" << depE << " MeV\n";
-    
-        // -------- Muons --------
-        if (pid == TruthPID::Muon) {
-            ++n_muons;
-            muon_length = ipart.length;
-           // MyFile_truth << "  -> muon, length = " << muon_length << " cm\n";
-        }
-
-        // -------- Charged pions --------
-        if (pid == TruthPID::ChargedPion && depE > PION_KE_MIN) {
-          //  MyFile_truth << "FAIL: charged pion above " << PION_KE_MIN << " MeV\n";
-            cout << "charged pion found, depE: " << depE << endl;
-            return TruthClass::kOther;
-        }
-
-        // -------- Neutral pions --------
-        if (pid == TruthPID::NeutralPion) {
-            for (const auto& d : sr->true_particles) {
-                if (same_g4id(d.parent, ipart.G4ID) &&
-                    classify_truth_pid(d.pdg) == TruthPID::Photon) {
-
-                    double eg = d.plane[ipart.cryostat][use_plane].visE * 1000.0;
-                  //  MyFile_truth << "  -> pi0 daughter gamma, E = " << eg << " MeV\n";
-
-                    if (eg > PION_KE_MIN) {
-                     //   MyFile_truth << "FAIL: pi0 gamma above " << PION_KE_MIN << " MeV\n";
-
-                        cout << "neutral pion found, foton with E: " << eg << endl;
-                        return TruthClass::kOther;
-                    }
-                }
-            }
-        }
-
-        // -------- Photons --------
-        if (pid == TruthPID::Photon) {
-            for (const auto& d : sr->true_particles){
-                if (same_g4id(d.parent, ipart.G4ID))
-                    depE += d.plane[ipart.cryostat][use_plane].visE * 1000.0;
-            }
-           // MyFile_truth << "  -> total photon depE = " << depE << " MeV\n";
-
-            if (depE > PION_KE_MIN) {
-               // MyFile_truth << "FAIL: photon above " << PION_KE_MIN << " MeV\n";
-
-                cout << "found photon, depE: " << depE << endl;
-                return TruthClass::kOther;
-            }
-        }
-
-        // -------- Protons --------
-        if (pid == TruthPID::Proton) {
-            for (const auto& d : sr->true_particles){
-                if (same_g4id(d.parent, ipart.G4ID))
-                    depE += d.plane[ipart.cryostat][use_plane].visE * 1000.0;
-            }
-          //  MyFile_truth << "  -> proton total depE = " << depE << " MeV\n";
-
-            if (depE > PROTON_KE_MIN) {
-                ++n_protons_above;
-              //  MyFile_truth << "  -> proton above threshold\n";
-            }
-            else{
-                cout << "proton sotto soglia, depE: " << depE << endl;
-                return TruthClass::kOther;
-            }
-
-        }
-    }
-
-    // ----------------- Containment -----------------
-    if (!all_contained_truth(sr, islc)) {
-      //  MyFile_truth << "FAIL: not all contained\n";
-        cout << "not contained" << endl;
-        
-        return TruthClass::kOther;
-    }
-
-    // ----------------- Final classification -----------------
-    
-    //MyFile_truth << "SUMMARY: n_muons=" << n_muons
-    //    << " n_protons_above=" << n_protons_above
-    //    << " muon_length=" << muon_length << " cm\n";
-    
-    if (n_muons == 1 && muon_length > MIN_MUON_LENGTH) {
-
-        if (n_protons_above == 1) {
-          //  MyFile_truth << "PASS: classified as 1mu1p\n";
-            return TruthClass::kOneMuOneP;
-        }
-
-        if (n_protons_above > 1) {
-           // MyFile_truth << "PASS: classified as 1muNp\n";
-            return TruthClass::kOneMuNp;
-        }
-
-       // MyFile_truth << "FAIL: no proton above threshold\n";
-        return TruthClass::kOther;
-    }
-
-   // MyFile_truth << "FAIL: muon multiplicity or muon length cut\n";
-    return TruthClass::kOther;
-}
-*/
 
 TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
                                       const caf::Proxy<caf::SRSlice>& islc)
@@ -765,7 +592,7 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
         << " n_protons_above=" << n_protons_above
         << " muon_length=" << muon_length << " cm\n";
 */
-    if (n_muons == 1 && muon_length > MIN_MUON_LENGTH) {
+    if (n_muons == 1 && muon_length > MIN_MUON_LENGTH && muon_length < MAX_MUON_LENGHT) {
 
         if (n_protons_above == 1) {
           //  MyFile_truth << "PASS: classified as 1mu1p\n";
@@ -888,7 +715,7 @@ TruthClass classification_type_MC(const caf::SRSpillProxy* sr,
 
     // ----------------- Final classification -----------------
 
-    if (n_muons == 1 && muon_length > MIN_MUON_LENGTH) {
+    if (n_muons == 1 && muon_length > MIN_MUON_LENGTH && muon_length < MAX_MUON_LENGHT) {
 
         if (n_protons_above == 1) {
                 //MyFile_truth2 << "\n================ NEW EVENT ================\n";
@@ -956,7 +783,7 @@ const SpillCut kCRTPMTNeutrino([](const caf::SRSpillProxy* spill){
   return false;
 });
 
-
+/*
 const SpillCut kCRTNeutrino([](const caf::SRSpillProxy* spill){
   for(const auto& match: spill->crt_hits) {
     double min_time =-1.0; double max_time =2.0;
@@ -966,7 +793,17 @@ const SpillCut kCRTNeutrino([](const caf::SRSpillProxy* spill){
   }
   return true;
 });
+*/
 
+const SpillCut kCRTNeutrino([](const caf::SRSpillProxy* spill){
+  for(const auto& match: spill->crt_hits) {
+    double min_time =-1.0; double max_time =1.8;
+
+    if(match.time > min_time && match.time < max_time && match.plane>29 && match.plane<50){return false;} //This is top only
+    //if(match.time > min_time && match.time < max_time){  return false;} //This is top and side
+  }
+  return true;
+});
 
 
 // Determine which CRT/PMT side(s) fired within the flash-gate time window.
@@ -1216,7 +1053,7 @@ int find_muon(const caf::Proxy<caf::SRSlice>& islc, double dist_mucut)
         // =====================================================
         // CUT 2 — Track quality
         // =====================================================
-        if (pfp.trk.len < MIN_MUON_LENGTH) continue;
+        if (pfp.trk.len < MIN_MUON_LENGTH || pfp.trk.len > MAX_MUON_LENGHT) continue;
         if (!pfp.parent_is_primary) continue;
 
         // =====================================================
@@ -1349,119 +1186,6 @@ bool automatic_selection_1muNp_new(const caf::SRSpillProxy* sr,
             counts.other_near_vertex == 0);
 }
 
-/*
-//PRINT SELECTION
-
-int true_class_custom(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc)
-{
-    int ipfp_mu = -1;
-
-    TruthClass cls = classification_type_debug(sr, islc);
-        ipfp_mu = find_muon(islc, 10);
-        if(ipfp_mu!=-1){
-
-        switch (cls) {
-            case TruthClass::kOneMuOneP: return 1; break;
-            case TruthClass::kOneMuNp:   return 2; break;
-            case TruthClass::kCosmic:    return 3; break;
-            default:
-                // none of the above → check other conditions
-                if (!isInFV(islc.truth.position.x,islc.truth.position.y,islc.truth.position.z)) { //OOFV
-                    return 4;
-                }
-                else if (std::abs(islc.truth.pdg) == 12) {  //nue
-                    return 5;
-                }   
-                else if (islc.truth.isnc) { //NC
-                    return 6;
-                }             
-                else if (islc.truth.iscc && islc.truth.genie_mode == 0) {   //QE
-                    return 7;
-                }                 
-                else if (islc.truth.iscc && islc.truth.genie_mode == 1) {   //RES
-                    return 8;
-                }                     
-                else if (islc.truth.iscc && islc.truth.genie_mode == 2) {   //DIS
-                    return 9;
-                }        
-                else if (islc.truth.iscc && (islc.truth.genie_mode == 3 || islc.truth.genie_mode == 4)) {   //COH
-                    return 10;
-                } 
-                else if (islc.truth.iscc && islc.truth.genie_mode == 10) {   //MEC
-                    return 11;
-                }  
-                else {
-                    // optional fallback
-                    return 12;
-                }
-                break;
-
-        }
- }
-
- return -999;
-}
-
-const SpillMultiVar kPrint_selection([](const caf::SRSpillProxy* sr)-> std::vector<double>
-{
-    std::vector<double> vector_active;
-
-    for (auto const& islc : sr->slc)
-    {
-        int ipfp_mu = -1;    
-
-        const TVector3 reco_vtx(islc.vertex.x,
-                            islc.vertex.y,
-                            islc.vertex.z);
-
-        if(automatic_selection_1muNp_new(sr, islc,10,100 ))
-        {
-            cout << "\n\n";
-
-            int true_class = true_class_custom(sr,islc);
-
-            vector_active.push_back(true_class);
-
-            ipfp_mu = find_muon(islc, 10);
-
-            
-            cout << "SELECTED SLICE, true_class: " << true_class << endl;
-            for (std::size_t ipfp = 0; ipfp < islc.reco.npfp; ++ipfp) 
-            {
-                const auto& pfp = islc.reco.pfp[ipfp];
-                std::vector<double> chi2 = compute_chi2(islc, ipfp, 2);
-
-                const TVector3 reco_start(pfp.trk.start.x,
-                                  pfp.trk.start.y,
-                                  pfp.trk.start.z);
-
-                PFPID pid = static_cast<PFPID>(id_pfp(islc, ipfp, 10));
-                
-                cout << "\n";
-                cout << "PFP:" << endl;
-                cout << "len: " << pfp.trk.len << endl;
-                if(chi2.size()>1){cout << "chi2_mu: " << chi2[0] << " chi2_pro: " << chi2[1] << endl;}
-                else{cout << "chi2 size < 2" << endl;}
-                cout << "trkScore: " << pfp.trackScore << endl;
-                cout << "distance from vertex: " << (reco_vtx - reco_start).Mag() << endl;
-                cout << "is primary: " << pfp.parent_is_primary << endl;
-                if(int(ipfp) == ipfp_mu){cout << "PPFID: MU" << endl;}
-                else{cout << "PPFID: " << static_cast<int>(pid) << endl;}
-                cout << "pdg: " << pfp.trk.truth.p.pdg << endl;
-                cout << "true particles in the slice: ";
-                for (const auto& ipart : islc.truth.prim) {cout << ipart.pdg << " ";}
-                cout << endl;
-  
-            }
-        
-        }//selected by the automatic selection
-    
-    }//loop over slices
-
- 	return vector_active;
-});
-
-*/
 
 double Neutrino_energy_reco_Np(const caf::Proxy<caf::SRSlice>& islc,
                                int ipfp_mu,

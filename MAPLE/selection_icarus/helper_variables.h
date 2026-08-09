@@ -1,6 +1,10 @@
-//#include "helper_eff_cf.h"
+//#include "helper/helper_eff_cf.h"
+//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_NOmup_only_CRTveto_Lmu_FV_Trigger.h"
+#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto_Lmu_FV_Trigger.h"
+//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto_Lmu_FV.h"
+//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto_Lmu.h"
 //#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto.h"
-#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only.h"
+//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only.h"
 //#include "helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar.h"
 //#include "helper_eff_cf_Lmu_EKpro_CHI2var.h"
 //#include "helper_eff_cf_Lmu_EKpro.h"
@@ -1145,12 +1149,12 @@ const SpillMultiVar k_pe([](const caf::SRSpillProxy* sr)-> std::vector<double>
 
 const SpillMultiVar k_slice_indedx([](const caf::SRSpillProxy* sr)-> std::vector<double>
 {
-    std::vector<int> vector_active;
+    std::vector<double> vector_active;
 
-    int slice_index = -1;
+    double slice_index = -1;
     for (auto const& islc : sr->slc)
     {   
-        slice_index ++;
+        slice_index = slice_index + 1;
         if(automatic_selection_1muNp_new(sr, islc,10,100 ))
         {    
             vector_active.push_back(slice_index);

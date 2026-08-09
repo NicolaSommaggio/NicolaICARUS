@@ -437,6 +437,9 @@ bool all_contained_mc(const caf::SRSpillProxy* sr,
 }
 
 
+
+//VERBOSE VERSION
+/*
 TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
                                       const caf::Proxy<caf::SRSlice>& islc)
 {
@@ -502,11 +505,11 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
 
         TruthPID pid = classify_truth_pid(ipart.pdg); 
         double depE = ipart.plane[ipart.cryostat][use_plane].visE * 1000.0;
-/*
-        MyFile_truth << "Primary G4ID=" << ipart.G4ID
-            << " PDG=" << ipart.pdg
-            << " depE=" << depE << " MeV\n";
-*/
+    
+        //MyFile_truth << "Primary G4ID=" << ipart.G4ID
+        //    << " PDG=" << ipart.pdg
+        //    << " depE=" << depE << " MeV\n";
+    
         // -------- Muons --------
         if (pid == TruthPID::Muon) {
             ++n_muons;
@@ -585,6 +588,180 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
     }
 
     // ----------------- Final classification -----------------
+    
+    //MyFile_truth << "SUMMARY: n_muons=" << n_muons
+    //    << " n_protons_above=" << n_protons_above
+    //    << " muon_length=" << muon_length << " cm\n";
+    
+    if (n_muons == 1 && muon_length > MIN_MUON_LENGTH) {
+
+        if (n_protons_above == 1) {
+          //  MyFile_truth << "PASS: classified as 1mu1p\n";
+            return TruthClass::kOneMuOneP;
+        }
+
+        if (n_protons_above > 1) {
+           // MyFile_truth << "PASS: classified as 1muNp\n";
+            return TruthClass::kOneMuNp;
+        }
+
+       // MyFile_truth << "FAIL: no proton above threshold\n";
+        return TruthClass::kOther;
+    }
+
+   // MyFile_truth << "FAIL: muon multiplicity or muon length cut\n";
+    return TruthClass::kOther;
+}
+*/
+
+TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
+                                      const caf::Proxy<caf::SRSlice>& islc)
+{
+   // MyFile_truth << "\n================ NEW EVENT ================\n";
+   // MyFile_truth << "RUN EVT " << sr->hdr.run << " " << sr->hdr.evt << endl; 
+
+
+    // ----------------- Sanity -----------------
+    if(islc.truth.index<0){        
+     //   MyFile_truth << "FAIL: Cosmic\n";
+        //cout << "truth_index < 0" << endl;
+        return TruthClass::kCosmic;}
+
+    if (std::isnan(islc.vertex.x) || std::isnan(islc.vertex.y) || std::isnan(islc.vertex.z)) {
+     //   MyFile_truth << "FAIL: reco vertex is NaN\n";
+        //cout << "nan reco vertex" << endl;
+        return TruthClass::kInvalid;
+    }
+
+    if (std::isnan(islc.truth.position.x) ||
+        std::isnan(islc.truth.position.y) ||
+        std::isnan(islc.truth.position.z)) {
+      //  MyFile_truth << "FAIL: truth vertex is NaN\n";
+      //cout << "nan true vertex" << endl;
+        return TruthClass::kInvalid;
+    }
+
+    // ----------------- Neutrino + volume -----------------
+    if (std::abs(islc.truth.pdg) != 14 || !islc.truth.iscc) {
+     //   MyFile_truth << "FAIL: not numu CC (pdg=" << islc.truth.pdg
+     //       << ", iscc=" << islc.truth.iscc << ")\n";
+        //cout << "no numu or no CC" << endl;
+        return TruthClass::kOther;
+    }
+
+    if (!isInActive(islc.truth.position.x,
+                    islc.truth.position.y,
+                    islc.truth.position.z)) {
+      //  MyFile_truth << "FAIL: interaction not in active volume\n";
+        //cout << "not in active" << endl;
+        return TruthClass::kOther;
+    }
+
+    if (!isInFV(islc.truth.position.x,
+                islc.truth.position.y,
+                islc.truth.position.z)) {
+      //  MyFile_truth << "FAIL: interaction not in fiducial volume\n";
+        //cout << "not in FV" << endl;
+        return TruthClass::kOther;
+    }
+
+    // ----------------- Counters -----------------
+    int    n_muons = 0;
+    int    n_protons_above = 0;
+    double muon_length = 0.0;
+
+    const int use_plane = DEFAULT_PLANE;
+
+    // ----------------- Primary loop -----------------
+    for (const auto& ipart : islc.truth.prim) {
+
+        if (ipart.G4ID < 0 || ipart.cryostat < 0) continue;
+
+        TruthPID pid = classify_truth_pid(ipart.pdg); 
+        double depE = ipart.plane[ipart.cryostat][use_plane].visE * 1000.0;
+/*
+        MyFile_truth << "Primary G4ID=" << ipart.G4ID
+            << " PDG=" << ipart.pdg
+            << " depE=" << depE << " MeV\n";
+*/
+        // -------- Muons --------
+        if (pid == TruthPID::Muon) {
+            ++n_muons;
+            muon_length = ipart.length;
+           // MyFile_truth << "  -> muon, length = " << muon_length << " cm\n";
+        }
+
+        // -------- Charged pions --------
+        if (pid == TruthPID::ChargedPion && depE > PION_KE_MIN) {
+          //  MyFile_truth << "FAIL: charged pion above " << PION_KE_MIN << " MeV\n";
+            //cout << "charged pion found, depE: " << depE << endl;
+            return TruthClass::kOther;
+        }
+
+        // -------- Neutral pions --------
+        if (pid == TruthPID::NeutralPion) {
+            for (const auto& d : sr->true_particles) {
+                if (same_g4id(d.parent, ipart.G4ID) &&
+                    classify_truth_pid(d.pdg) == TruthPID::Photon) {
+
+                    double eg = d.plane[ipart.cryostat][use_plane].visE * 1000.0;
+                  //  MyFile_truth << "  -> pi0 daughter gamma, E = " << eg << " MeV\n";
+
+                    if (eg > PION_KE_MIN) {
+                     //   MyFile_truth << "FAIL: pi0 gamma above " << PION_KE_MIN << " MeV\n";
+
+                        //cout << "neutral pion found, foton with E: " << eg << endl;
+                        return TruthClass::kOther;
+                    }
+                }
+            }
+        }
+
+        // -------- Photons --------
+        if (pid == TruthPID::Photon) {
+            for (const auto& d : sr->true_particles){
+                if (same_g4id(d.parent, ipart.G4ID))
+                    depE += d.plane[ipart.cryostat][use_plane].visE * 1000.0;
+            }
+           // MyFile_truth << "  -> total photon depE = " << depE << " MeV\n";
+
+            if (depE > PION_KE_MIN) {
+               // MyFile_truth << "FAIL: photon above " << PION_KE_MIN << " MeV\n";
+
+                //cout << "found photon, depE: " << depE << endl;
+                return TruthClass::kOther;
+            }
+        }
+
+        // -------- Protons --------
+        if (pid == TruthPID::Proton) {
+            for (const auto& d : sr->true_particles){
+                if (same_g4id(d.parent, ipart.G4ID))
+                    depE += d.plane[ipart.cryostat][use_plane].visE * 1000.0;
+            }
+          //  MyFile_truth << "  -> proton total depE = " << depE << " MeV\n";
+
+            if (depE > PROTON_KE_MIN) {
+                ++n_protons_above;
+              //  MyFile_truth << "  -> proton above threshold\n";
+            }
+            else{
+                //cout << "proton sotto soglia, depE: " << depE << endl;
+                return TruthClass::kOther;
+            }
+
+        }
+    }
+
+    // ----------------- Containment -----------------
+    if (!all_contained_truth(sr, islc)) {
+      //  MyFile_truth << "FAIL: not all contained\n";
+        //cout << "not contained" << endl;
+        
+        return TruthClass::kOther;
+    }
+
+    // ----------------- Final classification -----------------
     /*
     MyFile_truth << "SUMMARY: n_muons=" << n_muons
         << " n_protons_above=" << n_protons_above
@@ -609,6 +786,7 @@ TruthClass classification_type_debug(const caf::SRSpillProxy* sr,
    // MyFile_truth << "FAIL: muon multiplicity or muon length cut\n";
     return TruthClass::kOther;
 }
+
 
 TruthClass classification_type_MC(const caf::SRSpillProxy* sr,
                                       const caf::Proxy<caf::SRTrueInteraction>& nu)
