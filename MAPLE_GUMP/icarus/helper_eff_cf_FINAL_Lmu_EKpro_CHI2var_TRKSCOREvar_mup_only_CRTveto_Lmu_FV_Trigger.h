@@ -52,6 +52,7 @@ auto dedx_range_ka  = (TProfile*)file->Get("dedx_range_ka");
 auto dedx_range_pi  = (TProfile*)file->Get("dedx_range_pi");
 auto dedx_range_mu  = (TProfile*)file->Get("dedx_range_mu");
 
+
 std::vector<double> chi2_ALG(std::vector<double> &dEdx,std::vector<double> &RR, double rr_min, double rr_max)
 {
     //The output is chi2s
@@ -223,10 +224,10 @@ constexpr double SECONDARY_TRACK_LOW  = 0.4;
 constexpr double VTX_MAX_DIST         = 50.0; // cm
 
 //constexpr double MIN_MUON_LENGTH   = 50.0; // cm
-constexpr double MIN_MUON_LENGTH   = 40; //GUMP
+constexpr double MIN_MUON_LENGTH   = 40.; //GUMP
 
 //constexpr double MAX_MUON_LENGHT = 400.0; //GUMP
-constexpr double MAX_MUON_LENGHT = 400; //GUMP
+constexpr double MAX_MUON_LENGHT = 400.; //GUMP
 
 //constexpr double MAX_CHI2_MUON     = 30.0;
 constexpr double MAX_CHI2_MUON     = 111.0; //GUMP
@@ -253,6 +254,8 @@ constexpr double PION_MASS            = 139.570; // MeV
 constexpr double PROTON_MASS          = 938.3;   // MeV
 constexpr double MUON_MASS            = 105.658; // MeV
 constexpr double PROTON_BINDING_ENERGY = 30.9; // MeV (argon effective)
+
+constexpr bool Np = true; // True -> 1muNp selection (N > 1), False -> 1mu1p + 1muNp (N > 1) selection 
 
 
 enum class Chi2PID {
@@ -1228,7 +1231,26 @@ bool automatic_selection_1muNp_new(const caf::SRSpillProxy* sr,
     
     //if(counts.protons > 0 && counts.pions   == 0 && counts.showers == 0){cout << "SELECTED " << endl;}
     // cout << " Protons " << counts.protons << " pions " << counts.pions << " showers " << counts.showers << endl;
-    return (counts.protons > 0 &&
+
+    if(! Np)
+    {
+        return(counts.protons > 0 &&
+                counts.pions   == 0 &&
+                counts.showers == 0 &&
+                counts.other_near_vertex == 0);
+    }
+
+    //1muNp N > 1 !!
+    else if(Np)
+    {
+        return (counts.protons > 1 &&
+                counts.pions   == 0 &&
+                counts.showers == 0 &&
+                counts.other_near_vertex == 0);
+    }
+
+    //default 1muNp N > 1 !!
+    return (counts.protons > 1 &&
             counts.pions   == 0 &&
             counts.showers == 0 &&
             counts.other_near_vertex == 0);
@@ -1477,9 +1499,21 @@ CutResults automatic_selection_1muNp_new_cutflow(const caf::SRSpillProxy* sr,
     // =========================================================
     ParticleCounts counts = count_particles(islc, muon_index, dist_cut);
 
-    if (counts.protons == 0) {
-       //cout << " PROTON FALSE " << std::endl; 
-        return res;
+    if(! Np)
+    {
+        if (counts.protons == 0) {
+        //cout << " PROTON FALSE " << std::endl; 
+            return res;
+        } 
+    }
+
+    //1muNp N > 1 !!
+    else if(Np)
+    {
+        if (counts.protons < 2) {
+        //cout << " PROTON FALSE " << std::endl; 
+            return res;
+        }
     } 
        //cout << " PROTON TRUE " << std::endl;
  
@@ -1522,9 +1556,19 @@ const SpillMultiVar kTrue_Enu([](const caf::SRSpillProxy* sr)-> std::vector<doub
     for ( auto const& nu : sr->mc.nu ){
         TruthClass cls_nu = classification_type_MC(sr,nu);
 
-        if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp ){
-            //if(nu.index==0)
-            vector_active.push_back(nu.E); 
+        if(!Np)
+        {
+            if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp ){
+                //if(nu.index==0)
+                vector_active.push_back(nu.E); 
+            }
+        }
+        else if(Np)
+        {
+            if(cls_nu == TruthClass::kOneMuNp ){
+                //if(nu.index==0)
+                vector_active.push_back(nu.E); 
+            }
         }
 
     }
@@ -1541,8 +1585,15 @@ const SpillMultiVar kTrue_protons([](const caf::SRSpillProxy* sr)-> std::vector<
     for ( auto const& nu : sr->mc.nu ){
         TruthClass cls_nu = classification_type_MC(sr,nu);
 
-        if(cls_nu == TruthClass::kOneMuOneP){vector_active.push_back(0);}
-        if(cls_nu == TruthClass::kOneMuNp){vector_active.push_back(1);}
+        if(!Np)
+        {
+            if(cls_nu == TruthClass::kOneMuOneP){vector_active.push_back(0);}
+            if(cls_nu == TruthClass::kOneMuNp){vector_active.push_back(1);}
+        }
+        else if(Np)
+        {
+            if(cls_nu == TruthClass::kOneMuNp){vector_active.push_back(1);}
+        }
     }
     
  	return vector_active;
@@ -1558,10 +1609,21 @@ const SpillMultiVar kTrue_visible_Enu([](const caf::SRSpillProxy* sr)-> std::vec
     for ( auto const& nu : sr->mc.nu ){
         TruthClass cls_nu = classification_type_MC(sr,nu);
 
-        if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp ){
-            //std::cout << "Energy nu " << nu.E << " " << nu.index << std::endl;
-            //if(nu.index==0)
-            vector_active.push_back(Neutrino_energy_visible_true_Np(sr,nu)); 
+        if(! Np)
+        {
+            if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp ){
+                //std::cout << "Energy nu " << nu.E << " " << nu.index << std::endl;
+                //if(nu.index==0)
+                vector_active.push_back(Neutrino_energy_visible_true_Np(sr,nu)); 
+            }
+        }
+        else if(Np)
+        {
+            if(cls_nu == TruthClass::kOneMuNp ){
+                //std::cout << "Energy nu " << nu.E << " " << nu.index << std::endl;
+                //if(nu.index==0)
+                vector_active.push_back(Neutrino_energy_visible_true_Np(sr,nu)); 
+            }
         }
 
     }
@@ -1577,11 +1639,23 @@ const SpillMultiVar kGenie_mode([](const caf::SRSpillProxy* sr)-> std::vector<do
     for ( auto const& nu : sr->mc.nu ){
         TruthClass cls_nu = classification_type_MC(sr,nu);
 
-        if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp ){
+        if(! Np)
+        {
+            if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp ){
             //std::cout << "Energy nu " << nu.E << " " << nu.index << std::endl;
             //if(nu.index==0)
             vector_active.push_back(nu.genie_mode); 
+            }
         }
+        else if(Np)
+        {
+            if(cls_nu == TruthClass::kOneMuNp ){
+            //std::cout << "Energy nu " << nu.E << " " << nu.index << std::endl;
+            //if(nu.index==0)
+            vector_active.push_back(nu.genie_mode); 
+            }
+        }
+        
 
     }
     

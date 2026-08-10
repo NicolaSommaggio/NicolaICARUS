@@ -1,16 +1,4 @@
-//#include "helper/helper_eff_cf.h"
-//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto_Lmu_FV_Trigger_FINAL_GUMP_mod.h"
-//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_NOmup_only_CRTveto_Lmu_FV_Trigger_FINAL_GUMP_mod.h"
-//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_NOmup_only_CRTveto_Lmu_FV_Trigger.h"
-#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto_Lmu_FV_Trigger.h"
-//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto_Lmu_FV.h"
-//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto_Lmu.h"
-//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto.h"
-//#include "helper/helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only.h"
-//#include "helper_eff_cf_Lmu_EKpro_CHI2var_TRKSCOREvar.h"
-//#include "helper_eff_cf_Lmu_EKpro_CHI2var.h"
-//#include "helper_eff_cf_Lmu_EKpro.h"
-//#include "helper_variations_calo.h"
+#include "helper_eff_cf_FINAL_Lmu_EKpro_CHI2var_TRKSCOREvar_mup_only_CRTveto_Lmu_FV_Trigger.h"
 
 struct LongestProtonResult {
     int index = -1;
@@ -885,7 +873,10 @@ const SpillMultiVar kEff_raster_angle([](const caf::SRSpillProxy* sr)-> std::vec
     for ( auto const& nu : sr->mc.nu ){
     // ----------------- Sanity -----------------
     TruthClass cls_nu = classification_type_MC(sr,nu);
-    if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp){
+
+    if(! Np)
+    {
+        if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp){
 
         int maxCut = 1; // default: total only
         double angle_3D_mup = -9;
@@ -917,8 +908,46 @@ const SpillMultiVar kEff_raster_angle([](const caf::SRSpillProxy* sr)-> std::vec
         
         vector_active.push_back(angle_3D_mup); 
 
-    }     
+        }     
         
+    }//1mu1p + 1muNp
+    else if(Np)
+    {
+        if(cls_nu == TruthClass::kOneMuNp){
+
+        int maxCut = 1; // default: total only
+        double angle_3D_mup = -9;
+
+        for (auto const& islc : sr->slc){
+            int ipfp_mu = -1; 
+
+            if(islc.tmatch.eff<0.5)continue;
+            if(islc.truth.index != nu.index) continue;
+            
+            CutResults res = automatic_selection_1muNp_new_cutflow(sr, islc, 10, 100);
+
+            //if(maxCut<MaxCutPassed(res)){ maxCut = MaxCutPassed(res);}
+
+
+                if(maxCut<MaxCutPassed(res)){
+                    maxCut = MaxCutPassed(res);
+                    ipfp_mu = find_muon(islc, 10);
+                    if(ipfp_mu!=-1){
+                    auto longest_proton = find_longest_proton(islc, ipfp_mu, 10);
+                    int longest_proton_idx = longest_proton.index;
+                    if (longest_proton_idx >= 0) {
+                    angle_3D_mup =T3D_angle_mup(islc,ipfp_mu,longest_proton_idx);
+                    }}                    
+                    
+                    }
+
+        } //loop reco slice
+        
+        vector_active.push_back(angle_3D_mup); 
+
+        }     
+    }//1muNp
+
     }
 
 
@@ -961,7 +990,10 @@ const SpillMultiVar kEff_raster_nuscore([](const caf::SRSpillProxy* sr)-> std::v
     for ( auto const& nu : sr->mc.nu ){
     // ----------------- Sanity -----------------
     TruthClass cls_nu = classification_type_MC(sr,nu);
-    if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp){
+
+    if(! Np)
+    {
+        if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp){
 
         int maxCut = 1; // default: total only
         double nu_score = -9;
@@ -990,8 +1022,43 @@ const SpillMultiVar kEff_raster_nuscore([](const caf::SRSpillProxy* sr)-> std::v
         
         vector_active.push_back(nu_score); 
 
-    }     
+        }     
         
+    }
+    else if(Np)
+    {
+        if(cls_nu == TruthClass::kOneMuNp){
+
+        int maxCut = 1; // default: total only
+        double nu_score = -9;
+
+        for (auto const& islc : sr->slc){
+            int ipfp_mu = -1; 
+
+            if(islc.tmatch.eff<0.5)continue;
+            if(islc.truth.index != nu.index) continue;
+            
+            CutResults res = automatic_selection_1muNp_new_cutflow(sr, islc, 10, 100);
+
+            //if(maxCut<MaxCutPassed(res)){ maxCut = MaxCutPassed(res);}
+
+
+                if(maxCut<MaxCutPassed(res)){
+                    maxCut = MaxCutPassed(res);
+                    ipfp_mu = find_muon(islc, 10);
+                    if(ipfp_mu!=-1){
+                       nu_score = islc.nu_score;
+                       }                    
+                    
+                    }
+
+        } //loop reco slice
+        
+        vector_active.push_back(nu_score); 
+
+        }     
+    }
+
     }
 
 
@@ -1046,8 +1113,18 @@ const SpillMultiVar kEff_cryosel([](const caf::SRSpillProxy* sr) -> std::vector<
     {
         // ----------------- Sanity -----------------
         TruthClass cls_nu = classification_type_MC(sr, nu);
-        if (cls_nu != TruthClass::kOneMuOneP && cls_nu != TruthClass::kOneMuNp)
+
+        if(! Np)
+        {
+            if (cls_nu != TruthClass::kOneMuOneP && cls_nu != TruthClass::kOneMuNp)
             continue;
+        }
+        else if(Np)
+        {
+            if (cls_nu != TruthClass::kOneMuNp)
+            continue;
+        }
+        
 
         int maxCut = 1; // default: total only
         bool found_best_slice = false;
