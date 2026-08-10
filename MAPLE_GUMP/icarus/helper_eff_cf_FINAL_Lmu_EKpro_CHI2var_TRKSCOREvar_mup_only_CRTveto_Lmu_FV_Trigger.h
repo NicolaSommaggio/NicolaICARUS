@@ -1556,7 +1556,7 @@ const SpillMultiVar kTrue_Enu([](const caf::SRSpillProxy* sr)-> std::vector<doub
     for ( auto const& nu : sr->mc.nu ){
         TruthClass cls_nu = classification_type_MC(sr,nu);
 
-        if(!Np)
+        if(! Np)
         {
             if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp ){
                 //if(nu.index==0)
@@ -1585,7 +1585,7 @@ const SpillMultiVar kTrue_protons([](const caf::SRSpillProxy* sr)-> std::vector<
     for ( auto const& nu : sr->mc.nu ){
         TruthClass cls_nu = classification_type_MC(sr,nu);
 
-        if(!Np)
+        if(! Np)
         {
             if(cls_nu == TruthClass::kOneMuOneP){vector_active.push_back(0);}
             if(cls_nu == TruthClass::kOneMuNp){vector_active.push_back(1);}
@@ -1707,7 +1707,10 @@ const SpillMultiVar kEff_cuts([](const caf::SRSpillProxy* sr)-> std::vector<doub
     for ( auto const& nu : sr->mc.nu ){
     // ----------------- Sanity -----------------
     TruthClass cls_nu = classification_type_MC(sr,nu);
-    if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp){
+
+    if(! Np)
+    {
+        if(cls_nu == TruthClass::kOneMuOneP || cls_nu == TruthClass::kOneMuNp){
 
         int maxCut = 1; // default: total only
         for (auto const& islc : sr->slc){
@@ -1723,7 +1726,28 @@ const SpillMultiVar kEff_cuts([](const caf::SRSpillProxy* sr)-> std::vector<doub
         
         vector_active.push_back(maxCut); 
 
-    }     
+        }   
+    }  
+    else if(Np)
+    {
+        if(cls_nu == TruthClass::kOneMuNp){
+
+        int maxCut = 1; // default: total only
+        for (auto const& islc : sr->slc){
+
+            if(islc.tmatch.eff<0.5)continue;
+            if(islc.truth.index != nu.index) continue;
+            
+            CutResults res = automatic_selection_1muNp_new_cutflow(sr, islc, 10, 100);
+
+            if(maxCut<MaxCutPassed(res)){ maxCut = MaxCutPassed(res);}
+
+        } //loop reco slice
+        
+        vector_active.push_back(maxCut); 
+
+        }   
+    }
         
     }
 
