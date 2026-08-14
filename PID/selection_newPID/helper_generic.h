@@ -61,6 +61,28 @@ const SpillCut kCRTPMTNeutrino([](const caf::SRSpillProxy* spill){
   return true;
 });
 
+namespace wiremod 
+{
+  static constexpr float kWireSpacing = 0.3f;
+
+  static constexpr float kIntegral_A =  1.35696f;
+  static constexpr float kIntegral_B =  0.0786976f;
+  static constexpr float kIntegral_C = -24.1874f;
+
+  inline bool WireModHitCut(float phi, float pitch, float integral, int plane)
+  {
+    if (pitch <= 0.f || plane < 0 || plane > 2) return true;
+
+    const float cosG      = kWireSpacing / pitch;
+    const float thetaXW   = std::abs(std::atan(std::cos(phi) / cosG));
+    const float thetaDeg  = thetaXW * (180.f / M_PI);
+
+    const float thr_integral = kIntegral_A * std::exp(kIntegral_B * thetaDeg) + kIntegral_C;
+    if (integral <= thr_integral) return true;
+
+    return false;
+  }
+}
 
 bool isInContained (double x, double y, double z, double dist)
 {

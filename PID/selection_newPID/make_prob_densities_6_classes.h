@@ -86,6 +86,7 @@ const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vec
         {
             if(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr>1 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx>1 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx<30.)
             {    
+                if( wiremod::WireModHitCut(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].integral, plane) ){continue;}
                 dedx_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx);                                  
                 rr_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr);
             }
@@ -106,6 +107,7 @@ const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vec
             {
                 if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<30.)
                 {    
+                    if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].integral, plane) ){continue;}
                     dedx_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);                                  
                     rr_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr);
                 }
@@ -122,6 +124,7 @@ const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vec
             {
                 if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<30.)
                 {    
+                    if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].integral, plane) ){continue;}
                     dedx_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);                                  
                     rr_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr);
                 }
