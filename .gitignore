@@ -29,8 +29,14 @@ bin/
 
 /PID/selection1muNp_PIDfinale/debug1mu0p0pi
 
-LATEX/
-
+LATEX/*.aux
+LATEX/*.fdb_latexmk
+LATEX/*.fls
+LATEX/*.log
+LATEX/*.out
+LATEX/*.gz
+LATEX/*.toc
+LATEX/*.pdf
 
 /systematics/ROOT_TREES_DEDX/*
 

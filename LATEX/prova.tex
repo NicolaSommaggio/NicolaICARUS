@@ -1,0 +1,190 @@
+\documentclass[11pt,a4paper]{article}
+
+% ============================================================
+% Basic typography and page layout
+% ============================================================
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.02}
+
+% ============================================================
+% Mathematics and physics
+% ============================================================
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
+\usepackage{bm}
+\usepackage{physics}
+\usepackage{siunitx}
+\sisetup{separate-uncertainty=true,per-mode=symbol}
+
+% ============================================================
+% Figures, tables and captions
+% ============================================================
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{tablefootnote}
+
+% ============================================================
+% Lists, code and colors
+% ============================================================
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[table]{xcolor}
+\usepackage{transparent}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  frame=single,
+  breaklines=true,
+  columns=fullflexible
+}
+
+% ============================================================
+% Authors and affiliations
+% ============================================================
+\usepackage{authblk}
+\renewcommand\Affilfont{\small}
+\renewcommand\Authfont{\normalsize}
+\setlength{\affilsep}{0.5em}
+
+% ============================================================
+% Line numbers, headers and links
+% ============================================================
+\usepackage[mathlines,left]{lineno}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage[nameinlink,capitalise]{cleveref}
+
+\hypersetup{
+  hidelinks,
+  pdftitle={Technical Note},
+  pdfauthor={Author Name}
+}
+
+\pagestyle{plain} % page number centred at the bottom, as in the reference note
+
+% ============================================================
+% Bibliography
+% ============================================================
+\usepackage[numbers,sort&compress]{natbib}
+
+% ============================================================
+% Useful custom commands
+% ============================================================
+\newcommand{\nuMu}{\ensuremath{\nu_{\mu}}}
+\newcommand{\anuMu}{\ensuremath{\bar{\nu}_{\mu}}}
+\newcommand{\nuE}{\ensuremath{\nu_{e}}}
+\newcommand{\anuE}{\ensuremath{\bar{\nu}_{e}}}
+\newcommand{\GeV}{\ensuremath{\mathrm{GeV}}}
+\newcommand{\MeV}{\ensuremath{\mathrm{MeV}}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+% Slightly compact section spacing, close to a technical-note layout
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{2.2ex plus 0.8ex minus 0.2ex}{1.0ex}
+\titlespacing*{\subsection}{0pt}{1.8ex plus 0.6ex minus 0.2ex}{0.7ex}
+
+% ============================================================
+% Document information
+% ============================================================
+\title{Technical Note: A new PID method}
+
+\author[1]{Nicola Sommaggio}
+%\author[1]{Second Author}
+%\author[2]{Third Author}
+
+\affil[1]{University of Pisa}
+%\affil[2]{Second Institution or Collaboration}
+
+\date{\today}
+
+\begin{document}
+
+% Continuous line numbering throughout the document
+\linenumbers
+
+\maketitle
+
+\tableofcontents
+
+\begin{abstract}
+Abstract ...
+\end{abstract}
+
+\section{Introduction}
+
+\section{Training set}
+\subsection{Cuts}
+
+\begin{table}
+  \centering
+  \begin{tabular}{c|c}
+    variable & cut \\ \hline
+    slice truth matching efficiency & > 0.5 \\ \hline
+    $|\vec{V}^{true}-\vec{V}^{reco}|$ & < 100 cm \\ \hline
+    is clear cosmic from Pandora & False \\ \hline 
+  \end{tabular}
+  \caption{Slice level cuts}
+  \label{tab:slice_cuts_training_set}
+\end{table}
+
+
+\begin{table}
+  \centering
+  \begin{tabular}{c|c}
+    variable & cut \\ \hline
+    \multicolumn{2}{>{\columncolor{gray!30}}l}{\textbf{Candidate Muon}} \\ \hline
+    track $S^{reco}_x$ and length & non Nan \\ \hline
+    trkScore & $\geq$ 0.5 \\ \hline
+    $|\vec{V}^{reco}-\vec{S}^{reco}|$ & < 10 cm \\ \hline
+    track length & > 50 cm \\ \hline
+    pdg code & $\pm 13$  \\ \hline
+    $\vec{S}^{reco}$ contained & True \\ \hline
+    $\vec{E}^{reco}$ contained & True \\ \hline
+    $E^{reco}_x \cdot V^{reco}_{x}$ & > 0 \\ \hline
+    from primary vertex & True \\ \hline
+    longest track in the slice & True \\ \hline 
+    has valid hits\tablefootnote{To have valid hits in a specific plane the track needs to have at leat 1 hit satisfying $1 \, \text{MeV/cm} < \text{dE/dx} < 30 \, \text{MeV/cm}$ and $1 \, \text{cm} < \text{RR} < 25 \, \text{cm}$ } & True \\ \hline
+    truth matching completeness & $ \geq 0.5$ \\ \hline 
+    truth matching efficiency & $ \geq 0.5$ \\ \hline 
+    daughter electron energy match & $\leq$ 10 MeV/cm \\ \hline 
+    \multicolumn{2}{>{\columncolor{gray!30}}l}{\textbf{Stopping Muon}} \\ \hline
+    $|\vec{E}^{reco}-\vec{E}^{true}|$ (TODO) & $\leq$ 3 cm \\ \hline
+    \multicolumn{2}{>{\columncolor{gray!30}}l}{\textbf{Muon Mip}} \\ \hline
+    $|\vec{E}^{reco}-\vec{E}^{true}|$ (TODO) & $>$ 3 cm
+   
+  \end{tabular}
+  \caption{Muon cuts}
+  \label{tab:muon_cuts_trainig_set}
+\end{table}
+
+
+\begin{table}
+  \centering
+  \begin{tabular}{c|c}
+    variables & cut \\ \hline
+  \end{tabular}
+  \caption{Proton cuts}
+  \label{tab:proton_cuts_trainig_set}
+\end{table}
+
+\begin{table}
+  \centering
+  \begin{tabular}{c|c}
+    variables & cut \\ \hline
+  \end{tabular}
+  \caption{Pion cuts}
+  \label{tab:pion_cuts_trainig_set}
+\end{table}
+
+\end{document}
