@@ -1,0 +1,147 @@
+%%
+%% This is file `cimsmple.tex'
+%%
+%% 
+%% IMPORTANT NOTICE:
+%% 
+%% For the copyright see the source file.
+%% 
+%% Any modified versions of this file must be renamed
+%% with new filenames distinct from cimsmple.tex.
+%% 
+%% 
+%% This generated file may be distributed as long as the
+%% original source files, as listed above, are part of the
+%% same distribution. (The sources need not necessarily be
+%% in the same archive or directory.)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[nocopyright]{cimento}
+
+%%%%%%%%%%%%%
+%
+%VERY IMPORTANT
+% 
+% If you are preparing Enrico Fermi School of
+% Physics report, please read the bundled file README.varenna 
+%
+%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%
+%
+% VERY IMPORTANT 
+%
+% In order to set a Copyright owner please use and fulfill the following command 
+%\setcopyright{CERN on behalf the XXXXX Collaboration}
+%
+%
+%%%%%%%%%%%%%%%
+
+%\usepackage{graphicx}  % got figures? uncomment this
+
+\title{Sample paper for the cimento class}
+\author{S.~Summers\from{ins:x}\ETC,
+J.~Grey\from{ins:x},
+H.~Smith\from{ins:x}
+        \atque
+T.~Moore\from{ins:y}\thanks{Any footnote to author.}}
+\instlist{\inst{ins:x} INFN, Sezione di Bologna - Bologna, Italy
+  \inst{ins:y} Dipartimento di Fisica, Universit\`a di Roma - Roma, Italy}
+%% When only one author is present, please do not use the command \from{} near the author name.
+
+
+
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This sample paper is intended to briefly expose the differences
+between a standard \LaTeX\ article and a paper based upon the
+\texttt{cimento} class. References and equations are not allowed here. 
+\end{abstract}
+
+\section{Description}
+This is a very short sample paper distributed with the class
+\texttt{cimento}.
+It is just a collection of examples about the syntax of commands
+which behave in a different way from the standard \LaTeX
+and/or new commands not defined in \LaTeX.
+
+
+%\begin{figure}
+%\includegraphics{foo}     % includes figure foo.eps
+%\caption{Description of the figure.}
+%\end{figure}
+
+
+This sample is not meant to provide the complete documentation for the class.
+You can also use this file as a template for your own paper:
+copy it to another filename and then modify as needed.
+
+\section{Examples}
+
+\subsection{Tables}
+Table~\ref{tab:pricesI}
+inserted at this point.
+
+\begin{table}[h]
+  \caption{Prices of important items.}
+  \label{tab:pricesI}
+  \begin{tabular}{rcl}
+    \hline
+      Item 1      & 1500  & EUR    \\
+      Item 2 & 15000 & EUR    \\
+      Item 3      & 1500  & dollars \\
+    \hline
+      Item 4     & .25   & dollars \\
+      Item 5         & 1.25  & dollars \\
+      Item 6         & 1     & dollars \\
+    \hline
+  \end{tabular}
+\end{table}
+
+
+
+
+
+\subsection{Mathematics}
+Here is a lettered array~(\ref{e.all}), with eqs.~(\ref{e.house})
+and~(\ref{e.phi}):
+\begin{eqnletter}
+ \label{e.all}
+ \drm x_\sy{F} & = & 1.2\cdot10^3\un{cm}, \qquad
+                     \tx{where\ } \sy{F} = \tx{Fermi}    \label{e.house}\\
+ \phi_i        & = & i\pi                                \label{e.phi}
+\end{eqnletter}
+
+\subsection{Citations}
+We're almost done, just some citations~\cite{ref:apo}
+and we will be over~\cite{ref:pul,ref:bra}.
+ 
+
+
+\acknowledgments
+The author acknowledge XXX, YYY.
+
+\begin{thebibliography}{0}
+\bibitem{ref:apo} \BY{Einstein A. \atque Fermi E.}
+  \IN{Phys. Rev. A}{13}{1999}{12};
+  \SAME{69}{999}{1666}.
+\bibitem{ref:pul} \BY{Newton I.}
+  preprint INFN 8181.
+\bibitem{ref:bra} \BY{Bragg~B.}
+  \TITLE{Complete Works}, in \TITLE{Workers Playtime}, edited by \NAME{Tizio A. \atque Caio B.} (Unexeditor, Bologna) 1997, pp.~1-10.
+
+
+
+\end{thebibliography}
+
+\end{document}
+%%
+%% End of file `cimsmple.tex'.
