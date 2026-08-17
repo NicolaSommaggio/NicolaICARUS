@@ -48,6 +48,12 @@ double PRO_KINETIC_ENERGY = 50.;
 double CONTAINMENT_CUT = 10.;
 double TRACKSCORE_HIGH = 0.5;
 double TRACKSCORE_LOW = 0.4;
+double dedx_min = 0.;
+double dedx_max = 30.;
+double rr_min = 1.;
+double rr_max = 25.;
+bool wm_cut = true;
+double mult = 1.;
 
 // OLD VERSION
 const SpillCut kCRTPMTNeutrino([](const caf::SRSpillProxy* spill){

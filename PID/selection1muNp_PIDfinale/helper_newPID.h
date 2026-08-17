@@ -93,7 +93,18 @@ int find_idx(double rr)
     return n;
 }
 
-int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& islc, std::size_t ipfp, int plane = 999)
+int true_selection(
+  const caf::SRSpillProxy* sr, 
+  const caf::Proxy<caf::SRSlice>& islc, 
+  std::size_t ipfp, 
+  int plane = 999, 
+  double dedx_min = 1., 
+  double dedx_max = 30., 
+  double rr_min = 1.,
+  double rr_max = 25., 
+  double mult = 1.,
+  double wm_cut = true
+)
 {
     //-1 : unclassified
     //0 : muon rising
@@ -116,8 +127,17 @@ int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& 
       //check if it has valid hits for for computing the likelihood
       for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
       {
-        if(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<30.)
+        if(
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr<rr_max && 
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr>rr_min && 
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx>dedx_min && 
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<dedx_max && 
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].mult <= mult)
         {
+          if(wm_cut)
+          {
+            if(wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, plane)){continue;}
+          }
           hasValidHits=true;
         }
       }
@@ -136,8 +156,17 @@ int true_selection(const caf::SRSpillProxy* sr, const caf::Proxy<caf::SRSlice>& 
       //check if it has valid hits for for computing the likelihood
       for(std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[bestplane].points.size(); ++ihit)
       {
-        if(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx>1. && islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<30.)
+        if(
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr<rr_max && 
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].rr>rr_min && 
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx>dedx_min && 
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<dedx_max &&
+          islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].mult <= mult)
         {
+          if(wm_cut)
+          {
+            if(wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, plane)){continue;}
+          }
           hasValidHits=true;
         }
       }

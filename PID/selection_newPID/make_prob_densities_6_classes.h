@@ -62,6 +62,8 @@ std::vector<std::vector<double>> rr_pi_class5;
 std::vector<double> rr_temp;
 std::vector<double> dedx_temp;
 
+ofstream dump_dedx_debug("/exp/icarus/data/users/nsommagg/dump_dedx_debug.txt");
+
 int plane;
 
 const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vector<double>
@@ -84,9 +86,17 @@ const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vec
         
         for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp_mu].trk.calo[plane].points.size(); ++ihit )
         {
-            if(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr>1 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx>1 && islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx<30.)
-            {    
-                if( wiremod::WireModHitCut(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].integral, plane) ){continue;}
+            if(
+                islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr>rr_min && 
+                islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr<rr_max && 
+                islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx>dedx_min && 
+                islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx<dedx_max && 
+                islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].mult <= mult)
+            {   
+                if(wm_cut)
+                { 
+                    if( wiremod::WireModHitCut(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].integral, plane) )continue;
+                }
                 dedx_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].dedx);                                  
                 rr_temp.push_back(islc.reco.pfp[ipfp_mu].trk.calo[plane].points[ihit].rr);
             }
@@ -105,11 +115,21 @@ const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vec
         {
             for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit )
             {
-                if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<30.)
-                {    
-                    if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].integral, plane) ){continue;}
+                if(
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>rr_min && 
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<rr_max && 
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>dedx_min && 
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<dedx_max &&
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].mult <= mult)
+                {   
+                    if(wm_cut)
+                    { 
+                        if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].integral, plane) ){continue;}
+                    }
                     dedx_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);                                  
                     rr_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr);
+
+                    dump_dedx_debug << true_selection(sr,islc,ipfp,plane) << " " << islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr << " " << islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx << " " << wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].integral, plane) << endl;
                 }
             }
             if(true_selection(sr,islc,ipfp,plane)==2){dedx_pro_class2.push_back(dedx_temp); rr_pro_class2.push_back(rr_temp);}
@@ -122,9 +142,17 @@ const SpillMultiVar select_true_class([](const caf::SRSpillProxy* sr)-> std::vec
         {
             for ( std::size_t ihit(0); ihit < islc.reco.pfp[ipfp].trk.calo[plane].points.size(); ++ihit )
             {
-                if(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<25 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>1 && islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<30.)
+                if(
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr>rr_min && 
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr<rr_max && 
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx>dedx_min && 
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx<dedx_max &&
+                    islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].mult <= mult)
                 {    
-                    if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].integral, plane) ){continue;}
+                    if(wm_cut)
+                    {
+                        if( wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].integral, plane) ){continue;}
+                    }
                     dedx_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].dedx);                                  
                     rr_temp.push_back(islc.reco.pfp[ipfp].trk.calo[plane].points[ihit].rr);
                 }
