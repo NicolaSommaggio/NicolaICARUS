@@ -66,15 +66,15 @@ void PLOT_VARIATIONS()
 
     std::vector<std::string> samples = {"MC","OFFBEAM"};
     std::vector<double> POTS = {2.43007e+20, 2.11e+20};
-    TFile * outfile = new TFile("OUT_VARIATIONS_STANDARD_RUN2_DATA.root","RECREATE"); //-->HERE
+    TFile * outfile = new TFile("OUT_VARIATIONS_STANDARD_RUN2_DATA.test.root","RECREATE"); //-->HERE
             
     //TFile * infile_MC = TFile::Open("varMC_STANDARD_RUN2.root","READ");  
     //TFile * infile_OFFBEAM = TFile::Open("varMC_STANDARD_RUN2_OFFBEAM.root","READ");        
     //TFile * infile_DATA = TFile::Open("varMC_STANDARD_RUN2_DATA.root","READ");
 
-    TFile * infile_MC = TFile::Open("varMC_STANDARD_CUT.root","READ");  
-    TFile * infile_OFFBEAM = TFile::Open("varMC_OFFBEAM_CUT.root","READ");        
-    TFile * infile_DATA = TFile::Open("varMC_DATA_CUT.root","READ");
+    TFile * infile_MC = TFile::Open("ROOT_TREES_DEDX/RUN2/varMC_STANDARD_RUN2_CUT.root","READ");  
+    TFile * infile_OFFBEAM = TFile::Open("ROOT_TREES_DEDX/RUN2/varMC_STANDARD_RUN2_OFFBEAM_CUT.root","READ");        
+    TFile * infile_DATA = TFile::Open("ROOT_TREES_DEDX/RUN2/varMC_STANDARD_RUN2_DATA_CUT.root","READ");
 
     std::vector<TFile*> infile = {infile_DATA, infile_MC, infile_OFFBEAM};
 
@@ -84,7 +84,7 @@ void PLOT_VARIATIONS()
 
     std::vector<double> interacting_start_value = {6., 5.25, 4.5, 4.24, 3.75, 3.75, 3.5, 3.25, 3.25, 3.25, 3.25, 3., 3., 3., 2.75, 2.75, 2.75, 2.75, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5};
 
-    ofstream fit("fitDATA.txt"); //-->HERE
+    ofstream fit("fitDATA.test.txt"); //-->HERE
 
     fit << "rr ";
     fit << "landau_width e_landau_width ";
@@ -312,7 +312,7 @@ void PLOT_VARIATIONS()
 
         */
 
-        // *** LANDAU + 1 GAUSSIAN ***
+        // *** 2 LANDAU ***
 
             TF1 *f1 = new TF1(Form("f1_rr%d",rr), fitFunction, X_LOW, X_HIGH, 7);
 
@@ -428,6 +428,9 @@ void PLOT_VARIATIONS()
 
         outfile -> cd();
         c_fit -> Write();
+
+        h_dedx_PRO_DATA -> Write(Form("hist_rr_%d",rr));
+        fit_function_plot -> Write(Form("tf1_rr_%d",rr));
 
         //h_dedx_PRO_MC -> Write();
     }
