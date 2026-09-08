@@ -103,7 +103,7 @@ int true_selection(
   double rr_min = 1.,
   double rr_max = 25., 
   double mult = 1.,
-  double wm_cut = true
+  double wm_cut = false
 )
 {
     //-1 : unclassified
@@ -134,10 +134,10 @@ int true_selection(
           islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<dedx_max && 
           islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].mult <= mult)
         {
-          if(wm_cut)
-          {
-            if(wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, plane)){continue;}
-          }
+          //if(wm_cut)
+          //{
+          //  if(wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, plane)){continue;}
+          //}
           hasValidHits=true;
         }
       }
@@ -163,10 +163,10 @@ int true_selection(
           islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].dedx<dedx_max &&
           islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].mult <= mult)
         {
-          if(wm_cut)
-          {
-            if(wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, plane)){continue;}
-          }
+          //if(wm_cut)
+          //{
+          //  if(wiremod::WireModHitCut(islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].phi, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].pitch, islc.reco.pfp[ipfp].trk.calo[bestplane].points[ihit].integral, plane)){continue;}
+          //}
           hasValidHits=true;
         }
       }

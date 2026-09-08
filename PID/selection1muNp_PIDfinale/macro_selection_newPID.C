@@ -91,7 +91,8 @@ void macro_selection_newPID(){
 //const std::string fdata = "/pnfs/sbn/scratch/users/twester/Run2_WM_ReCAF2026/flatcaf/00003*/*/*.root";
 
 //SELECTION FOLDER 
-const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
+//const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.root";
+//const std::string fdata = "/pnfs/icarus/scratch/users/nsommagg/SELECTION_FOLDER/*.root";
 
 // 1 file SELECTION FOLDER
 //const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/84005943_0_out1.flat.caf.root";
@@ -105,7 +106,7 @@ const std::string fdata = "/exp/icarus/data/users/nsommagg/SELECTION_FOLDER/*.ro
 
 //DATI
 //const std::string fdata = "Icaruspro_2025_wcdnn_production_Reproc_Run2_SBN_2_v10_06_00_06p03_bnbmajority_flatcaf_prescaled";
-//const std::string fdata = "production_data_2026A_ICARUS_BNB_RUN2_reCAF_bnbmajority_10p_UNBLIND_Run2_v10_06_00_12_flatcaf";
+const std::string fdata = "production_data_2026A_ICARUS_BNB_RUN2_reCAF_bnbmajority_10p_UNBLIND_Run2_v10_06_00_12_flatcaf";
 
 //DATI RUN4
 //const std::string fdata = "icarus_recaf_2026_Run4BeamOnWF_flatcaf";
@@ -159,21 +160,21 @@ double factor = s1.POT();
 TH1D* h1 = s1.ToTH1(factor);
 
 
-TFile *tree_outfile = new TFile("varMC_STANDARD_RUN2_CUT_CHI2EXPLORATION.root","RECREATE");
-TTree * tree = new TTree("tree","tree");
-
-_slice thislice;
-tree -> Branch("slice",&thislice);
-
-for(const auto &slc : _slices)
-{
-    thislice = slc;
-    tree -> Fill();
-}
-
-tree_outfile -> cd();
-tree -> Write(0,TObject::kOverwrite);
-tree_outfile -> Close();
+//TFile *tree_outfile = new TFile("varMC_STANDARD_RUN2_CUT_CHI2EXPLORATION.root","RECREATE");
+//TTree * tree = new TTree("tree","tree");
+//
+//_slice thislice;
+//tree -> Branch("slice",&thislice);
+//
+//for(const auto &slc : _slices)
+//{
+//    thislice = slc;
+//    tree -> Fill();
+//}
+//
+//tree_outfile -> cd();
+//tree -> Write(0,TObject::kOverwrite);
+//tree_outfile -> Close();
 
 
 /*
