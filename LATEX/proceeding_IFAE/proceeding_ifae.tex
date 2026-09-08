@@ -1,3 +1,4 @@
+
 %%
 %% This is file `cimsmple.tex'
 %%
@@ -20,6 +21,10 @@
 
 \documentclass[nocopyright]{cimento}
 
+%custom packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+
 %%%%%%%%%%%%%
 %
 %VERY IMPORTANT
@@ -34,8 +39,8 @@
 %
 % VERY IMPORTANT 
 %
-% In order to set a Copyright owner please use and fulfill the following command 
-%\setcopyright{CERN on behalf the XXXXX Collaboration}
+% In order to set a Copyright owner, please use and fulfill the following command 
+%\setcopyright{CERN on behalf of the XXXXX Collaboration}
 %
 %
 %%%%%%%%%%%%%%%
@@ -45,7 +50,7 @@
 \title{A new PID method for the ICARUS experiment at Fermilab}
 
 \author{N. Sommaggio}
-\instlist{\inst{} Dipartimento di Fisica, Universit\`a di Pisa - Pisa, Italy
+\instlist{\inst{} Universit\`a di Pisa - Pisa, Italy
   \inst{} INFN, Sezione di Pisa - Pisa, Italy
   }
 
@@ -56,28 +61,275 @@
 \maketitle
 
 \begin{abstract}
-Abstract (TODO)
+In this work, we present a novel machine learning-based particle identification
+method for the ICARUS experiment, which exploits the full dE/dx distribution as a function of residual range. This new method allows discrimination between muons, protons, and pions, making it a general-purpose tool applicable to any ICARUS physics analysis.
 \end{abstract}
 
 \section{The SBN experiment}
 
-The Short-Baseline Neutrino (SBN) program at Fermilab is designed to investigate the anomalies observed in previous short-baseline neutrino oscillation experiments and to perform precision measurements of neutrino interactions.
+The Short-Baseline Neutrino (SBN) program at Fermilab is designed to investigate the evidence for anomalous fast
+neutrino oscillations in short baseline experiments (the so-called \textit{Short Baseline Anomalies}) which may indicate the possible existence of a fourth neutrino state, the so-called \textit{sterile neutrino}, associated with large 
+$\Delta\text{m}_{new}^2\sim\,\mathcal{O}(\text{eV}^2)$ and small mixing angles with the active neutrino flavors.
+Despite a broad experimental landscape several anomalies persist, such as: the excess of $\nu_e$-like events observed in LSND ($\bar{\nu}_e$ appearance) using a $\bar{\nu}_\mu$ beam \cite{ref:lsnd}, the $\bar{\nu}_e$ disappearance observed by the Neutrino-4 reactor experiment \cite{ref:neutrino4} together with the $\nu_e$ evidence for disappearance in Gallium experiments \cite{ref:neutrino4_combined}\cite{ref:gallium}, and finally the recent closed contours observed by IceCube searching for $\nu_\mu$ disappearance using atmospheric neutrinos \cite{ref:icecube}.
+A definitive answer is meant to be given by the SBN program \cite{ref:sbn}, composed of two functionally identical Liquid Argon Time Projection Chambers (LArTPC) detectors \cite{ref:tpc_rubbia}: SBND located at 110 m from the target and ICARUS-T600 as a far detector located 600 m downstream, both exposed to the $\nu_\mu$ ($\sim0.5\%$ intrinsic contamination of $\nu_e$) from the Booster Neutrino (BNB) beam line (average $E_\nu\sim$0.8 GeV). In addition, ICARUS also receives the off-axis neutrinos from the Main Injector (NuMI) with an enriched component of $\nu_e$ (a few \%) in the $0\div3$ GeV energy range.  
+The choice of the LArTPC technique provides excellent neutrino identification and event reconstruction, enabling a precise measurement of the neutrino energy and a strong mitigation of possible sources of background. Furthermore, the adoption of the same detection technology in SBND and ICARUS allows for drastically reducing systematic uncertainties related to neutrino flux and interaction model, since they can be constrained by near detector data.
+This configuration enables SBN to perform an extremely sensitive search for $\nu_\mu\rightarrow\nu_e$ appearance signals, simultaneously with studies of $\nu_e$ and $\nu_\mu$ disappearance, covering the parameter space allowed by LSND at 99\% C.L. with a significance of 5$\sigma$.
 
 \section{The ICARUS detector}
 
+
+%The ICARUS T600 detector \cite{ref:icarus} successfully completed in 2013 three years of physics data taking at the underground LNGS laboratory studying neutrino oscillations with the CERN Neutrino to Gran Sasso beam (CNGS) and atmospheric neutrino interactions, to then undergo a significant overhaul at CERN before being installed at Fermilab, where it started physics data taking since 2022.
+
+After three years of successful operation at the LNGS underground laboratories, the ICARUS T600 detector \cite{ref:icarus} underwent a significant overhaul at CERN
+before being installed at Fermilab, where it started physics data taking in 2022.
+Since 2022, ICARUS has been stably collecting data over five physics runs,
+for a total of $\sim 10^{21}$ proton-on-target (POT) collected from the BNB.
+It consists of two identical cryostats, each housing two LArTPCs separated by a common cathode for a total active mass of 476 tons of ultrapure liquid argon. Each TPC features an anode made of 3 parallel wire planes, oriented at 0° (Induction 1), +60° (Induction 2), and -60° (Collection) biased at increasing voltages, of which only the latter collects the ionization electrons from charged particles originating from neutrino interactions with argon nuclei or cosmic muons. Photomultiplier Tubes (PMTs) behind the wire planes detect prompt scintillation light for event timing and triggering. 
+In this layout, the physical signals that are identified within the waveforms recorded in each wire (hits) and that are matched across multiple planes based on the drift time are used to reconstruct the 3D image of the event.
+The ionization density dQ/dx is therefore obtained from the
+hit charge dQ and then converted into the particle’s energy loss per path length dE/dx. The dE/dx dependence on the distance from the track’s endpoint (residual range RR) is used as a robust particle identification (PID) method for particles stopping in the LArTPC active volume.
+
+
 \section{Machine Learning based PID}
+The identification of the charged particles produced in the $\nu-\text{Ar}$ interaction allows the neutrino flavor and interaction process to be directly determined: for these reasons, PID tools play a crucial role in the analysis of LArTPC recorded events.
 
-\subsection{Current PID algorithm}
+The PID method presently used in ICARUS is based on a hit-by-hit comparison of the dE/dx measured along the reconstructed tracks with the average dE/dx predicted under different particle hypotheses from the Bethe formula, including in particular protons and muons, to obtain a "$\chi^2$ score".
+While this approach provides a
+satisfactory separation of muons from protons, it does not allow for discrimination between muons and pions
+without relying on the event topology beyond the PID algorithm.
+%; leading to a non-negligible background in searches for $\nu_\mu$ charged-current (CC) interactions and limitations in analyses that explicitly require pion identification, such as cross-section measurements.
 
-\subsection{Likelihood Ratios approach}
+To address this issue, we propose a machine learning-based PID method exploiting the full dE/dx distributions at fixed RR instead of the average information.
+The dE/dx distributions of muons, protons, and pions from the ICARUS MC simulation have been extracted in 0.5 cm RR intervals, distinguishing between \textit{stopping-like} particles, which range out in the detector and exhibit the characteristic Bragg peak, and \textit{MIP-like/interacting} particles, which either re-interact in the detector or do no exhibit the Bragg peak at the end of the track (exiting or potentially poorly reconstructed tracks). Figure \ref{fig:dedx} shows the distributions for the six classes, \textit{$\mu$ stopping, $\mu$ MIP, $p$ stopping, $p$ interacting, $\pi$ stopping,} and \textit{$\pi$ interacting}, in three different RR intervals, where these have been normalized to obtain probability densities. Tracks have been selected within an available sample of simulated $\nu_\mu$ neutrino interactions corresponding to $5\times10^{19}$ POT.
+In particular, reconstructed tracks are required to start near the vertex and to be contained; moreover, muon tracks must be longer than 50 cm, whereas protons and pions must have a visible deposited energy above 50 MeV and 25 MeV, respectively. These requirements are designed to select well-reconstructed tracks originating from neutrino interactions and are applied throughout this study.
+
+%TODO: menzionare la 'preselezione delle tracce' (?)
+%TODO: controllare pot (?)
+%TODO: menzionare numero di tracce per specie (?)
+%TODO: intervallo RR nella legenda dei plot delle distro (?)
+%TODO: enfatizzare che si utilizza tutta la distribuzione del dE/dx (?)
+
+
+
+\begin{figure}[!h]
+    \centering
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \hspace*{-5.mm}
+        \includegraphics[width=1.1\textwidth]{figures/rr_3_coll.eps}
+        %\caption{}
+        %\label{fig:dedx_rr_3}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \hspace*{-5.mm}
+        \includegraphics[width=1.1\textwidth]{figures/rr_10_coll.eps}
+        %\caption{}
+        %\label{fig:dedx_rr_10}
+    \end{minipage}
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=1.1\textwidth]{figures/rr_20_coll.eps}
+        %\caption{}
+        %\label{fig:dedx_rr_20}
+    \end{minipage}
+    \caption{dE/dx probability densities for the six classes in RR intervals: $\text{RR}\in[3,3.5)\,\text{cm}$ (left), $\text{RR}\in[10,10.5)\,\text{cm}$ (center), $\text{RR}\in[20,20.5)\,\text{cm}$ (right).}
+    \label{fig:dedx}
+\end{figure}
+
+
+For each track, a likelihood is computed under each of the six particle hypotheses. The likelihood is defined as the product of the probability-density values evaluated at the measured dE/dx of each hit, using the RR bin containing the corresponding hit to select the appropriate probability density. It is therefore possible to compute 15 likelihood ratios (LRs) between two different hypotheses, 
+%according to Equation \ref{eq:lr}, where the arctan function is chosen to bound values between -1 and 1.
+where the LRs are then transformed using an arctangent function to bound their values between $-1$ and $1$, with values tending to $-1$ ($+1$) when the numerator (denominator) hypothesis is favored.
+
+%TODO: factor 1/3 on the LR (?)
+
+%\begin{equation}
+%  \label{eq:lr}
+%  \mathcal{LR}=\arctan\Big(\frac{\mathcal{L}_{hyp1}-\mathcal{L}_{hyp2}}{3}\Big)\frac{2}{\pi}
+%\end{equation}
+
+Figure \ref{fig:lr_mu_ris_p_ris}, Figure \ref{fig:lr_mu_ris_pi_ris}, and Figure \ref{fig:lr_p_ris_pi_ris} show, for each particle class, three examples of the 15 possible likelihood ratios between pairs of hypotheses. The distributions provide very good separation between muons and protons and between protons and pions, while also showing clear muon-pion discrimination in the stopping case.
+
+\begin{figure}[!h]
+  \vspace*{-1.5cm}
+  \begin{minipage}{0.49\textwidth}
+    \centering
+    \hspace*{-3mm}
+    \includegraphics[width=\textwidth]{figures/lr_mu_ris_over_p_ris.eps}
+    \caption{LRs between the $\mu$ stopping and $p$ stopping hypotheses for the six classes. As expected, muons and pions prefer the $\mu$ stopping hypothesis (having a similar dE/dx), thus peaking at values near $-1$, while protons are distributed at LRs near $+1$.}
+    \label{fig:lr_mu_ris_p_ris}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\textwidth}
+    \vspace*{1.9cm}
+    \centering
+    \includegraphics[width=\textwidth]{figures/lr_mu_ris_over_pi_ris.eps}
+    \caption{LRs between the $\mu$ stopping and $\pi$ stopping hypotheses for the six classes. As expected, the $\mu$ stopping and the $\pi$ stopping classes are well separated. The $\mu$ MIP and $\pi$ interacting classes are distributed near $-1$, as they exhibit a nearly constant dE/dx of $\sim 2$ MeV/cm and therefore favor the lower dE/dx hypothesis. Conversely, the $p$ stopping and $p$ interacting classes favor the higher dE/dx hypothesis ($\pi$ stopping), resulting in LR values close to $+1$.}
+    \label{fig:lr_mu_ris_pi_ris}
+  \end{minipage}
+  \vspace*{-2.5cm}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!h]
+  \begin{minipage}{0.49\textwidth}
+    \centering
+    \hspace*{-1mm}
+    \includegraphics[width=1\textwidth]{figures/lr_p_ris_over_pi_ris.eps}
+    \caption{LRs between the $p$ stopping and $\pi$ stopping hypotheses for the six classes. As expected protons are distributed at LRs near $-1$, while muons and pions prefer the $\pi$ stopping hypothesis, thus peaking at values near $+1$.}
+    \label{fig:lr_p_ris_pi_ris}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\textwidth}
+    \centering
+    \hspace*{-1mm}
+    \includegraphics[width=1.03\textwidth]{figures/depE.eps}
+    \caption{Deposited energy in the last 5 cm of the track for the six classes.}
+    \label{fig:depE}
+    \vspace*{12mm}
+  \end{minipage}
+  \vspace*{-0.7cm}
+\end{figure}
+
+
+
+%\begin{equation}
+  %\label{eq:depE}
+  %\text{depE}=\sum_{hit_{\text{RR}}\leq5\,\text{cm}}\text{dE/dx}_{hit}%\cdot pitch_{hit}
+%\end{equation}
+
+%TODO: say something on the deposited energy (?)
+%TODO: how many tracks in the training and test sample (?)
+       %unbalancing of the training set and used setup
+
+\begin{figure}[!h]
+    \centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        %\hspace*{-5mm}
+        \hspace*{-3mm}
+        \includegraphics[width=1\textwidth]{figures/daughter_depE.eps}
+        \caption{Deposited energy in the last 5 cm of the track of the longest daughter, for the six classes. The feature has been introduced to better distinguish between split muons and pions undergoing hadronic interactions, since they both have a MIP behavior throughout the track. However, the resulting proton in the latter case has, most of the time, a much higher ionization pattern than the second muon segment.}
+        \label{fig:daughter_depE}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \hspace*{-5mm}
+        \includegraphics[width=1.03\textwidth]{figures/daughter_angle.eps}
+        \caption{The angle between the mother track and the longest daughter track for the six classes. The feature has been introduced to better distinguish between split muons and pions decaying in flight, since in the former case the two segments are expected to be collinear.}
+        \label{fig:daughter_angle}
+        \vspace*{13,5mm}
+    \end{minipage}
+\end{figure}
+
+%TODO: write the considered class in Figure 8
+
+The 15 LRs are then inserted as input to a Gradient Boosted Decision Tree (GBDT) classifier, implemented with the \texttt{GradientBoostingClassifier} class from the scikit-learn package \cite{scikit_paper}.
+
+In addition, the GBDT takes as input three additional features: the deposited energy (depE) of the particles in the last 5 cm of the track (defined as the sum of the deposited energy associated to the hits in the tracks with RR smaller than 5 cm), together with the depE of the longest daughter track and the angle between the directions of the mother and longest daughter tracks (if a daughter is present).
+The distributions of the three variables are shown respectively for the six classes in Figure \ref{fig:depE}, Figure \ref{fig:daughter_depE} and Figure \ref{fig:daughter_angle}. It is worth noting that the term \textit{daughter} does not directly imply that the second track comes from a particle originating at a secondary vertex. In fact, if a muon track is split due to bad reconstruction, the second muon segment will be addressed as a daughter by the reconstruction chain. The daughters' information then becomes crucial in distinguishing between the $\mu$ MIP and the $\pi$ interacting classes, which are hard to disentangle.
+
+The GBDT has been trained on muon, proton, and pion tracks originating from $\nu_\mu$ neutrino interactions corresponding to $1.6\times10^{19}$ POT.
+The GBDT returns for each track the probability for each of the six hypotheses, illustrated in Figure \ref{fig:pred_proba}. As shown, muons, protons, and pions in the stopping case can be efficiently separated, while in the MIP/interacting case requiring a high probability for a given hypothesis allows for the selection of a pure sample of that class.
+%Figures \ref{fig:lr_mu_ris_p_ris}, \ref{fig:lr_mu_ris_pi_ris}, \ref{fig:lr_p_ris_pi_ris}, \ref{fig:depE}, \ref{fig:daughter_depE}, \ref{fig:daughter_angle}, \ref{fig:pred_proba}, \ref{fig:cm} 
+Figures \ref{fig:lr_mu_ris_p_ris} to \ref{fig:cm}
+are obtained from an independent sample of tracks coming from neutrino interactions corresponding to $1.5\times10^{20}$ POT.
+
+\begin{figure}[!h]
+    \centering
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \hspace*{-7.5mm}
+        \includegraphics[width=1.15\textwidth]{figures/pred_proba_mu_rising_explicit.eps}
+        %\caption{}
+        %\label{fig:pred_proba_mu_rising}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \hspace*{-5.mm}
+        \includegraphics[width=1.1\textwidth]{figures/pred_proba_mu_mip_explicit.eps}
+        %\caption{}
+        %\label{fig:pred_proba_mu_mip}
+    \end{minipage}
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=1.1\textwidth]{figures/pred_proba_pro_rising_explicit.eps}
+        %\caption{}
+        %\label{fig:pred_proba_pro_rising}
+    \end{minipage}
+    \vfill
+    \centering
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \hspace*{-6.mm}
+        \includegraphics[width=1.1\textwidth]{figures/pred_proba_pro_interacting_explicit.eps}
+        %\caption{}
+        %\label{fig:pred_proba_pro_interacting}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \hspace*{-5.mm}
+        \includegraphics[width=1.1\textwidth]{figures/pred_proba_pi_rising_explicit.eps}
+        %\caption{}
+        %\label{fig:pred_proba_pi_rising}
+    \end{minipage}
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=1.1\textwidth]{figures/pred_proba_pi_interacting_explicit.eps}
+        %\caption{}
+        %\label{fig:pred_proba_pi_interacting}
+    \end{minipage}
+    \caption{Predicted probability distributions for the six considered classes in each particle hypothesis: $\mu$ stopping (top left), $\mu$ MIP (top center), $p$ stopping (top right), $p$ interacting (bottom left), $\pi$ stopping (bottom center), and $\pi$ interacting (bottom right).}
+    \label{fig:pred_proba}
+  \end{figure}
+
+
+The simplest possible application is presented in Figure~\ref{fig:cm}, showing the efficiency and purity confusion matrices obtained by assigning to each track the class with the highest predicted probability. In this case, the stopping classes are efficiently identified, 
+%with efficiency and purity in the 0.86--0.94 range, 
+with the best performance being achieved for stopping protons. %(0.87 efficiency, 0.94 purity) thanks to their markedly higher dE/dx. 
+%The MIP/interacting classes are instead more challenging to separate, in particular 
+As expected, the $\mu$ MIP and $\pi$ interacting classes are mutually confused,
+%in about 18--25\% of the cases 
+%due to their similar quasi-MIP behavior along the whole track (consistently with the motivation behind the daughter-track-based features discussed above)
+while the $\pi$ stopping class
+%(0.43)
+is also partially contaminated by misclassified true $\mu$ stopping tracks. (A highly pure $\pi$ sample can be obtained requiring high probabilities, depending on the analysis purpose).
+
+  \begin{figure}
+    \vspace*{-1cm}
+    \begin{minipage}{0.49\textwidth}
+      \centering
+      \hspace*{-7mm}
+      \includegraphics[width=1.02\textwidth]{figures/BBB_newTS_efficiency_confusion_matrix_train_ONLY_COLL_test_ALL_PLANES.eps}
+      %\caption{}
+      %\label{fig:efficiency_cm}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+      \centering
+      \includegraphics[width=1.\textwidth]{figures/BBB_newTS_purity_confusion_matrix_train_ONLY_COLL_test_ALL_PLANES.eps}
+      %\caption{}
+      %\label{fig:purity_cm}
+    \end{minipage}
+    \caption{Efficiency (left) and purity (right) confusion matrices, obtained by assigning to each track the class with the highest predicted probability. In the efficiency (purity) matrix, each row (column) is normalized to the total number of true (predicted) tracks of that class: diagonal entries give the efficiency (purity) for each class, off-diagonal entries give the fraction of true (predicted) tracks of that class ending up in another predicted (true) class.}
+    \label{fig:cm}
+    \vspace*{-0.33cm}
+\end{figure}
 
 \section{Conclusions}
 
-
-
+A new PID method has been developed for the ICARUS experiment, based on a Gradient Boosted Decision Tree classifier and using the full dE/dx information contained in the RR-binned probability density distributions of muons, protons, and pions. The method achieves a good separation of stopping particles and a substantial improvement in muon–pion discrimination with respect to the current "$\chi^2$"-based approach. 
+%Being completely general, this method can be readily integrated into any ICARUS analysis.
 
 \acknowledgments
-The author acknowledge TODO.
+
+This document was prepared using the resources of the Fermi National Accelerator Laboratory (Fermilab), a U.S. Department of Energy, Office of Science, Office of High Energy Physics HEP User Facility. Fermilab is managed by Fermi Research Alliance, LLC (FRA), acting under Contract No. DE-AC02-07CH11359. This work was supported by the US Department of Energy, INFN, Marie Sklodowska-Curie grant agreements No 822185, 101081478, 101003460, and 101230211.
 
 \begin{thebibliography}{0}
 %\bibitem{ref:apo} \BY{Einstein A. \atque Fermi E.}
@@ -88,10 +340,63 @@ The author acknowledge TODO.
 %\bibitem{ref:bra} \BY{Bragg~B.}
 %  \TITLE{Complete Works}, in \TITLE{Workers Playtime}, edited by \NAME{Tizio A. \atque Caio B.} (Unexeditor, Bologna) 1997, pp.~1-10.
 
+%LSND
+\bibitem{ref:lsnd}
+\BY{Aguilar, A., et al.}
+\TITLE{Evidence for neutrino oscillations from the observation of $\bar{\nu}_e$ appearance in a $\bar{\nu}_\mu$ beam.}
+\IN{Phys. Rev. D}{64.11}{2001}{112007};
 
+%Neutrino4
+\bibitem{ref:neutrino4}
+\BY{Serebrov, A. P., et al.}
+\TITLE{Search for sterile neutrinos with the Neutrino-4 experiment and measurement results.}
+\IN{Physical Review D}{104.3}{2021}{032003};
 
+%Neutrino4_combined
+\bibitem{ref:neutrino4_combined}
+\BY{Serebrov, A. P., R. M. Samoilov, and M. E. Chaikovskii.}
+\TITLE{Analysis of the result of the Neutrino-4 experiment in conjunction with other experiments on the search for sterile neutrinos within the framework of the 3+ 1 neutrino model.}
+\ADLIB{arXiv preprint arXiv:2112.14856 (2021)};
+
+%Gallium
+\bibitem{ref:gallium}
+\BY{Barinov, V. V., et al.}
+\TITLE{Search for electron-neutrino transitions to sterile states in the BEST experiment.}
+\IN{Physical Review C}{105.6}{2022}{065502};
+
+%IceCube
+\bibitem{ref:icecube}
+\BY{Abbasi, R., et al.}
+\TITLE{Search for an eV-scale sterile neutrino using improved high-energy $\nu_\mu$ event reconstruction in IceCube.}
+\IN{Physical review letters}{133.20}{2024}{201804};
+
+%SBN
+\bibitem{ref:sbn}
+\BY{Acciarri, R., et al.}
+\TITLE{A proposal for a three detector short-baseline neutrino oscillation program in the Fermilab booster neutrino beam.}
+\ADLIB{arXiv preprint arXiv:1503.01520 (2015)};
+
+%tpc rubbia
+\bibitem{ref:tpc_rubbia}
+\BY{Rubbia, C.}
+\TITLE{The liquid-argon time projection chamber: a new concept for neutrino detectors.}
+\ADLIB{No. CERN-EP-INT-77-8. 1977};
+
+%icarus
+\bibitem{ref:icarus}
+\BY{Abratenko, P., et al.}
+\TITLE{ICARUS at the Fermilab Short-Baseline Neutrino program: initial operation.}
+\IN{The European Physical Journal C}{83.6}{2023}{467}
+
+%scikit paper
+\bibitem{scikit_paper}
+\BY{Pedregosa, F., et al.}
+\TITLE{Scikit-learn: Machine Learning in Python.}
+\IN{Journal of Machine Learning Research}{12}{2011}{2825--2830}
 \end{thebibliography}
 
 \end{document}
 %%
 %% End of file `cimsmple.tex'.
+
+

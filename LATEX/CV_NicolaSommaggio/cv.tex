@@ -1,0 +1,358 @@
+%-----------------------------------------------------------------------------------------------------------------------------------------------%
+%	The MIT License (MIT)
+%
+%	Copyright (c) 2021 Jitin Nair
+%
+%	Permission is hereby granted, free of charge, to any person obtaining a copy
+%	of this software and associated documentation files (the "Software"), to deal
+%	in the Software without restriction, including without limitation the rights
+%	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+%	copies of the Software, and to permit persons to whom the Software is
+%	furnished to do so, subject to the following conditions:
+%	
+%	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+%	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+%	THE SOFTWARE.
+%	
+%
+%-----------------------------------------------------------------------------------------------------------------------------------------------%
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT DEFINITION
+%----------------------------------------------------------------------------------------
+
+% article class because we want to fully customize the page and not use a cv template
+\documentclass[a4paper,12pt]{article}
+
+%----------------------------------------------------------------------------------------
+%	FONT
+%----------------------------------------------------------------------------------------
+
+% % fontspec allows you to use TTF/OTF fonts directly
+% \usepackage{fontspec}
+% \defaultfontfeatures{Ligatures=TeX}
+
+% % modified for ShareLaTeX use
+% \setmainfont[
+% SmallCapsFont = Fontin-SmallCaps.otf,
+% BoldFont = Fontin-Bold.otf,
+% ItalicFont = Fontin-Italic.otf
+% ]
+% {Fontin.otf}
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES
+%----------------------------------------------------------------------------------------
+\usepackage{url}
+\usepackage{parskip} 	
+
+%math packages
+\usepackage{amsmath} 
+
+%other packages for formatting
+\RequirePackage{color}
+\RequirePackage{graphicx}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[scale=0.9]{geometry}
+
+%tabularx environment
+\usepackage{tabularx}
+
+%for lists within experience section
+\usepackage{enumitem}
+
+% centered version of 'X' col. type
+\newcolumntype{C}{>{\centering\arraybackslash}X} 
+
+%to prevent spillover of tabular into next pages
+\usepackage{supertabular}
+\usepackage{tabularx}
+\newlength{\fullcollw}
+\setlength{\fullcollw}{0.47\textwidth}
+
+%custom \section
+\usepackage{titlesec}				
+\usepackage{multicol}
+\usepackage{multirow}
+
+%CV Sections inspired by: 
+%http://stefano.italians.nl/archives/26
+\titleformat{\section}{\Large\scshape\raggedright}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{10pt}{10pt}
+
+%for publications
+\usepackage[
+    style=authoryear,
+    sorting=ynt,
+    maxbibnames=2
+]{biblatex}
+
+\addbibresource{citations.bib}
+
+% Article title in italic
+\DeclareFieldFormat[article]{title}{\mkbibemph{#1}}
+
+% Journal name in normal font
+\DeclareFieldFormat[article]{journaltitle}{#1}
+
+% Custom format for articles
+\DeclareBibliographyDriver{article}{%
+    \usebibmacro{bibindex}%
+    \usebibmacro{begentry}%
+    
+    % Authors
+    \printnames{author}%
+    \setunit{\addperiod\space}%
+    
+    % Title
+    \printfield{title}%
+    \setunit{\addperiod\space}%
+    
+    % Journal
+    \printfield{journaltitle}%
+    \setunit{\addcomma\space}%
+    
+    % Volume
+    \printfield{volume}%
+    \setunit{\addcomma\space}%
+    
+    % Pages or article number
+    \printfield{pages}%
+    \setunit{\addcomma\space}%
+    
+    % Year
+    \printdate%
+    \setunit{\addperiod}%
+    
+    \usebibmacro{finentry}%
+}
+
+%Setup hyperref package, and colours for links
+\usepackage[unicode]{hyperref}
+\definecolor{linkcolour}{rgb}{0,0.2,0.6}
+\hypersetup{colorlinks,breaklinks,urlcolor=linkcolour,linkcolor=linkcolour}
+\addbibresource{citations.bib}
+\setlength\bibitemsep{1em}
+
+%for social icons
+\usepackage{fontawesome5}
+
+%debug page outer frames
+%\usepackage{showframe}
+
+
+% job listing environments
+\newenvironment{jobshort}[2]
+    {
+    \begin{tabularx}{\linewidth}{@{}l X r@{}}
+    \textbf{#1} & \hfill &  #2 \\[3.75pt]
+    \end{tabularx}
+    }
+    {
+    }
+
+\newenvironment{joblong}[2]
+    {
+    \begin{tabularx}{\linewidth}{@{}l X r@{}}
+    \textbf{#1} & \hfill &  #2 \\[3.75pt]
+    \end{tabularx}
+    \begin{minipage}[t]{\linewidth}
+    \begin{itemize}[nosep,after=\strut, leftmargin=1em, itemsep=3pt,label=--]
+    }
+    {
+    \end{itemize}
+    \end{minipage}    
+    }
+
+
+
+%----------------------------------------------------------------------------------------
+%	BEGIN DOCUMENT
+%----------------------------------------------------------------------------------------
+\begin{document}
+
+% non-numbered pages
+\pagestyle{empty} 
+
+%----------------------------------------------------------------------------------------
+%	TITLE
+%----------------------------------------------------------------------------------------
+
+% \begin{tabularx}{\linewidth}{ @{}X X@{} }
+% \huge{Your Name}\vspace{2pt} & \hfill \emoji{incoming-envelope} email@email.com \\
+% \raisebox{-0.05\height}\faGithub\ username \ | \
+% \raisebox{-0.00\height}\faLinkedin\ username \ | \ \raisebox{-0.05\height}\faGlobe \ mysite.com  & \hfill \emoji{calling} number
+% \end{tabularx}
+
+\begin{tabularx}{\linewidth}{@{} C @{}}
+\LARGE{Nicola Sommaggio} \\[7.5pt]
+\centering \large{PhD student at the University of Pisa} \\
+%\href{https://github.com/username}{\raisebox{-0.05\height}\faGithub\ username} \ $|$ \ 
+%\href{https://linkedin.com/in/username}{\raisebox{-0.05\height}\faLinkedin\ username} \ $|$ \ 
+%\href{https://mysite.com}{\raisebox{-0.05\height}\faGlobe \ mysite.com} \ $|$ \ 
+%\href{mailto:sommaggio.nicola@gmail.com}{\raisebox{-0.05\height}\faEnvelope \ sommaggio.nicola@gmail.com} \ $|$ \ 
+\href{n.sommaggio@studenti.unipi.it}{\raisebox{-0.05\height}\faEnvelope \ n.sommaggio@studenti.unipi.it} \ $|$ \ 
+\href{tel:+39 3930973688}{\raisebox{-0.05\height}\faMobile \ +39 3930973688} \\
+\end{tabularx}
+
+%----------------------------------------------------------------------------------------
+%	EDUCATION
+%----------------------------------------------------------------------------------------
+\section{Education}
+\begin{tabularx}{\linewidth}{@{}l X@{}}	
+
+Nov. 2025 - Present & \textbf{PhD Physics} - University of Pisa \\
+& Thesis title: \textit{Search for sterile neutrinos with the ICARUS experiment at Fermilab}\\
+& Supervisor and Co-Supervisor: Simone Donati, Christian Farnese \\\\
+
+Oct. 2023 - Sep. 2024 & \textbf{M.Sc. Physics} - University of Padova \\
+& Thesis title: \textit{Particle identification studies in the ICARUS T600 LAr-TPC detector} \\
+& Supervisor and Co-Supervisor: Daniele Gibin - Christian Farnese \\\\
+%\hfill  Grade: 110/110 
+
+Oct. 2020 - Sep. 2023 & \textbf{B.Sc. Physics} - University of Padova \\
+& Thesis title: \textit{Study of $^{40}\text{K}$ and $^{42}\text{K}$ contamination using early data from the LEGEND-200 experiment} \\
+& Supervisor: Riccardo Brugnera
+%\hfill  Grade: 93/110 
+
+%Sep. 2015 - Jun. 2020 & \textbf{High School}: chemistry, materials and biotechnology 
+%\hfill  Grade: 100/100
+
+\end{tabularx}
+
+%----------------------------------------------------------------------------------------
+% EXPERIENCE SECTIONS
+%----------------------------------------------------------------------------------------
+
+%Interests/ Keywords/ Summary
+%\section{Summary}
+%This CV can also be automatically complied and published using GitHub Actions. For details, \href{https://github.com/jitinnair1/autoCV}{click here}.
+
+%Experience
+
+%\section{Work Experience}
+
+%\begin{jobshort}{Designation}{Jan 2021 - present}
+%long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width
+%\end{jobshort}
+
+%\begin{joblong}{Designation}{Mar 2019 - Jan 2021}
+%\item long long line of blah blah that will wrap when the table fills the column width
+%\item again, long long line of blah blah that will wrap when the table fills the column width but this time even more long long line of blah blah. again, long long line of blah blah that will wrap when the table fills the column width but this time even more long long line of blah blah
+%\end{joblong}
+
+%Projects
+\section{Activities}
+
+\begin{tabularx}{\linewidth}{@{}l X@{}}	
+
+July 2026 - August 2026 & \textbf{Universities Research Association (URA) Scholarship} - Fermi National Accelerator Laboratory \\
+& \textit{Development of a ML-based Particle Identification Algorithm for the SBN neutrino experiments at Fermilab} \\\\
+
+
+June 2026 & \textbf{Teaching assistant} - University of Pisa \\ 
+& General Physics 2, B.Sc. in Chemical Engineering \\\\
+
+%Mar. 2025 - Sep. 2025 & \textbf{M.Sc. Thesis} - Università degli Studi di Padova \\
+%& \textit{Particle identification studies in the ICARUS T600 LAr-TPC detector} \\ %(\href{\detokenize{https://www.dropbox.com/scl/fi/qng922wc4jcu1dbx56sxl/Master_NicolaSommaggio.pdf?rlkey=4ey7jbvibxqz282zyecdvpt9g&st=kbn8h5b5&dl=0}}{view doc})  
+%& Supervisor and Co-Supervisor: Daniele Gibin - Christian Farnese    \\\\
+
+Jun. 2024 - Oct. 2024 & \textbf{Introduction to Research} - University of Padova \\
+& \textit{Studies on the selection and reconstruction of the neutrino events recorded in the ICARUS T600 detector at Fermilab}\\ %(\href{\detokenize{https://www.dropbox.com/scl/fi/ohwe0seqg4ela0k1kypg0/IntroductionToResearch_NicolaSommaggio.pdf?rlkey=rfvvntbzy7hbrtmqga5d891pb&st=2jbi05ia&dl=0}}{view doc}) 
+&Supervisor: Christian Farnese \\\\
+
+%Jun. 2023 - Sep. 2023 & \textbf{B.Sc. Thesis} - Università degli Studi di Padova \\ 
+%& \textit{Study of $^{40}\text{K}$ and $^{42}\text{K}$ contamination using early data from the LEGEND-200 experiment} \\
+%(\href{\detokenize{https://www.dropbox.com/scl/fi/g4c540q14afavatkppt3m/Bachelor_NicolaSommaggio.pdf?rlkey=o2ngtcoj5rpb4stzj7uf00hqj&st=pmxz4s4g&dl=0}}{view doc})  
+%& Supervisor: Riccardo Brugnera \\\\
+
+
+Jul. 2019 - Aug. 2019 & \textbf{Erasmus+ program} - Wroclaw, Poland
+\end{tabularx}
+
+
+
+%----------------------------------------------------------------------------------------
+%	PUBLICATIONS
+%----------------------------------------------------------------------------------------
+%\section{Publications}
+%\begin{refsection}[citations.bib]
+%\nocite{*}
+%\printbibliography[heading=none]
+%\end{refsection}
+
+%----------------------------------------------------------------------------------------
+%	SKILLS
+%----------------------------------------------------------------------------------------
+%\section{Skills}
+%\begin{tabularx}{\linewidth}{@{}l X@{}}
+%Programming & C++, Python, ROOT CERN framework, Spreadsheets, \LaTeX \\  
+%Language & Italian: Native Speaker, English: B2
+%\end{tabularx}
+
+%----------------------------------------------------------------------------------------
+%	Other experiences
+%----------------------------------------------------------------------------------------
+
+
+
+\section{Conferences}
+
+\begin{tabularx}{\linewidth}{@{}l X@{}}	
+April 2026 & Incontri di Fisica delle Alte Energie 2026 (IFAE 2026) \\
+& \textit{A new PID method for the ICARUS experiment at Fermilab} \\\\
+
+September 2026 - Accepted & Congresso Nazionale Società Italiana di Fisica (SIF) 2026 \\
+& \textit{A new PID method for the ICARUS experiment at Fermilab} \\\\
+
+\end{tabularx}
+
+
+\section{Publications}
+
+Sommaggio, N. \textit{A new PID method for the ICARUS experiment at Fermilab.} Il Nuovo Cimento - Colloquia and Communications in Physics (\textbf{Submitted}, 2026).
+
+%\begin{refsection}[citations.bib]
+%\nocite{*}
+%\printbibliography[heading=none]
+%\end{refsection}
+
+
+\vfill
+\center{\footnotesize Last updated: \today}
+
+\end{document}
+
+
+
+%@article{dummypaper,
+%	title = {Paper: This is the name of the paper },
+%	volume = {99},
+%	url = {https://some-link.com},
+%	abstract = {},
+%	number = {18},
+%	journal = {Some Journal},
+%	author = {Last Name, First Name and Other Last Name, First Name},
+%	month = sep,
+%	year = {2019},
+%	keywords = {some keyword, another keyword},
+%	pages = {2200--2300},
+%}
+%
+%@article{dummypaper2,
+%	title = {Paper II: This is another paper },
+%	volume = {99},
+%	url = {https://some-other-link.com},
+%	abstract = {},
+%	number = {18},
+%	journal = {Some Journal},
+%	author = {Last Name, First Name and Again Last Name, First Name},
+%	month = sep,
+%	year = {2022},
+%	keywords = {some keyword, another keyword},
+%	pages = {2200--2300},
+%}

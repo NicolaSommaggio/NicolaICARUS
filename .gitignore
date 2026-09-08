@@ -60,3 +60,14 @@ LATEX/cimento
 /PROfit/Elephant_Vanishes/
 
 /sbruce_trees/
+
+/plot_proceeding_ifae/__pycache__
+/plot_proceeding_ifae/final_plots
+/plot_proceeding_ifae/*.pdf
+/plot_proceeding_ifae/*.eps
+/plot_proceeding_ifae/*.png
+/plot_proceeding_ifae/*.pkl
+/plot_proceeding_ifae/*.txt
+
+
+LATEX/proceeding_IFAE/figures/*.eps
