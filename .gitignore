@@ -71,3 +71,11 @@ LATEX/cimento
 
 
 LATEX/proceeding_IFAE/figures/*.eps
+
+LATEX/CV_NicolaSommaggio/CNAME
+LATEX/CV_NicolaSommaggio/Makefile
+LATEX/CV_NicolaSommaggio/README.md
+LATEX/CV_NicolaSommaggio/cv.bbl
+LATEX/CV_NicolaSommaggio/cv.bcf
+LATEX/CV_NicolaSommaggio/cv.run.xml
+LATEX/CV_NicolaSommaggio/index.html
